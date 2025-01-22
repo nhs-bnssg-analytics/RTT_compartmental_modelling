@@ -1,11 +1,11 @@
-# {PROJECT NAME}
-## NHS England Digitial Analytics and Research Team - PhD Internship Project
+# Shiny application of compartmental modelling methodology to support strategic decision making for managing the elective hospital waiting list
+## SW Decision Support Network - NHS England Intelligence and Sinsights Team - NHS Bristol, North Somerset and South Gloucestershire ICB
 
 ### About the Project
 
 [![status: experimental](https://github.com/GIScience/badges/raw/master/status/experimental.svg)](https://github.com/GIScience/badges#experimental)
 
-This repository holds code for the {PROJECT NAME} {SHORT DESCRIPTION}
+This repository holds code for the shiny app to support RTT modelling.  
 
 [Link to original project propsoal](https://nhsx.github.io/nhsx-internship-projects/)
 
@@ -13,14 +13,12 @@ _**Note:** Only public or fake data are shared in this repository._
 
 ### Project Stucture
 
-- The main code is found in the root of the repository (see Usage below for more information)
-- The accompanying [report](./reports/report.pdf) is also available in the `reports` folder
-- More information about the code usage can be found in the [model card](./model_card.md)
-- {OTHER REPO STRUCTURE}
+- The main code follows a Golem methodology for building a shiny app
+- [Link to golem structure](https://engineering-shiny.org/golem.html)
 
 ### Built With
 
-[![Python v3.8](https://img.shields.io/badge/python-v3.8-blue.svg)](https://www.python.org/downloads/release/python-380/)
+[![R v x.x ](https://img.shields.io/badge/python-v3.8-blue.svg)](https://www.python.org/downloads/release/python-380/)
 - {LIST OF MAIN PACKAGE VERSIONS}
 
 ### Getting Started
