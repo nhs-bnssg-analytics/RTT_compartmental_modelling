@@ -9,10 +9,13 @@ Imports:
     bslib,
     config (>= 0.3.2),
     golem (>= 0.4.1),
+    NHSRtt (>= 0.2.0),
     shiny (>= 1.8.1.1)
 Suggests: 
     spelling,
     testthat (>= 3.0.0)
+Remotes:
+    nhs-bnssg-analytics/NHSRtt
 Config/testthat/edition: 3
 Encoding: UTF-8
 Language: en-US
