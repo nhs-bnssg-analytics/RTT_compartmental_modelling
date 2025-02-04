@@ -1,0 +1,20 @@
+Package: RTTshiny
+Title: A Shiny App to support teams to plan to reduce waiting list times
+Version: 0.0.0.9000
+Authors@R: 
+    person("firstname", "lastname", , "your@email.com", role = c("aut", "cre"))
+Description: What the package does (one paragraph).
+License: MIT + file LICENSE
+Imports: 
+    bslib,
+    config (>= 0.3.2),
+    golem (>= 0.4.1),
+    shiny (>= 1.8.1.1)
+Suggests: 
+    spelling,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Encoding: UTF-8
+Language: en-US
+LazyData: true
+RoxygenNote: 7.3.2
