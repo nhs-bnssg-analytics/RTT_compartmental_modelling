@@ -5,10 +5,13 @@ Authors@R:
     person("firstname", "lastname", , "your@email.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
 License: MIT + file LICENSE
+Depends: 
+    R (>= 2.10)
 Imports: 
     bslib,
     config (>= 0.3.2),
     golem (>= 0.4.1),
+    lubridate,
     NHSRtt (>= 0.2.0),
     shiny (>= 1.8.1.1)
 Suggests: 
