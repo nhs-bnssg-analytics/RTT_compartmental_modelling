@@ -52,20 +52,6 @@ mod_02_planner_ui <- function(id){
     uiOutput(
       ns("dynamic_interface")
     )
-
-
-
-    # max_months_waited <- 12 # INPUT
-    # target_waiting_period <- 4 # INPUT
-    # speciatly_filter <- "C_100" # INPUT
-    #
-    #
-    # referral_growth_type <- "uniform" # uniform or linear - INPUT
-    # referral_growth <- 0.01 # INPUT
-    # capacity_growth_type <- "uniform" # uniform or linear - INPUT
-    # capacity_growth <- 0.01 # INPUT
-
-
   )
 
   filters_card <- card(
@@ -136,74 +122,139 @@ mod_02_planner_ui <- function(id){
 
 #' 02_planner Server Functions
 #'
-#' @importFrom shiny observeEvent renderUI dateInput tagList
-#'   numericInput
+#' @importFrom shiny observeEvent renderUI dateInput tagList numericInput
+#'   eventReactive
 #' @importFrom shinyWidgets numericRangeInput
-#' @importFrom NHSRtt get_rtt_data latest_rtt_date
-#' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date
+#' @importFrom NHSRtt get_rtt_data latest_rtt_date convert_months_waited_to_id
+#'   apply_params_to_projections
+#' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
+#' @importFrom stringr str_replace_all
+#' @importFrom dplyr mutate summarise arrange row_number
+#' @importFrom tidyr complete
 #' @noRd
 mod_02_planner_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-
+    # create period_lkp table
     observeEvent(
-      c(input$cal_date,
-        input$forecast_date), {
+      c(input$forecast_date), {
+        max_download_date <- NHSRtt::latest_rtt_date()
+        min_download_date <- lubridate::floor_date(
+          max_download_date,
+          unit = "months"
+        ) %m-% months(11)
 
-          # final calibration period
-          # r$lower_date <- as.Date(input$cal_date[[1]])
-          # r$upper_date <- as.Date(input$cal_date[[2]])
-          r$upper_date <- NHSRtt::latest_rtt_date()
-          r$lower_date <- lubridate::floor_date(
-            r$upper_date,
-            unit = "months"
-          ) %m-% months(11)
-
-          prediction_start <- as.Date(input$forecast_date[[1]])
-          prediction_end <- as.Date(input$forecast_date[[2]])
-
-        }
+        r$period_lkp <- dplyr::tibble(
+          period = seq(
+            from = min_download_date,
+            to = forecast_dates()$end,
+            by = "months"
+          )
+        ) |>
+          mutate(
+            period_id = dplyr::row_number()
+          )
+      },
+      ignoreInit = TRUE
     )
 
 
     observeEvent(
       input$dwnld_rtt_data, {
+
+        max_download_date <- NHSRtt::latest_rtt_date()
+        min_download_date <- lubridate::floor_date(
+          max_download_date,
+          unit = "months"
+        ) %m-% months(11)
+
         r$all_data <- NHSRtt::get_rtt_data(
-          date_start = r$lower_date,
-          date_end = r$upper_date,
+          date_start = min_download_date,
+          date_end = max_download_date,
           # trust_parent_codes = input$trust_parent_codes,
-          trust_codes = input$trust_codes,
+          trust_codes = names(trust_lkp[trust_lkp %in% input$trust_codes]),
           # commissioner_parent_codes = input$commissioner_parent_codes,
           # commissioner_org_codes = input$commissioner_org_codes,
-          specialty_codes = input$specialty_codes
-        )
-      }
+          specialty_codes = specialty_lkp |>
+            filter(Treatment.Function.Name %in% input$specialty_codes) |>
+            pull(Treatment.Function.Code)
+        ) |>
+          summarise(
+            value = sum(value),
+            .by = c(
+              trust, specialty, period, months_waited, type
+            )
+          ) |>
+          mutate(
+            months_waited_id = NHSRtt::convert_months_waited_to_id(
+              months_waited,
+              12 # this pools the data at 12+ months (this can be a user input in the future)
+            ),
+            trust = stringr::str_replace_all(
+              trust,
+              trust_lkp
+            ),
+            specialty = stringr::str_replace_all(
+              specialty,
+              treatment_function_codes
+            )
+          ) |>
+          summarise(
+            value = sum(value),
+            .by = c(
+              trust,
+              specialty,
+              period,
+              type,
+              months_waited_id
+            )
+          ) |>
+          arrange(
+            trust,
+            specialty,
+            type,
+            months_waited_id,
+            period
+          ) |>
+          tidyr::complete(
+            specialty = input$specialty_codes,
+            type = c("Complete", "Incomplete"),
+            months_waited_id,
+            period = seq(
+              from = min_download_date,
+              to = lubridate::floor_date(max_download_date, unit = "months"),
+              by = "months"
+            ),
+            trust,
+            fill = list(value = 0)
+          ) |>
+          tidyr::complete(
+            specialty = input$specialty_codes,
+            type = "Referrals",
+            months_waited_id = 0,
+            period = seq(
+              from = min_download_date,
+              to = lubridate::floor_date(max_download_date, unit = "months"),
+              by = "months"
+            ),
+            trust,
+            fill = list(value = 0)
+          ) |>
+          mutate(
+            period_id = dplyr::row_number(), # we need period_id for later steps
+            .by = c(
+              trust,
+              specialty,
+              type,
+              months_waited_id
+            )
+          )
+      },
+      ignoreInit = TRUE
     )
-
 
 # dynamic UI --------------------------------------------------------------
-
-    # here, we force the target achievement date to fit into the forecast time period
-    target_dates <- reactive({
-      min_date <- as.Date(input$forecast_date[[1]]) %m+% months(1)
-      max_date <- as.Date(input$forecast_date[[2]])
-
-      target_dates <- list(
-        min = min_date,
-        max = max_date
-      )
-    })
-
-    output$target_achievement_date <- shiny::renderUI(
-      dateInput(
-        inputId = ns("target_achievement_date"),
-        label = "Select date to achieve target by",
-        min = target_dates()$min,
-        max =  target_dates()$max,
-        value = target_dates()$max
-      )
-    )
 
     # create forecast horizon default dates
     forecast_dates <- reactive({
@@ -227,6 +278,27 @@ mod_02_planner_server <- function(id, r){
         min = "2016-05-01",
         start = forecast_dates()$start,
         end = forecast_dates()$end
+      )
+    )
+
+    # here, we force the target achievement date to fit into the forecast time period
+    target_dates <- reactive({
+      min_date <- as.Date(input$forecast_date[[1]]) %m+% months(1)
+      max_date <- as.Date(input$forecast_date[[2]])
+
+      target_dates <- list(
+        min = min_date,
+        max = max_date
+      )
+    })
+
+    output$target_achievement_date <- shiny::renderUI(
+      dateInput(
+        inputId = ns("target_achievement_date"),
+        label = "Select date to achieve target by",
+        min = target_dates()$min,
+        max =  target_dates()$max,
+        value = target_dates()$max
       )
     )
 
@@ -260,10 +332,11 @@ mod_02_planner_server <- function(id, r){
             max = 3, #this is arbitrary
             step = 0.05
           ),
-          actionButton(
-            inputId = ns("optimise_capacity"),
+          bslib::input_task_button(
+            id = ns("optimise_capacity"),
             label = "Run capacity optimisation",
-
+            label_busy = "Forecasting...",
+            type = "secondary"
           )
         )
 
@@ -293,11 +366,17 @@ mod_02_planner_server <- function(id, r){
             max = 3, #this is arbitrary
             step = 0.05
           ),
-          actionButton(
-            inputId = ns("calculate_performance"),
+          bslib::input_task_button(
+            id = ns("calculate_performance"),
             label = "Calculate future performance",
-
+            label_busy = "Forecasting...",
+            type = "secondary"
           )
+          # actionButton(
+          #   inputId = ns("calculate_performance"),
+          #   label = "Calculate future performance",
+          #
+          # )
         )
       }
     })
@@ -305,8 +384,74 @@ mod_02_planner_server <- function(id, r){
 
 # Forecast performance based on capacity inputs ---------------------------
 
+    observeEvent(
+      c(input$calculate_performance) , {
 
+        params <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12
+        )
 
+        forecast_months <- lubridate::interval(
+          as.Date(input$forecast_date[[1]]),
+          as.Date(input$forecast_date[[2]])
+        ) %/% months(1)
+
+        projections_referrals <- r$all_data |>
+          filter(
+            type == "Referrals"
+          ) |>
+          forecast_function(
+            number_timesteps = forecast_months - 1,
+            method = input$referral_growth_type,
+            percent_change = input$referral_growth
+          )
+
+        projections_capacity <- r$all_data |>
+          filter(
+            type == "Complete"
+          ) |>
+          summarise(
+            value = sum(value),
+            .by = c(
+              specialty, trust, type, period, period_id
+            )
+          ) |>
+          forecast_function(
+            number_timesteps = forecast_months - 1,
+            method = input$capacity_growth_type,
+            percent_change = input$capacity_growth
+          )
+
+        t0_incompletes <- r$all_data |>
+          filter(
+            type == "Incomplete",
+            period == max(period)
+          ) |>
+          select(
+            months_waited_id,
+            incompletes = "value"
+          )
+
+        r$waiting_list <- NHSRtt::apply_params_to_projections(
+          capacity_projections = projections_capacity,
+          referrals_projections = projections_referrals,
+          incomplete_pathways = t0_incompletes,
+          renege_capacity_params = params$params[[1]],
+          max_months_waited = 12
+        ) |>
+          mutate(
+            period_id = period_id + max(r$all_data$period_id)
+          ) |>
+          left_join(
+            r$period_lkp,
+            by = join_by(
+              period_id
+            )
+          )
+      },
+      ignoreInit = TRUE
+    )
   })
 }
 

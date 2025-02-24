@@ -57,8 +57,8 @@ app_ui <- function(request) {
           mod_02_planner_ui("02_planner_1")
         ),
         nav_panel(
-          title = "Background",
-          mod_03_background_ui("03_background_1")
+          title = "Results",
+          mod_03_results_ui("03_results_1")
         ),
         nav_spacer(),
         nav_menu(

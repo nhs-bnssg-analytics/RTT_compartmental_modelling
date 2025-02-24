@@ -8,12 +8,19 @@ License: MIT + file LICENSE
 Depends: 
     R (>= 2.10)
 Imports: 
+    broom,
     bslib,
     config (>= 0.3.2),
+    dplyr,
+    DT,
     golem (>= 0.4.1),
     lubridate,
     NHSRtt (>= 0.2.0),
-    shiny (>= 1.8.1.1)
+    purrr,
+    shiny (>= 1.8.1.1),
+    shinyWidgets,
+    stringr,
+    tidyr
 Suggests: 
     spelling,
     testthat (>= 3.0.0)

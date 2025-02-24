@@ -11,5 +11,5 @@ app_server <- function(input, output, session) {
 
   mod_01_introduction_server("01_introduction_1")
   mod_02_planner_server("02_planner_1", r = r)
-  mod_03_background_server("03_background_1")
+  mod_03_results_server("03_results_1", r = r)
 }

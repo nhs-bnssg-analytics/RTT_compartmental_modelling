@@ -41,9 +41,38 @@ treatment_function_codes <- c(
   "C_999" = "Total"
 )
 
+specialty_lkp <- dplyr::tribble(
+  ~Treatment.Function.Code,            ~Treatment.Function.Name,
+  "C_100",           "General Surgery",
+  "C_101",                   "Urology",
+  "C_110",    "Trauma and Orthopaedic",
+  "C_120",       "Ear Nose and Throat",
+  "C_130",             "Ophthalmology",
+  "C_140",              "Oral Surgery",
+  "C_150",             "Neurosurgical",
+  "C_160",           "Plastic Surgery",
+  "C_170",    "Cardiothoracic Surgery",
+  "C_300", "General Internal Medicine",
+  "C_301",          "Gastroenterology",
+  "C_320",                "Cardiology",
+  "C_330",               "Dermatology",
+  "C_340",      "Respiratory Medicine",
+  "C_400",                 "Neurology",
+  "C_410",              "Rheumatology",
+  "C_430",          "Elderly Medicine",
+  "C_502",               "Gynaecology",
+  "C_999",                             "Total",
+  "X02",          "Other",
+  "X03",    "Other",
+  "X04",       "Other",
+  "X05",         "Other",
+  "X06",            "Other"
+)
+
 usethis::use_data(
   trust_lkp,
   treatment_function_codes,
+  specialty_lkp,
   internal = TRUE,
   overwrite = TRUE
 )
