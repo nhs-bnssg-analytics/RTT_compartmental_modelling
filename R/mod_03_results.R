@@ -24,6 +24,16 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
+        title = "Calibration data",
+        card(
+          card_body(
+            DT::DTOutput(
+              ns("calib_data")
+            )
+          )
+        )
+      ),
+      nav_panel(
         title = "One",
         p("Second tab content."),
         # plotOutput(
@@ -49,6 +59,10 @@ mod_03_results_server <- function(id, r){
 
     output$scenario_projections <- DT::renderDT({
       r$waiting_list
+    })
+
+    output$calib_data <- DT::renderDT({
+      r$calibration_data
     })
 
     ## Create plots here
