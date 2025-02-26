@@ -57,7 +57,7 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
       mutate(
         period_id = case_when(
           period_id == "first" ~ 1,
-          period_id == "final" ~ 12,
+          period_id == "final" ~ 13, # this needs to align with NHSRtt
           .default = NA_real_
         )
       ) %>%

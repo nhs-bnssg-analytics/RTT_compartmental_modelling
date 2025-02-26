@@ -143,7 +143,7 @@ create_modelling_data <- function(data, max_months_waited = 12) {
 #'   parameters data
 #'
 #' @noRd
-calibrate_parameters <- function(rtt_data, max_months_waited = 12) {
+calibrate_parameters <- function(rtt_data, max_months_waited = 12, full_breakdown = FALSE) {
 
   params <- create_modelling_data(rtt_data) |>
     mutate(
@@ -159,11 +159,17 @@ calibrate_parameters <- function(rtt_data, max_months_waited = 12) {
           incompletes = incomp,
           max_months_waited = max_months_waited,
           redistribute_m0_reneges = FALSE,
-          full_breakdown = FALSE
+          full_breakdown = full_breakdown
         )
       )
-    ) |>
-    select(
-      trust, specialty, params
     )
+
+  if (full_breakdown == FALSE) {
+    params <- params |>
+      select(
+        trust, specialty, params
+      )
+  }
+
+  return(params)
 }

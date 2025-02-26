@@ -48,7 +48,9 @@ mod_03_results_server <- function(id, r){
     ns <- session$ns
 
     output$scenario_projections <- DT::renderDT({
+
       r$waiting_list
+
     })
 
     ## Create plots here

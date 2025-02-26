@@ -9,112 +9,140 @@
 #' @importFrom shiny NS tagList uiOutput radioButtons numericInput
 #'   dateRangeInput dateInput selectInput
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
-#'   bs_theme page_fluid
+#'   bs_theme page_fluid card_body layout_columns tooltip
+#' @importFrom bsicons bs_icon
 mod_02_planner_ui <- function(id){
   ns <- NS(id)
 
-  # date card
-  scenario_card <- card(
-    card_header("Select dates for analysis and forecasting"),
-
-    # dateRangeInput(
-    #   inputId = ns("cal_date"),
-    #   label = "Calibration date range:",
-    #   min = "2016-03-01",
-    #   start = "2023-12-01",
-    #   end = "2024-11-30"
-    # ),
-    uiOutput(
-      ns("forecast_horizon")
-    ),
-    numericInput(
-      inputId = ns("referral_growth"),
-      label = "Percentage change in referrals (between -20% and 200%)",
-      value = 0,
-      min = -20,
-      max = 200
-    ),
-    radioButtons(
-      inputId = ns("referral_growth_type"),
-      label = "Select type of referral change:",
-      choices = c("Uniform", "Linear"),
-      selected = "Linear"#,
-      # choiceNames = c("Uplift referrals uniformly", "Uplift referrals to change by a percentage (linearly) by the end of the time period"),
-      # choiceValues = c("uniform", "linear")
-    ),
-    selectInput(
-      inputId = ns("interface_choice"),
-      label = "Select scenario type",
-      choices = c(
-        "Estimate performance" = "performance",
-        "Estimate capacity" = "capacity")
-    ),
-    uiOutput(
-      ns("dynamic_interface")
-    )
-  )
-
   filters_card <- card(
     card_header("Select filters on data"),
-    # selectInput(
-    #   inputId = ns("trust_parent_codes"),
-    #   label = "Select trust parent codes",
-    #   choices = c("QE1", "QUY"),
-    #   multiple = TRUE
-    # ),
-    # selectInput(
-    #   inputId = ns("commissioner_parent_codes"),
-    #   label = "Select commissioner parent codes",
-    #   choices = c("QE1", "QUY"),
-    #   multiple = TRUE
-    # ),
-    # selectInput(
-    #   inputId = ns("commissioner_org_codes"),
-    #   label = "Select commissioner org codes",
-    #   choices = c("00R", "15M"),
-    #   multiple = TRUE
-    # ),
-    selectInput(
-      inputId = ns("trust_codes"),
-      label = "Select trust codes",
-      choices = unname(trust_lkp),
-      multiple = FALSE
-    ),
-    selectInput(
-      inputId = ns("specialty_codes"),
-      label = "Select specialty codes",
-      choices = unname(treatment_function_codes),
-      multiple = FALSE
-    ),
-    bslib::input_task_button(
-      id = ns("dwnld_rtt_data"),
-      label = "Download RTT data",
-      label_busy = "Downloading...",
-      type = "secondary"
+    card_body(
+      min_height = 600,
+      # selectInput(
+      #   inputId = ns("trust_parent_codes"),
+      #   label = "Select trust parent codes",
+      #   choices = c("QE1", "QUY"),
+      #   multiple = TRUE
+      # ),
+      # selectInput(
+      #   inputId = ns("commissioner_parent_codes"),
+      #   label = "Select commissioner parent codes",
+      #   choices = c("QE1", "QUY"),
+      #   multiple = TRUE
+      # ),
+      # selectInput(
+      #   inputId = ns("commissioner_org_codes"),
+      #   label = "Select commissioner org codes",
+      #   choices = c("00R", "15M"),
+      #   multiple = TRUE
+      # ),
+      selectInput(
+        inputId = ns("trust_codes"),
+        label = "Select trust codes",
+        choices = unname(trust_lkp),
+        multiple = FALSE
+      ),
+      selectInput(
+        inputId = ns("specialty_codes"),
+        label = "Select specialty codes",
+        choices = unname(treatment_function_codes),
+        multiple = FALSE
+      ),
+      bslib::input_task_button(
+        id = ns("dwnld_rtt_data"),
+        label = "Download RTT data",
+        label_busy = "Downloading...",
+        type = "secondary"
+      )
     )
   )
 
-  # configuration card
-  selector_card <- card(
-    card_header(
-      "Make selections"
+  scenario_card <- card(
+    card_header("Select dates for analysis and forecasting"),
+    card_body(
+      class = "inline",
+      uiOutput(
+        ns("forecast_horizon")
+      ),
+      layout_columns(
+        col_widths = c(3, 4),
+        span("Percentage change in referrals (between -20% and 200%):"),
+        numericInput(
+          inputId = ns("referral_growth"),
+          label = NULL,
+          value = 0,
+          min = -20,
+          max = 200
+        ),
+        fill = FALSE
+      ),
+      layout_columns(
+        col_widths = c(3, 4),
+        span(
+          "Select type of referral change:",
+          tooltip(
+            bsicons::bs_icon("question-circle"),
+            "Mass measured in grams.",
+            placement = "right"
+          )
+        ),
+        radioButtons(
+          inputId = ns("referral_growth_type"),
+          label = NULL,
+          choices = c("Uniform", "Linear"),
+          selected = "Linear"#,
+          # choiceNames = c("Uplift referrals uniformly", "Uplift referrals to change by a percentage (linearly) by the end of the time period"),
+          # choiceValues = c("uniform", "linear")
+        ),
+        fill = FALSE
+      )
     ),
-    filters_card,
-    scenario_card
-
+    # Horizontal divider line
+    hr(),
+    card_body(
+      layout_columns(
+        col_widths = c(3, 4),
+        span(
+          "Select scenario type:",
+          tooltip(
+            bsicons::bs_icon("question-circle"),
+            "Mass measured in grams.",
+            placement = "right"
+          )
+        ),
+        selectInput(
+          inputId = ns("interface_choice"),
+          label = NULL,
+          choices = c(
+            "Select..." = "select",
+            "Estimate performance (from capacity inputs)" = "capacity_inputs",
+            "Estimate capacity (from performance targets)" = "performance_inputs"
+          ),
+          multiple = FALSE
+        ),
+        fill = FALSE
+      ),
+      uiOutput(
+        ns("dynamic_interface")
+      )
+    ),
+    fill = FALSE,
+    min_height = 650
   )
-
 
   tagList(
     bslib::page_fluid(
       theme = bslib::bs_theme(version = 5),
-      # bslib::layout_sidebar(
-      #   sidebar = sidebar(
-          selector_card
-      #     open = TRUE,
-      #     width = '25%'
-      #   )
-      # )
+      bslib::layout_sidebar(
+        sidebar = sidebar(
+          filters_card,
+          open = TRUE,
+          width = '25%'
+        ),
+        scenario_card,
+        fill = FALSE,
+        fillable = FALSE
+      )
     )
 
   )
@@ -126,15 +154,25 @@ mod_02_planner_ui <- function(id){
 #'   eventReactive
 #' @importFrom shinyWidgets numericRangeInput
 #' @importFrom NHSRtt get_rtt_data latest_rtt_date convert_months_waited_to_id
-#'   apply_params_to_projections
+#'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom stringr str_replace_all
-#' @importFrom dplyr mutate summarise arrange row_number
-#' @importFrom tidyr complete
+#' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
+#'   join_by bind_rows
+#' @importFrom tidyr complete unnest
+#' @importFrom purrr map2 map
+#' @importFrom bsicons bs_icon
+#' @importFrom bslib tooltip
 #' @noRd
 mod_02_planner_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
+
+    reactive_values <- reactiveValues()
+
+    reactive_values$data_downloaded <- FALSE
+    reactive_values$params <- NULL
+    reactive_values$calibration_data <- NULL
 
     # create period_lkp table
     observeEvent(
@@ -167,7 +205,8 @@ mod_02_planner_server <- function(id, r){
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        ) %m-% months(11)
+        # ) %m-% months(11) # SWAP BACK FOR LIVE VERSION
+        ) %m-% months(1)
 
         r$all_data <- NHSRtt::get_rtt_data(
           date_start = min_download_date,
@@ -250,6 +289,38 @@ mod_02_planner_server <- function(id, r){
               months_waited_id
             )
           )
+
+        reactive_values$data_downloaded <- TRUE
+
+        reactive_values$params <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12
+        )
+
+
+        # data frame of counts by period which get supplied to the 3rd module
+        # for charting
+        reactive_values$calibration_data <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12,
+          full_breakdown = TRUE
+        ) |>
+          select(
+            "params"
+          ) |>
+          tidyr::unnest(params) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            calculated_treatments = "treatments",
+            "reneges",
+            incompletes = "waiting_same_node"
+          ) |>
+          dplyr::mutate(
+            capacity_skew = 1,
+            period_type = "Observed"
+          )
+
       },
       ignoreInit = TRUE
     )
@@ -272,12 +343,17 @@ mod_02_planner_server <- function(id, r){
 
 
     output$forecast_horizon <- shiny::renderUI(
-      dateRangeInput(
-        inputId = ns("forecast_date"),
-        label = "Forecast horizon date range:",
-        min = "2016-05-01",
-        start = forecast_dates()$start,
-        end = forecast_dates()$end
+      layout_columns(
+        col_widths = c(3, 4),
+        span("Forecast horizon date range:"),
+        dateRangeInput(
+          inputId = ns("forecast_date"),
+          label = NULL,
+          min = "2016-05-01",
+          start = forecast_dates()$start,
+          end = forecast_dates()$end
+        ),
+        fill = FALSE
       )
     )
 
@@ -293,90 +369,185 @@ mod_02_planner_server <- function(id, r){
     })
 
     output$target_achievement_date <- shiny::renderUI(
-      dateInput(
-        inputId = ns("target_achievement_date"),
-        label = "Select date to achieve target by",
-        min = target_dates()$min,
-        max =  target_dates()$max,
-        value = target_dates()$max
+      layout_columns(
+        col_widths = c(3, 4),
+        span(
+          "Select date to achieve target by:",
+          tooltip(
+            bsicons::bs_icon("question-circle"),
+            "Mass measured in grams.",
+            placement = "right"
+          )
+        ),
+        dateInput(
+          inputId = ns("target_achievement_date"),
+          label = NULL,
+          min = target_dates()$min,
+          max =  target_dates()$max,
+          value = target_dates()$max
+        ),
+        fill = FALSE
       )
     )
 
 
+# make buttons appear if the data has already been downloaded
+    output$optimise_capacity_ui <- renderUI({
+      if (isTRUE(reactive_values$data_downloaded)) {
+        bslib::input_task_button(
+          id = ns("optimise_capacity"),
+          label = "Run capacity optimisation",
+          label_busy = "Forecasting...",
+          type = "secondary"
+        )
+      }
+    })
+
+    output$calculate_performance_ui <- renderUI({
+      if (isTRUE(reactive_values$data_downloaded)) {
+        bslib::input_task_button(
+          id = ns("calculate_performance"),
+          label = "Calculate future performance",
+          label_busy = "Forecasting...",
+          type = "secondary"
+        )
+      }
+    })
 
     # Generate the dynamic UI based on dropdown selection
     output$dynamic_interface <- renderUI({
-      if (input$interface_choice == "performance") {
+      r$waiting_list <- dplyr::tibble()
+
+      if (input$interface_choice == "select") {
+        tagList()
+      } else if (input$interface_choice == "performance_inputs") {
         # Numeric interface
         tagList(
           uiOutput(
             ns("target_achievement_date")
           ),
-          # dateInput(
-          #   inputId = ns("target_achievement_date"),
-          #   label = "Achieve target by"
-          # ),
-          numericInput(
-            # INPUT (note, the package requires the 100% - x of this value, eg, 65% performance = a target_value of 35%)
-            inputId = ns("target_value"),
-            label = "Target percentage (between 0% and 100%)",
-            min = 0,
-            max = 100,
-            value = 70
+          layout_columns(
+            col_widths = c(3, 4),
+            span(
+              "Target percentage (between 0% and 100%):",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
+            numericInput(
+              # INPUT (note, the package requires the 100% - x of this value, eg, 65% performance = a target_value of 35%)
+              inputId = ns("target_value"),
+              label = NULL,
+              min = 0,
+              max = 100,
+              value = 70
+            ),
+            fill = FALSE
           ),
-          numericRangeInput(
-            inputId = ns("capacity_skew_range"),
-            label = "Select range of capacity skews",
-            value = c(0.8, 1.2),
-            min = 0.1,
-            max = 3, #this is arbitrary
-            step = 0.05
+          layout_columns(
+            col_widths = c(3, 4),
+            span(
+              "Select type of capacity change:",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
+            radioButtons(
+              inputId = ns("optimised_capacity_growth_type"),
+              label = NULL,
+              choices = c("Uniform", "Linear"),
+              selected = "Linear"#,
+              # choiceNames = c("Uplift referrals uniformly", "Uplift referrals to change by a percentage (linearly) by the end of the time period"),
+              # choiceValues = c("uniform", "linear")
+            ),
+            fill = FALSE
           ),
-          bslib::input_task_button(
-            id = ns("optimise_capacity"),
-            label = "Run capacity optimisation",
-            label_busy = "Forecasting...",
-            type = "secondary"
+          layout_columns(
+            col_widths = c(3, 4),
+            span(
+              "Select range of capacity skews:",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
+            numericRangeInput(
+              inputId = ns("capacity_skew_range"),
+              label = NULL,
+              value = c(0.8, 1.2),
+              min = 0.1,
+              max = 3, #this is arbitrary
+              step = 0.05
+            ),
+            fill = FALSE
+          ),
+          uiOutput(
+            ns("optimise_capacity_ui")
           )
         )
-
-      } else if (input$interface_choice == "capacity") {
+      } else if (input$interface_choice == "capacity_inputs") {
         # Text interface
         tagList(
-          numericInput(
-            inputId = ns("capacity_growth"),
-            label = "Percentage change for capacity (between -20% and 20%)",
-            value = 0,
-            min = -20,
-            max = 200
+          layout_columns(
+            col_widths = c(3, 4),
+            span("Percentage change for capacity (between -20% and 20%):"),
+            numericInput(
+              inputId = ns("capacity_growth"),
+              label = NULL,
+              value = 0,
+              min = -20,
+              max = 200
+            ),
+            fill = FALSE
           ),
-          radioButtons(
-            inputId = ns("capacity_growth_type"),
-            label = "Select type of capacity change:",
-            choices = c("Uniform", "Linear"),
-            selected = "Linear"#,
-            # choiceNames = c("Uplift referrals uniformly", "Uplift referrals to change by a percentage (linearly) by the end of the time period"),
-            # choiceValues = c("uniform", "linear")
+          layout_columns(
+            col_widths = c(3, 4),
+            span(
+              "Select type of capacity change:",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
+            radioButtons(
+              inputId = ns("capacity_growth_type"),
+              label = NULL,
+              choices = c("Uniform", "Linear"),
+              selected = "Linear"#,
+              # choiceNames = c("Uplift referrals uniformly", "Uplift referrals to change by a percentage (linearly) by the end of the time period"),
+              # choiceValues = c("uniform", "linear")
+            ),
+            fill = FALSE
           ),
-          numericInput(
-            inputId = ns("capacity_skew"),
-            label = "Enter capacity utilisation skew",
-            value = 1,
-            min = 0.1,
-            max = 3, #this is arbitrary
-            step = 0.05
+          layout_columns(
+            col_widths = c(3, 4),
+            span(
+              "Enter capacity utilisation skew:",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
+            numericInput(
+              inputId = ns("capacity_skew"),
+              label = NULL,
+              value = 1,
+              min = 0.1,
+              max = 3, #this is arbitrary
+              step = 0.05
+            ),
+            fill = FALSE
           ),
-          bslib::input_task_button(
-            id = ns("calculate_performance"),
-            label = "Calculate future performance",
-            label_busy = "Forecasting...",
-            type = "secondary"
+          uiOutput(
+            ns("calculate_performance_ui")
           )
-          # actionButton(
-          #   inputId = ns("calculate_performance"),
-          #   label = "Calculate future performance",
-          #
-          # )
         )
       }
     })
@@ -386,11 +557,6 @@ mod_02_planner_server <- function(id, r){
 
     observeEvent(
       c(input$calculate_performance) , {
-
-        params <- calibrate_parameters(
-          r$all_data,
-          max_months_waited = 12
-        )
 
         forecast_months <- lubridate::interval(
           as.Date(input$forecast_date[[1]]),
@@ -437,11 +603,25 @@ mod_02_planner_server <- function(id, r){
           capacity_projections = projections_capacity,
           referrals_projections = projections_referrals,
           incomplete_pathways = t0_incompletes,
-          renege_capacity_params = params$params[[1]],
+          renege_capacity_params = reactive_values$params$params[[1]] |>
+            mutate(
+              capacity_param = NHSRtt::apply_parameter_skew(
+                capacity_param,
+                skew = input$capacity_skew
+              )
+            ),
           max_months_waited = 12
         ) |>
           mutate(
-            period_id = period_id + max(r$all_data$period_id)
+            period_id = period_id + max(r$all_data$period_id),
+            capacity_skew = input$capacity_skew,
+            period_type = "Projected"
+          ) |>
+          dplyr::bind_rows(
+            reactive_values$calibration_data
+          ) |>
+          dplyr::arrange(
+            period_id
           ) |>
           left_join(
             r$period_lkp,
@@ -452,12 +632,166 @@ mod_02_planner_server <- function(id, r){
       },
       ignoreInit = TRUE
     )
+
+    observeEvent(
+      c(input$optimise_capacity), {
+
+        if (isTRUE(reactive_values$data_downloaded)) {
+          skew <- dplyr::tibble(
+            skew_param = seq(
+              from = min(input$capacity_skew_range),
+              to = max(input$capacity_skew_range),
+              by = 0.05
+            )
+          )
+
+          forecast_months_to_target <- lubridate::interval(
+            as.Date(input$forecast_date[[1]]),
+            as.Date(input$target_achievement_date)
+          ) %/% months(1)
+
+          projections_referrals <- r$all_data |>
+            filter(
+              type == "Referrals"
+            ) |>
+            forecast_function(
+              number_timesteps = forecast_months_to_target - 1,
+              method = input$referral_growth_type,
+              percent_change = input$referral_growth
+            )
+
+          t1_capacity <- r$all_data |>
+            filter(
+              type == "Complete"
+            ) |>
+            summarise(
+              value = sum(value),
+              .by = c(
+                specialty, trust, type, period, period_id
+              )
+            ) |>
+            calculate_t1_value()
+
+          t0_incompletes <- r$all_data |>
+            filter(
+              type == "Incomplete",
+              period == max(period)
+            ) |>
+            select(
+              months_waited_id,
+              incompletes = "value"
+            )
+
+          skewed_params <- reactive_values$params |>
+            dplyr::cross_join(
+              skew
+            ) |>
+            mutate(
+              params = purrr::map2(
+                .x = params,
+                .y = skew_param,
+                \(x, y) x |>
+                  mutate(
+                    capacity_param = NHSRtt::apply_parameter_skew(
+                      params = capacity_param,
+                      skew = y
+                    )
+                  )
+              )
+            )
+
+          if (input$optimised_capacity_growth_type == "Uniform") {
+            cap_prof <- "flat"
+          } else if (input$optimised_capacity_growth_type == "Linear") {
+            cap_prof <- "linear_change"
+          }
+
+          # calculate optimised uplift
+          min_uplift <- skewed_params |>
+            mutate(
+              uplift = purrr::map(
+                .x = params,
+                ~ optimise_capacity(
+                  t_1_capacity = t1_capacity,
+                  referrals_projections = projections_referrals,
+                  incomplete_pathways = t0_incompletes,
+                  renege_capacity_params = .x,
+                  target = paste0(1 - (input$target_value / 100), "%"),
+                  target_bin = 4,
+                  capacity_profile = cap_prof,
+                  tolerance = 0.001,
+                  max_iterations = 35
+                )
+              ),
+              status = names(unlist(uplift)),
+              uplift = as.numeric(uplift)
+            ) |>
+            filter(
+              uplift == min(uplift)
+            )
+
+          # forecast future waiting list based on uplifted numbers
+
+          forecast_months <- lubridate::interval(
+            as.Date(input$forecast_date[[1]]),
+            as.Date(input$forecast_date[[2]])
+          ) %/% months(1)
+
+          projections_referrals <- r$all_data |>
+            filter(
+              type == "Referrals"
+            ) |>
+            forecast_function(
+              number_timesteps = forecast_months - 1,
+              method = input$referral_growth_type,
+              percent_change = input$referral_growth
+            )
+
+          projections_capacity <- r$all_data |>
+            filter(
+              type == "Complete"
+            ) |>
+            summarise(
+              value = sum(value),
+              .by = c(
+                specialty, trust, type, period, period_id
+              )
+            ) |>
+            forecast_function(
+              number_timesteps = forecast_months - 1,
+              method = input$optimised_capacity_growth_type,
+              percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
+            )
+
+          r$waiting_list <- NHSRtt::apply_params_to_projections(
+            capacity_projections = projections_capacity,
+            referrals_projections = projections_referrals,
+            incomplete_pathways = t0_incompletes,
+            renege_capacity_params = min_uplift$params[[1]],
+            max_months_waited = 12
+          ) |>
+            dplyr::mutate(
+              period_id = period_id + max(r$all_data$period_id),
+              capacity_skew = min_uplift$skew_param,
+              period_type = "Projected"
+            ) |>
+            dplyr::bind_rows(
+              reactive_values$calibration_data
+            ) |>
+            dplyr::arrange(
+              period_id
+            ) |>
+            dplyr::left_join(
+              r$period_lkp,
+              by = join_by(
+                period_id
+              )
+            )
+        }
+      }
+    )
+
   })
 }
 
-## To be copied in the UI
-# mod_02_planner_ui("02_planner_1")
-
-## To be copied in the server
-# mod_02_planner_server("02_planner_1")
 
