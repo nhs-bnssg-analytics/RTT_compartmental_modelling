@@ -60,13 +60,6 @@ mod_02_planner_ui <- function(id){
     card_header("Select dates for analysis and forecasting"),
     card_body(
       class = "inline",
-      # dateRangeInput(
-      #   inputId = ns("cal_date"),
-      #   label = "Calibration date range:",
-      #   min = "2016-03-01",
-      #   start = "2023-12-01",
-      #   end = "2024-11-30"
-      # ),
       uiOutput(
         ns("forecast_horizon")
       ),
@@ -141,15 +134,20 @@ mod_02_planner_ui <- function(id){
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom stringr str_replace_all
-#' @importFrom dplyr mutate summarise arrange row_number cross_join
-#' @importFrom tidyr complete
+#' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
+#'   join_by bind_rows
+#' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
 #' @noRd
 mod_02_planner_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    r$data_downloaded <- FALSE
+    reactive_values <- reactiveValues()
+
+    reactive_values$data_downloaded <- FALSE
+    reactive_values$params <- NULL
+    reactive_values$calibration_data <- NULL
 
     # create period_lkp table
     observeEvent(
@@ -182,7 +180,8 @@ mod_02_planner_server <- function(id, r){
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        ) %m-% months(11)
+        # ) %m-% months(11) # SWAP BACK FOR LIVE VERSION
+        ) %m-% months(1)
 
         r$all_data <- NHSRtt::get_rtt_data(
           date_start = min_download_date,
@@ -266,20 +265,37 @@ mod_02_planner_server <- function(id, r){
             )
           )
 
-        r$data_downloaded <- TRUE
+        reactive_values$data_downloaded <- TRUE
 
-        r$params <- calibrate_parameters(
+        reactive_values$params <- calibrate_parameters(
           r$all_data,
           max_months_waited = 12
         )
 
+
         # data frame of counts by period which get supplied to the 3rd module
         # for charting
-        r$calibration_data <- calibrate_parameters(
+        reactive_values$calibration_data <- calibrate_parameters(
           r$all_data,
           max_months_waited = 12,
           full_breakdown = TRUE
-        )
+        ) |>
+          select(
+            "params"
+          ) |>
+          tidyr::unnest(params) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            calculated_treatments = "treatments",
+            "reneges",
+            incompletes = "waiting_same_node"
+          ) |>
+          dplyr::mutate(
+            capacity_skew = 1,
+            period_type = "Observed"
+          )
+
       },
       ignoreInit = TRUE
     )
@@ -344,8 +360,8 @@ mod_02_planner_server <- function(id, r){
 
 
 # make buttons appear if the data has already been downloaded
-    output$optimise_capacity <- renderUI({
-      if (isTRUE(r$data_downloaded)) {
+    output$optimise_capacity_ui <- renderUI({
+      if (isTRUE(reactive_values$data_downloaded)) {
         bslib::input_task_button(
           id = ns("optimise_capacity"),
           label = "Run capacity optimisation",
@@ -355,8 +371,8 @@ mod_02_planner_server <- function(id, r){
       }
     })
 
-    output$calculate_performance <- renderUI({
-      if (isTRUE(r$data_downloaded)) {
+    output$calculate_performance_ui <- renderUI({
+      if (isTRUE(reactive_values$data_downloaded)) {
         bslib::input_task_button(
           id = ns("calculate_performance"),
           label = "Calculate future performance",
@@ -368,6 +384,8 @@ mod_02_planner_server <- function(id, r){
 
     # Generate the dynamic UI based on dropdown selection
     output$dynamic_interface <- renderUI({
+      r$waiting_list <- dplyr::tibble()
+
       if (input$interface_choice == "select") {
         tagList()
       } else if (input$interface_choice == "performance_inputs") {
@@ -416,7 +434,7 @@ mod_02_planner_server <- function(id, r){
             fill = FALSE
           ),
           uiOutput(
-            ns("optimise_capacity")
+            ns("optimise_capacity_ui")
           )
         )
       } else if (input$interface_choice == "capacity_inputs") {
@@ -461,7 +479,7 @@ mod_02_planner_server <- function(id, r){
             fill = FALSE
           ),
           uiOutput(
-            ns("calculate_performance")
+            ns("calculate_performance_ui")
           )
         )
       }
@@ -470,81 +488,80 @@ mod_02_planner_server <- function(id, r){
 
 # Forecast performance based on capacity inputs ---------------------------
 
-    waiting_list_reactive <- reactiveVal(NULL)
-
     observeEvent(
       c(input$calculate_performance) , {
 
-        browser()
-          forecast_months <- lubridate::interval(
-            as.Date(input$forecast_date[[1]]),
-            as.Date(input$forecast_date[[2]])
-          ) %/% months(1)
+        forecast_months <- lubridate::interval(
+          as.Date(input$forecast_date[[1]]),
+          as.Date(input$forecast_date[[2]])
+        ) %/% months(1)
 
-          projections_referrals <- r$all_data |>
-            filter(
-              type == "Referrals"
-            ) |>
-            forecast_function(
-              number_timesteps = forecast_months - 1,
-              method = input$referral_growth_type,
-              percent_change = input$referral_growth
-            )
-
-          projections_capacity <- r$all_data |>
-            filter(
-              type == "Complete"
-            ) |>
-            summarise(
-              value = sum(value),
-              .by = c(
-                specialty, trust, type, period, period_id
-              )
-            ) |>
-            forecast_function(
-              number_timesteps = forecast_months - 1,
-              method = input$capacity_growth_type,
-              percent_change = input$capacity_growth
-            )
-
-          t0_incompletes <- r$all_data |>
-            filter(
-              type == "Incomplete",
-              period == max(period)
-            ) |>
-            select(
-              months_waited_id,
-              incompletes = "value"
-            )
-
-          waiting_list <- NHSRtt::apply_params_to_projections(
-            capacity_projections = projections_capacity,
-            referrals_projections = projections_referrals,
-            incomplete_pathways = t0_incompletes,
-            renege_capacity_params = r$params$params[[1]] |>
-              mutate(
-                capacity_param = NHSRtt::apply_parameter_skew(
-                  capacity_param,
-                  skew = input$capacity_skew
-                )
-              ),
-            max_months_waited = 12
+        projections_referrals <- r$all_data |>
+          filter(
+            type == "Referrals"
           ) |>
-            mutate(
-              period_id = period_id + max(r$all_data$period_id),
-              capacity_skew = input$capacity_skew,
-              period_type = "Projected"
-            ) |>
-            left_join(
-              r$period_lkp,
-              by = join_by(
-                period_id
-              )
+          forecast_function(
+            number_timesteps = forecast_months - 1,
+            method = input$referral_growth_type,
+            percent_change = input$referral_growth
+          )
+
+        projections_capacity <- r$all_data |>
+          filter(
+            type == "Complete"
+          ) |>
+          summarise(
+            value = sum(value),
+            .by = c(
+              specialty, trust, type, period, period_id
             )
+          ) |>
+          forecast_function(
+            number_timesteps = forecast_months - 1,
+            method = input$capacity_growth_type,
+            percent_change = input$capacity_growth
+          )
 
-          waiting_list_reactive(waiting_list)
+        t0_incompletes <- r$all_data |>
+          filter(
+            type == "Incomplete",
+            period == max(period)
+          ) |>
+          select(
+            months_waited_id,
+            incompletes = "value"
+          )
 
-          r$waiting_list <- waiting_list_reactive()
+        r$waiting_list <- NHSRtt::apply_params_to_projections(
+          capacity_projections = projections_capacity,
+          referrals_projections = projections_referrals,
+          incomplete_pathways = t0_incompletes,
+          renege_capacity_params = reactive_values$params$params[[1]] |>
+            mutate(
+              capacity_param = NHSRtt::apply_parameter_skew(
+                capacity_param,
+                skew = input$capacity_skew
+              )
+            ),
+          max_months_waited = 12
+        ) |>
+          mutate(
+            period_id = period_id + max(r$all_data$period_id),
+            capacity_skew = input$capacity_skew,
+            period_type = "Projected"
+          ) |>
+          dplyr::bind_rows(
+            reactive_values$calibration_data
+          ) |>
+          dplyr::arrange(
+            period_id
+          ) |>
+          left_join(
+            r$period_lkp,
+            by = join_by(
+              period_id
+            )
+          )
       },
       ignoreInit = TRUE
     )
@@ -552,8 +569,7 @@ mod_02_planner_server <- function(id, r){
     observeEvent(
       c(input$optimise_capacity), {
 
-        if (isTRUE(r$data_downloaded)) {
-
+        if (isTRUE(reactive_values$data_downloaded)) {
           skew <- dplyr::tibble(
             skew_param = seq(
               from = min(input$capacity_skew_range),
@@ -599,7 +615,7 @@ mod_02_planner_server <- function(id, r){
               incompletes = "value"
             )
 
-          skewed_params <- r$params |>
+          skewed_params <- reactive_values$params |>
             dplyr::cross_join(
               skew
             ) |>
@@ -648,7 +664,7 @@ mod_02_planner_server <- function(id, r){
             )
 
           # forecast future waiting list based on uplifted numbers
-          browser()
+
           forecast_months <- lubridate::interval(
             as.Date(input$forecast_date[[1]]),
             as.Date(input$forecast_date[[2]])
@@ -680,46 +696,35 @@ mod_02_planner_server <- function(id, r){
               percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
             )
 
-          waiting_list <- NHSRtt::apply_params_to_projections(
+          r$waiting_list <- NHSRtt::apply_params_to_projections(
             capacity_projections = projections_capacity,
             referrals_projections = projections_referrals,
             incomplete_pathways = t0_incompletes,
             renege_capacity_params = min_uplift$params[[1]],
             max_months_waited = 12
           ) |>
-            mutate(
+            dplyr::mutate(
               period_id = period_id + max(r$all_data$period_id),
               capacity_skew = min_uplift$skew_param,
               period_type = "Projected"
             ) |>
-            left_join(
+            dplyr::bind_rows(
+              reactive_values$calibration_data
+            ) |>
+            dplyr::arrange(
+              period_id
+            ) |>
+            dplyr::left_join(
               r$period_lkp,
               by = join_by(
                 period_id
               )
             )
-
-          waiting_list_reactive(waiting_list)
-
-          r$waiting_list <- waiting_list_reactive()
-
         }
       }
     )
 
-
-
-    # r$calibration_data <- reactive({
-    #   forecast_reactive()$calibration_data
-    # })
-
-
   })
 }
 
-## To be copied in the UI
-# mod_02_planner_ui("02_planner_1")
-
-## To be copied in the server
-# mod_02_planner_server("02_planner_1")
 

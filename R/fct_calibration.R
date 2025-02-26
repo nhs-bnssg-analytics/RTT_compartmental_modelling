@@ -171,4 +171,5 @@ calibrate_parameters <- function(rtt_data, max_months_waited = 12, full_breakdow
       )
   }
 
+  return(params)
 }
