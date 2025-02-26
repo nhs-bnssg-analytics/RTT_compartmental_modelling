@@ -9,7 +9,8 @@
 #' @importFrom shiny NS tagList uiOutput radioButtons numericInput
 #'   dateRangeInput dateInput selectInput
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
-#'   bs_theme page_fluid card_body layout_columns
+#'   bs_theme page_fluid card_body layout_columns tooltip
+#' @importFrom bsicons bs_icon
 mod_02_planner_ui <- function(id){
   ns <- NS(id)
 
@@ -64,7 +65,7 @@ mod_02_planner_ui <- function(id){
         ns("forecast_horizon")
       ),
       layout_columns(
-        col_widths = c(4, 2),
+        col_widths = c(3, 4),
         span("Percentage change in referrals (between -20% and 200%):"),
         numericInput(
           inputId = ns("referral_growth"),
@@ -76,8 +77,15 @@ mod_02_planner_ui <- function(id){
         fill = FALSE
       ),
       layout_columns(
-        col_widths = c(2, 3),
-        span("Select type of referral change:"),
+        col_widths = c(3, 4),
+        span(
+          "Select type of referral change:",
+          tooltip(
+            bsicons::bs_icon("question-circle"),
+            "Mass measured in grams.",
+            placement = "right"
+          )
+        ),
         radioButtons(
           inputId = ns("referral_growth_type"),
           label = NULL,
@@ -87,10 +95,21 @@ mod_02_planner_ui <- function(id){
           # choiceValues = c("uniform", "linear")
         ),
         fill = FALSE
-      ),
+      )
+    ),
+    # Horizontal divider line
+    hr(),
+    card_body(
       layout_columns(
-        col_widths = c(2, 3),
-        span("Select scenario type:"),
+        col_widths = c(3, 4),
+        span(
+          "Select scenario type:",
+          tooltip(
+            bsicons::bs_icon("question-circle"),
+            "Mass measured in grams.",
+            placement = "right"
+          )
+        ),
         selectInput(
           inputId = ns("interface_choice"),
           label = NULL,
@@ -106,7 +125,9 @@ mod_02_planner_ui <- function(id){
       uiOutput(
         ns("dynamic_interface")
       )
-    )
+    ),
+    fill = FALSE,
+    min_height = 650
   )
 
   tagList(
@@ -118,7 +139,9 @@ mod_02_planner_ui <- function(id){
           open = TRUE,
           width = '25%'
         ),
-        scenario_card
+        scenario_card,
+        fill = FALSE,
+        fillable = FALSE
       )
     )
 
@@ -138,6 +161,8 @@ mod_02_planner_ui <- function(id){
 #'   join_by bind_rows
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
+#' @importFrom bsicons bs_icon
+#' @importFrom bslib tooltip
 #' @noRd
 mod_02_planner_server <- function(id, r){
   moduleServer( id, function(input, output, session){
@@ -319,7 +344,7 @@ mod_02_planner_server <- function(id, r){
 
     output$forecast_horizon <- shiny::renderUI(
       layout_columns(
-        col_widths = c(2, 4),
+        col_widths = c(3, 4),
         span("Forecast horizon date range:"),
         dateRangeInput(
           inputId = ns("forecast_date"),
@@ -345,8 +370,15 @@ mod_02_planner_server <- function(id, r){
 
     output$target_achievement_date <- shiny::renderUI(
       layout_columns(
-        col_widths = c(2, 4),
-        span("Select date to achieve target by:"),
+        col_widths = c(3, 4),
+        span(
+          "Select date to achieve target by:",
+          tooltip(
+            bsicons::bs_icon("question-circle"),
+            "Mass measured in grams.",
+            placement = "right"
+          )
+        ),
         dateInput(
           inputId = ns("target_achievement_date"),
           label = NULL,
@@ -395,8 +427,15 @@ mod_02_planner_server <- function(id, r){
             ns("target_achievement_date")
           ),
           layout_columns(
-            col_widths = c(2, 2),
-            span("Target percentage (between 0% and 100%):"),
+            col_widths = c(3, 4),
+            span(
+              "Target percentage (between 0% and 100%):",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
             numericInput(
               # INPUT (note, the package requires the 100% - x of this value, eg, 65% performance = a target_value of 35%)
               inputId = ns("target_value"),
@@ -408,8 +447,15 @@ mod_02_planner_server <- function(id, r){
             fill = FALSE
           ),
           layout_columns(
-            col_widths = c(2, 2),
-            span("Select type of capacity change:"),
+            col_widths = c(3, 4),
+            span(
+              "Select type of capacity change:",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
             radioButtons(
               inputId = ns("optimised_capacity_growth_type"),
               label = NULL,
@@ -421,8 +467,15 @@ mod_02_planner_server <- function(id, r){
             fill = FALSE
           ),
           layout_columns(
-            col_widths = c(2, 3),
-            span("Select range of capacity skews:"),
+            col_widths = c(3, 4),
+            span(
+              "Select range of capacity skews:",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
             numericRangeInput(
               inputId = ns("capacity_skew_range"),
               label = NULL,
@@ -441,7 +494,7 @@ mod_02_planner_server <- function(id, r){
         # Text interface
         tagList(
           layout_columns(
-            col_widths = c(3, 1),
+            col_widths = c(3, 4),
             span("Percentage change for capacity (between -20% and 20%):"),
             numericInput(
               inputId = ns("capacity_growth"),
@@ -453,8 +506,15 @@ mod_02_planner_server <- function(id, r){
             fill = FALSE
           ),
           layout_columns(
-            col_widths = c(2, 2),
-            span("Select type of capacity change:"),
+            col_widths = c(3, 4),
+            span(
+              "Select type of capacity change:",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
             radioButtons(
               inputId = ns("capacity_growth_type"),
               label = NULL,
@@ -466,8 +526,15 @@ mod_02_planner_server <- function(id, r){
             fill = FALSE
           ),
           layout_columns(
-            col_widths = c(3, 2),
-            span("Enter capacity utilisation skew:"),
+            col_widths = c(3, 4),
+            span(
+              "Enter capacity utilisation skew:",
+              tooltip(
+                bsicons::bs_icon("question-circle"),
+                "Mass measured in grams.",
+                placement = "right"
+              )
+            ),
             numericInput(
               inputId = ns("capacity_skew"),
               label = NULL,
