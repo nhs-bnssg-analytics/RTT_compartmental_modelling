@@ -1,89 +1,59 @@
-# Shiny application of compartmental modelling methodology to support strategic decision making for managing the elective hospital waiting list
-## SW Decision Support Network - NHS England Intelligence and Sinsights Team - NHS Bristol, North Somerset and South Gloucestershire ICB
 
-### About the Project
+<!-- README.md is generated from README.Rmd. Please edit that file -->
 
-[![status: experimental](https://github.com/GIScience/badges/raw/master/status/experimental.svg)](https://github.com/GIScience/badges#experimental)
+# RTTshiny
 
-This repository holds code for the shiny app to support RTT modelling.  
+<!-- badges: start -->
 
-[Link to original project propsoal](https://nhsx.github.io/nhsx-internship-projects/)
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
 
-_**Note:** Only public or fake data are shared in this repository._
+The goal of RTTshiny is to …
 
-### Project Stucture
+## Installation
 
-- The main code follows a Golem methodology for building a shiny app
-- [Link to golem structure](https://engineering-shiny.org/golem.html)
+You can install the development version of RTTshiny from
+[GitHub](https://github.com/) with:
 
-### Built With
+``` r
+# install.packages("devtools")
+devtools::install_github("nhsengland/RTT_compartmental_modelling")
+```
 
-[![R v x.x ](https://img.shields.io/badge/python-v3.8-blue.svg)](https://www.python.org/downloads/release/python-380/)
-- {LIST OF MAIN PACKAGE VERSIONS}
+# Model Card: {PROJECT NAME}
 
-### Getting Started
+## Model Details
 
-#### Installation
+The implementation of the {PROJECT NAME} within this repository was
+created as part of an NHS England PhD internship project undertaken by
+{PROJECT AUTHOR} {LINK TO LAST COMMIT WITH ABBREVIATED SHA}. This model
+card describes the updated version of the model, released {DATE OF
+RELEASE}.
 
-To get a local copy up and running follow these simple steps.
+## Model Use
 
-To clone the repo:
+### Intended Use
 
-`git clone https://github.com/nhsx/{REPO NAME}`
+This model is intended for use in {BRIEF DESCRIPTION OF USE}
 
-To create a suitable environment:
-- ```python -m venv _env```
-- `source _env/bin/activate`
-- `pip install -r requirements.txt`
+### Out-of-Scope Use Cases
 
-{ADDITIONAL TECHNICAL SUPPORT AND NEEDS} 
+This model is not suitable to provide privacy guarantees in a production
+environment.
 
-### Usage
-{DESCRIPTION OF CODE}
+{DETAIL KNOWN CASES WHERE PRIVACY IS NOT GUARENTEED}
 
-#### Outputs
-{LIST AND DESCRIPTION OF OUTPUTS}
+## Training Data
 
-{NOTES ON REPRODUCIBILITY OF RESULTS}
+Experiments in this repository are run against:
 
-#### Datasets
-{DESCRIPTION AND LINKS TO DATASETS}
+{LIST AND LINK DATA SOURCES}
 
-{LINK TO FAKE DATA TO SUPPORT INITAIL CODE RUNS}
+## Performance and Limitations
 
-### Roadmap
+{DETAIL PERFORMANCE EXPECTATIONS and LIMITATIONS}
 
-See the {LINK TO REPO ISSUES} for a list of proposed features (and known issues).
+## Additional notes
 
-### Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-_See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidance._
-
-### License
-
-Unless stated otherwise, the codebase is released under [the MIT Licence][mit].
-This covers both the codebase and any sample code in the documentation.
-
-_See [LICENSE](./LICENSE) for more information._
-
-The documentation is [© Crown copyright][copyright] and available under the terms
-of the [Open Government 3.0][ogl] licence.
-
-[mit]: LICENCE
-[copyright]: http://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/uk-government-licensing-framework/crown-copyright/
-[ogl]: http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
-
-### Contact
-
-To find out more about the [Digitial Analytics and Research Team](https://www.nhsx.nhs.uk/key-tools-and-info/nhsx-analytics-unit/) visit our [project website](https://nhsx.github.io/AnalyticsUnit/projects.html) or get in touch at [analytics-unit@nhsx.nhs.uk](mailto:analytics-unit@nhsx.nhs.uk).
-
-<!-- ### Acknowledgements -->
-
+{DETAIL SUPPLEMENTARY INFORMATION}

@@ -29,86 +29,86 @@ create_modelling_data <- function(data, max_months_waited = 12) {
 
   referrals <- data |>
     filter(
-      type == "Referrals"
+      .data$type == "Referrals"
     ) |>
     distinct(
-      trust,
-      specialty,
-      period_id,
-      value
+      .data$trust,
+      .data$specialty,
+      .data$period_id,
+      .data$value
     ) |>
     rename(
       referrals = "value"
     ) |>
     tidyr::complete(
-      period_id = periods,
-      specialty = specialties,
-      trust,
+      period_id = .data$periods,
+      specialty = .data$specialties,
+      .data$trust,
       fill = list(referrals = 0)
     ) |>
     tidyr::nest(
       referrals_data = c(
-        period_id,
-        referrals
+        .data$period_id,
+        .data$referrals
       )
     )
 
   completes <- data |>
     filter(
-      type == "Complete"
+      .data$type == "Complete"
     ) |>
     distinct(
-      trust,
-      specialty,
-      period_id,
-      months_waited_id,
-      value
+      .data$trust,
+      .data$specialty,
+      .data$period_id,
+      .data$months_waited_id,
+      .data$value
     ) |>
     rename(
       treatments = "value"
     ) |>
     tidyr::complete(
-      specialty = specialties,
-      period_id = periods,
-      months_waited_id = months_waited,
-      trust,
+      specialty = .data$specialties,
+      period_id = .data$periods,
+      months_waited_id = .data$months_waited,
+      .data$trust,
       fill = list(treatments = 0)
     ) |>
     tidyr::nest(
       completes_data = c(
-        period_id,
-        months_waited_id,
-        treatments
+        .data$period_id,
+        .data$months_waited_id,
+        .data$treatments
       )
     )
 
 
   incompletes <- data |>
     filter(
-      type == "Incomplete"
+      .data$type == "Incomplete"
     ) |>
     distinct(
-      trust,
-      specialty,
-      period_id,
-      months_waited_id,
-      value
+      .data$trust,
+      .data$specialty,
+      .data$period_id,
+      .data$months_waited_id,
+      .data$value
     ) |>
     rename(
       incompletes = "value"
     ) |>
     tidyr::complete(
-      specialty = specialties,
-      period_id = periods,
-      months_waited_id = months_waited,
-      trust,
+      specialty = .data$specialties,
+      period_id = .data$periods,
+      months_waited_id = .data$months_waited,
+      .data$trust,
       fill = list(incompletes = 0)
     ) |>
     tidyr::nest(
       incompletes_data = c(
-        period_id,
-        months_waited_id,
-        incompletes
+        .data$period_id,
+        .data$months_waited_id,
+        .data$incompletes
       )
     )
 
@@ -116,13 +116,13 @@ create_modelling_data <- function(data, max_months_waited = 12) {
     left_join(
       referrals,
       by = join_by(
-        trust, specialty
+        .data$trust, .data$specialty
       )
     ) |>
     left_join(
       incompletes,
       by = join_by(
-        trust, specialty
+        .data$trust, .data$specialty
       )
     )
 
@@ -149,9 +149,9 @@ calibrate_parameters <- function(rtt_data, max_months_waited = 12, full_breakdow
     mutate(
       params = purrr::pmap(
         .l = list(
-          referrals_data,
-          completes_data,
-          incompletes_data
+          .data$referrals_data,
+          .data$completes_data,
+          .data$incompletes_data
         ),
         .f = \(ref, comp, incomp) NHSRtt::calibrate_capacity_renege_params(
           referrals = ref,
@@ -167,7 +167,7 @@ calibrate_parameters <- function(rtt_data, max_months_waited = 12, full_breakdow
   if (full_breakdown == FALSE) {
     params <- params |>
       select(
-        trust, specialty, params
+        "trust", "specialty", "params"
       )
   }
 

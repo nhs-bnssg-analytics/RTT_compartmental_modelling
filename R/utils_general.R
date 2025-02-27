@@ -9,28 +9,28 @@
 #' @return A two column tibble containing "period" and "prop" columns, where
 #'   prop is the proportion of people that are on the waiting list in each
 #'   period that have waited for the time less that specified by the target_bin
-#'
+#' @importFrom rlang .data
 #' @noRd
 calc_performance <- function(incompletes_data, target_bin) {
   performance <- incompletes_data |>
     mutate(
       perf = case_when(
-        months_waited_id < target_bin ~ "Below",
+        .data$months_waited_id < target_bin ~ "Below",
         .default = "Above"
       )
     ) |>
     summarise(
-      value = sum(value),
+      value = sum(.data$value),
       .by = c(
-        period, perf
+        "period", "perf"
       )
     ) |>
     mutate(
-      prop = value / sum(value),
-      .by = period
+      prop = .data$value / sum(.data$value),
+      .by = "period"
     ) |>
     filter(
-      perf == "Below"
+      .data$perf == "Below"
     ) |>
     select(
       "period", "prop"

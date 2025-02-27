@@ -1,18 +1,17 @@
 Package: RTTshiny
 Title: A Shiny App to support teams to plan to reduce waiting list times
-Version: 0.0.0.9000
+Version: 0.0.1.9000
 Authors@R: c(
     person("Seb", "Fox", , "sebastian.fox3@nhs.net", role = c("aut", "cre")),
     person("Simon", "Wellesley-Miller", , "simon.wellesley-miller@nhs.net", role = "aut")
   )
 Description: Ingests public NHS Referral to Treatment data and models
-    historic relationships, allowing users to forecast future scenarios
+    historic relationships, allowing users to forecast future scenarios.
 License: MIT + file LICENSE
 Depends: 
     R (>= 2.10)
 Imports: 
     broom,
-    bsicons,
     bslib,
     config (>= 0.3.2),
     dplyr,
@@ -22,10 +21,13 @@ Imports:
     lubridate,
     NHSRtt (>= 0.2.2),
     purrr,
+    rlang,
     shiny (>= 1.8.1.1),
     shinyWidgets,
+    stats,
     stringr,
-    tidyr
+    tidyr,
+    utils
 Suggests: 
     spelling,
     testthat (>= 3.0.0)
