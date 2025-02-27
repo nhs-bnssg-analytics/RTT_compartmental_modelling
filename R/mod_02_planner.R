@@ -173,8 +173,10 @@ mod_02_planner_server <- function(id, r){
     reactive_values$data_downloaded <- FALSE
     reactive_values$params <- NULL
     reactive_values$calibration_data <- NULL
+    reactive_values$latest_performance <- NULL
 
-    # create period_lkp table
+    # create period_lkp table from the first time period in the calibration data
+    # to the final time period in the projection period
     observeEvent(
       c(input$forecast_date), {
         max_download_date <- NHSRtt::latest_rtt_date()
@@ -321,6 +323,30 @@ mod_02_planner_server <- function(id, r){
             period_type = "Observed"
           )
 
+        reactive_values$latest_performance <- r$all_data |>
+          filter(
+            type == "Incomplete",
+            period == max(period)
+          ) |>
+          calc_performance(
+            target_bin = 4
+          ) |>
+          mutate(
+            text = paste0(
+              "The performance at ",
+              format(period, '%b %y'),
+              " was ",
+              format(
+                100 * prop,
+                format = "f",
+                digits = 2,
+                nsmall = 1
+              ),
+              "%"
+            )
+          ) |>
+          pull(text)
+
       },
       ignoreInit = TRUE
     )
@@ -390,6 +416,21 @@ mod_02_planner_server <- function(id, r){
       )
     )
 
+    output$latest_performance_ui <- shiny::renderUI({
+      if (is.null(reactive_values$latest_performance)) {
+        return(NULL)
+      } else {
+        div(
+          p(
+            # class = "display-5 text-primary",
+            reactive_values$latest_performance
+          )
+        )
+      }
+
+    }
+
+    )
 
 # make buttons appear if the data has already been downloaded
     output$optimise_capacity_ui <- renderUI({
@@ -425,6 +466,12 @@ mod_02_planner_server <- function(id, r){
         tagList(
           uiOutput(
             ns("target_achievement_date")
+          ),
+          uiOutput(
+            ns("latest_performance")
+          ),
+          uiOutput(
+            ns("latest_performance_ui")
           ),
           layout_columns(
             col_widths = c(3, 4),
