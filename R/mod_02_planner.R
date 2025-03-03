@@ -155,7 +155,6 @@ mod_02_planner_ui <- function(id){
 #' @importFrom NHSRtt get_rtt_data latest_rtt_date convert_months_waited_to_id
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
-#' @importFrom stringr str_replace_all
 #' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
 #'   join_by bind_rows
 #' @importFrom tidyr complete unnest
@@ -231,11 +230,11 @@ mod_02_planner_server <- function(id, r){
               .data$months_waited,
               12 # this pools the data at 12+ months (this can be a user input in the future)
             ),
-            trust = stringr::str_replace_all(
+            trust = replace_fun(
               .data$trust,
               trust_lkp
             ),
-            specialty = stringr::str_replace_all(
+            specialty = replace_fun(
               .data$specialty,
               treatment_function_codes
             )
@@ -672,7 +671,7 @@ mod_02_planner_server <- function(id, r){
           left_join(
             r$period_lkp,
             by = join_by(
-              .data$period_id
+              period_id
             )
           )
       },
@@ -830,7 +829,7 @@ mod_02_planner_server <- function(id, r){
             dplyr::left_join(
               r$period_lkp,
               by = join_by(
-                .data$period_id
+                period_id
               )
             )
         }

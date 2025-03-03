@@ -65,7 +65,7 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
       ) %>%
       summarise(
         lm_fit = list(
-          lm(.data$value ~ .data$period_id, data = .)
+          lm(value ~ period_id, data = .)
         )
       ) |>
       mutate(
@@ -94,7 +94,6 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
 #' pass in the rtt table and calculate the t1 value by either projecting a
 #' linear model through the data (if it is significant) or taking a mean
 #' @importFrom dplyr select arrange summarise `%>%` filter pull mutate case_when
-#' @importFrom broom tidy
 #' @param monthly_rtt tibble; required a "period_id" and "value" field arranged
 #'   by period
 #' @noRd
@@ -108,11 +107,12 @@ calculate_t1_value <- function(monthly_rtt) {
     summarise(
       mean_val = mean(.data$value),
       lm_fit = list(
-        lm(.data$value ~ .data$period_id, data = .)
+        lm(value ~ period_id, data = .)
       ),
-      pval = broom::tidy(.data$lm_fit[[1]]) |>
-        filter(.data$term == "period_id") |>
-        pull(.data$p.value),
+      pval = extract_pval(
+        lm_object = .data$lm_fit[[1]],
+        term = "period_id"
+      ),
       lm_val = list(
         predict(
           object = .data$lm_fit[[1]],

@@ -41,8 +41,8 @@ create_modelling_data <- function(data, max_months_waited = 12) {
       referrals = "value"
     ) |>
     tidyr::complete(
-      period_id = .data$periods,
-      specialty = .data$specialties,
+      period_id = periods,
+      specialty = specialties,
       .data$trust,
       fill = list(referrals = 0)
     ) |>
@@ -68,9 +68,9 @@ create_modelling_data <- function(data, max_months_waited = 12) {
       treatments = "value"
     ) |>
     tidyr::complete(
-      specialty = .data$specialties,
-      period_id = .data$periods,
-      months_waited_id = .data$months_waited,
+      specialty = specialties,
+      period_id = periods,
+      months_waited_id = months_waited,
       .data$trust,
       fill = list(treatments = 0)
     ) |>
@@ -98,9 +98,9 @@ create_modelling_data <- function(data, max_months_waited = 12) {
       incompletes = "value"
     ) |>
     tidyr::complete(
-      specialty = .data$specialties,
-      period_id = .data$periods,
-      months_waited_id = .data$months_waited,
+      specialty = specialties,
+      period_id = periods,
+      months_waited_id = months_waited,
       .data$trust,
       fill = list(incompletes = 0)
     ) |>
@@ -116,13 +116,13 @@ create_modelling_data <- function(data, max_months_waited = 12) {
     left_join(
       referrals,
       by = join_by(
-        .data$trust, .data$specialty
+        trust, specialty
       )
     ) |>
     left_join(
       incompletes,
       by = join_by(
-        .data$trust, .data$specialty
+        trust, specialty
       )
     )
 

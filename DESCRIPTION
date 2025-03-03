@@ -11,7 +11,6 @@ License: MIT + file LICENSE
 Depends: 
     R (>= 2.10)
 Imports: 
-    broom,
     bslib,
     config (>= 0.3.2),
     dplyr,
@@ -25,7 +24,6 @@ Imports:
     shiny (>= 1.8.1.1),
     shinyWidgets,
     stats,
-    stringr,
     tidyr,
     utils
 Suggests: 

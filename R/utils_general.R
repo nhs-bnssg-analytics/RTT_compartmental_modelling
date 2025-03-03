@@ -38,3 +38,44 @@ calc_performance <- function(incompletes_data, target_bin) {
 
   return(performance)
 }
+
+#' @importFrom dplyr as_tibble filter pull
+#' @param lm_object the output from a lm() function
+#' @param term string; the term name for the p.value of interest. This is used
+#'   for a filter() operation
+#' @noRd
+extract_pval <- function(lm_object, term) {
+  p_val <- summary(lm_object)$coefficients |>
+    dplyr::as_tibble(rownames = "term") |>
+    filter(.data$term == term) |>
+    pull(
+      .data$`Pr(>|t|)`
+    )
+
+  return(p_val)
+
+}
+
+#' Replaces values in a string vector with corresponding values from a named
+#' vector
+#' @param string_vector A character vector
+#' @param replacement_vector A named vector where names correspond to values in
+#'   string_vector and values are the replacements
+#' @return A character vector with replaced values
+#' @noRd
+replace_fun <- function(string_vector, replacement_vector) {
+  # Check if replacement_vector has names
+  if (is.null(names(replacement_vector))) {
+    stop("replacement_vector must have names.")
+  }
+
+  # Create a named vector for easy lookup
+  replacement_lookup <- replacement_vector
+
+  # Replace values using the lookup table
+  replaced_vector <- ifelse(string_vector %in% names(replacement_lookup),
+                            replacement_lookup[string_vector],
+                            string_vector)
+
+  return(replaced_vector)
+}
