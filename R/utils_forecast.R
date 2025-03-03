@@ -11,6 +11,8 @@
 #' @importFrom dplyr tibble mutate case_when summarise
 #' @importFrom purrr map
 #' @importFrom tidyr pivot_longer unnest pivot_wider
+#' @importFrom stats lm predict setNames
+#' @importFrom rlang .data
 #'
 forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_change) {
   if (method == "Uniform") {
@@ -50,14 +52,14 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
       first = first_val
     ) |>
       pivot_longer(
-        cols = c(first, final),
+        cols = c(.data$first, .data$final),
         names_to = "period_id",
         values_to = "value"
       ) |>
       mutate(
         period_id = case_when(
-          period_id == "first" ~ 1,
-          period_id == "final" ~ 13, # this needs to align with NHSRtt
+          .data$period_id == "first" ~ 1,
+          .data$period_id == "final" ~ 13, # this needs to align with NHSRtt
           .default = NA_real_
         )
       ) %>%
@@ -68,7 +70,7 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
       ) |>
       mutate(
         project = purrr::map(
-          lm_fit,
+          .data$lm_fit,
           ~ predict(
             object = .x,
             newdata = data.frame(period_id = 1:number_timesteps)
@@ -78,12 +80,12 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
       select(c("project")) |>
       mutate(
         project = purrr::map(
-          project,
+          .data$project,
           ~ local_enframe(.x, name = "period_id", value_name = "value")
         )
       ) |>
-      unnest(project) |>
-      pull(value)
+      unnest(.data$project) |>
+      pull(.data$value)
   }
 
   return(fcast)
@@ -92,25 +94,28 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
 #' pass in the rtt table and calculate the t1 value by either projecting a
 #' linear model through the data (if it is significant) or taking a mean
 #' @importFrom dplyr select arrange summarise `%>%` filter pull mutate case_when
-#' @importFrom broom tidy
+#' @param monthly_rtt tibble; required a "period_id" and "value" field arranged
+#'   by period
+#' @noRd
 calculate_t1_value <- function(monthly_rtt) {
 
   first_period_id <- max(monthly_rtt[["period_id"]])# + 1
 
   first_val <- monthly_rtt |>
-    select(period_id, value) |>
-    arrange(period_id) %>%
+    select("period_id", "value") |>
+    arrange(.data$period_id) %>%
     summarise(
-      mean_val = mean(value),
+      mean_val = mean(.data$value),
       lm_fit = list(
         lm(value ~ period_id, data = .)
       ),
-      pval = broom::tidy(lm_fit[[1]]) |>
-        filter(term == "period_id") |>
-        pull(p.value),
+      pval = extract_pval(
+        lm_object = .data$lm_fit[[1]],
+        input_term = "period_id"
+      ),
       lm_val = list(
         predict(
-          object = lm_fit[[1]],
+          object = .data$lm_fit[[1]],
           newdata = data.frame(period_id = first_period_id)
         )
       )
@@ -118,16 +123,16 @@ calculate_t1_value <- function(monthly_rtt) {
     mutate(
       # t_1_val = mean_val
       t_1_val = case_when(
-        pval <= 0.05 ~ as.numeric(lm_val),
-        .default = mean_val
+        pval <= 0.05 ~ as.numeric(.data$lm_val),
+        .default = .data$mean_val
       ),
       # capacity can't be less than zero, so it is fixed to zero if so
       t_1_val = case_when(
-        t_1_val < 0 ~ 0,
-        .default = t_1_val
+        .data$t_1_val < 0 ~ 0,
+        .default = .data$t_1_val
       )
     ) |>
-    pull(t_1_val)
+    pull(.data$t_1_val)
 
   return(first_val)
 }

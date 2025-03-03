@@ -29,6 +29,7 @@ golem::add_module(name = "03_results", with_test = TRUE) # Name of the module
 golem::add_fct("calibration", with_test = TRUE)
 golem::add_fct("charts", with_test = TRUE)
 golem::add_utils("forecast", with_test = TRUE)
+golem::add_utils("general", with_test = TRUE)
 
 ## External resources
 ## Creates .js and .css files at inst/app/www

@@ -4,6 +4,7 @@
 #'     DO NOT REMOVE.
 #' @import shiny
 #' @importFrom bslib navset_tab nav_panel nav_spacer nav_menu nav_item
+#' @importFrom utils packageVersion
 #' @noRd
 app_ui <- function(request) {
   github_shiny <- tags$a(
