@@ -173,6 +173,23 @@ mod_02_planner_server <- function(id, r){
     reactive_values$calibration_data <- NULL
     reactive_values$latest_performance <- NULL
 
+    r$chart_specification <- list(
+      trust = NULL,
+      specialty = NULL,
+      observed_start = NULL,
+      observed_end = NULL,
+      forecast_start = NULL,
+      forecast_end = NULL,
+      referrals_percent_change = NULL,
+      referrals_change_type = NULL,
+      scenario_type = NULL,
+      capacity_percent_change = NULL,
+      capacity_change_type = NULL,
+      capacity_skew = NULL,
+      target_date = NULL,
+      target_performance = NULL
+    )
+
     # create period_lkp table from the first time period in the calibration data
     # to the final time period in the projection period
     observeEvent(
@@ -207,6 +224,12 @@ mod_02_planner_server <- function(id, r){
           unit = "months"
         # ) %m-% months(11) # SWAP BACK FOR LIVE VERSION
         ) %m-% months(1)
+
+        # pass some values to the charting module
+        r$chart_specification$trust <- input$trust_codes
+        r$chart_specification$specialty <- input$specialty_codes
+        r$chart_specification$observed_start <- min_download_date
+        r$chart_specification$observed_end <- max_download_date
 
         r$all_data <- NHSRtt::get_rtt_data(
           date_start = min_download_date,
@@ -674,6 +697,19 @@ mod_02_planner_server <- function(id, r){
               period_id
             )
           )
+
+        # pass information to charting module
+        r$chart_specification$forecast_start <- min(input$forecast_date)
+        r$chart_specification$forecast_end <- max(input$forecast_date)
+        r$chart_specification$referrals_percent_change <- input$referral_growth
+        r$chart_specification$referrals_change_type <- input$referral_growth_type
+        r$chart_specification$scenario_type <- "Estimate performance (from capacity inputs)"
+        r$chart_specification$capacity_percent_change <- input$capacity_growth
+        r$chart_specification$capacity_change_type <- input$capacity_growth_type
+        r$chart_specification$capacity_skew <- input$capacity_skew
+        r$chart_specification$target_date <- NA
+        r$chart_specification$target_performance <- NA
+
       },
       ignoreInit = TRUE
     )
@@ -805,7 +841,7 @@ mod_02_planner_server <- function(id, r){
             forecast_function(
               number_timesteps = forecast_months - 1,
               method = input$optimised_capacity_growth_type,
-              percent_change = (.data$min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
+              percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
             )
 
           r$waiting_list <- NHSRtt::apply_params_to_projections(
@@ -832,6 +868,27 @@ mod_02_planner_server <- function(id, r){
                 period_id
               )
             )
+
+          # pass information to charting module
+          r$chart_specification$forecast_start <- min(input$forecast_date)
+          r$chart_specification$forecast_end <- max(input$forecast_date)
+          r$chart_specification$referrals_percent_change <- input$referral_growth
+          r$chart_specification$referrals_change_type <- input$referral_growth_type
+          r$chart_specification$scenario_type <- "Estimate capacity (from performance targets)"
+          r$chart_specification$capacity_percent_change <- paste0(
+            format(
+              (min_uplift$uplift - 1) * 100,
+              format = "f",
+              digits = 2,
+              nsmall = 1
+            ),
+            "%"
+          )
+          r$chart_specification$capacity_change_type <- input$optimised_capacity_growth_type
+          r$chart_specification$capacity_skew <- min_uplift$skew_param[[1]]
+          r$chart_specification$target_date <- input$target_achievement_date
+          r$chart_specification$target_performance <- input$target_value
+
         }
       }
     )

@@ -44,10 +44,10 @@ calc_performance <- function(incompletes_data, target_bin) {
 #' @param term string; the term name for the p.value of interest. This is used
 #'   for a filter() operation
 #' @noRd
-extract_pval <- function(lm_object, term) {
+extract_pval <- function(lm_object, input_term) {
   p_val <- summary(lm_object)$coefficients |>
     dplyr::as_tibble(rownames = "term") |>
-    filter(.data$term == term) |>
+    filter(.data$term == input_term) |>
     pull(
       .data$`Pr(>|t|)`
     )
@@ -66,16 +66,16 @@ extract_pval <- function(lm_object, term) {
 replace_fun <- function(string_vector, replacement_vector) {
   # Check if replacement_vector has names
   if (is.null(names(replacement_vector))) {
-    stop("replacement_vector must have names.")
+    stop("replacement_vector must have names (regular expressions).")
   }
 
-  # Create a named vector for easy lookup
-  replacement_lookup <- replacement_vector
+  replaced_vector <- string_vector
 
-  # Replace values using the lookup table
-  replaced_vector <- ifelse(string_vector %in% names(replacement_lookup),
-                            replacement_lookup[string_vector],
-                            string_vector)
+  for (pattern in names(replacement_vector)) {
+    replaced_vector <- ifelse(grepl(pattern, replaced_vector),
+                              replacement_vector[pattern],
+                              replaced_vector)
+  }
 
   return(replaced_vector)
 }

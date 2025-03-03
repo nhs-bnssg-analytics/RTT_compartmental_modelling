@@ -111,7 +111,7 @@ calculate_t1_value <- function(monthly_rtt) {
       ),
       pval = extract_pval(
         lm_object = .data$lm_fit[[1]],
-        term = "period_id"
+        input_term = "period_id"
       ),
       lm_val = list(
         predict(
