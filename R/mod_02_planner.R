@@ -626,90 +626,91 @@ mod_02_planner_server <- function(id, r){
     observeEvent(
       c(input$calculate_performance) , {
 
-        forecast_months <- lubridate::interval(
-          as.Date(input$forecast_date[[1]]),
-          as.Date(input$forecast_date[[2]])
-        ) %/% months(1)
+        if (input$calculate_performance == 1) {
+          forecast_months <- lubridate::interval(
+            as.Date(input$forecast_date[[1]]),
+            as.Date(input$forecast_date[[2]])
+          ) %/% months(1)
 
-        projections_referrals <- r$all_data |>
-          filter(
-            .data$type == "Referrals"
-          ) |>
-          forecast_function(
-            number_timesteps = forecast_months - 1,
-            method = input$referral_growth_type,
-            percent_change = input$referral_growth
-          )
-
-        projections_capacity <- r$all_data |>
-          filter(
-            .data$type == "Complete"
-          ) |>
-          summarise(
-            value = sum(.data$value),
-            .by = c(
-              "specialty", "trust", "type", "period", "period_id"
+          projections_referrals <- r$all_data |>
+            filter(
+              .data$type == "Referrals"
+            ) |>
+            forecast_function(
+              number_timesteps = forecast_months - 1,
+              method = input$referral_growth_type,
+              percent_change = input$referral_growth
             )
-          ) |>
-          forecast_function(
-            number_timesteps = forecast_months - 1,
-            method = input$capacity_growth_type,
-            percent_change = input$capacity_growth
-          )
 
-        t0_incompletes <- r$all_data |>
-          filter(
-            .data$type == "Incomplete",
-            .data$period == max(.data$period)
-          ) |>
-          select(
-            "months_waited_id",
-            incompletes = "value"
-          )
-
-        r$waiting_list <- NHSRtt::apply_params_to_projections(
-          capacity_projections = projections_capacity,
-          referrals_projections = projections_referrals,
-          incomplete_pathways = t0_incompletes,
-          renege_capacity_params = reactive_values$params$params[[1]] |>
-            mutate(
-              capacity_param = NHSRtt::apply_parameter_skew(
-                .data$capacity_param,
-                skew = input$capacity_skew
+          projections_capacity <- r$all_data |>
+            filter(
+              .data$type == "Complete"
+            ) |>
+            summarise(
+              value = sum(.data$value),
+              .by = c(
+                "specialty", "trust", "type", "period", "period_id"
               )
-            ),
-          max_months_waited = 12
-        ) |>
-          mutate(
-            period_id = .data$period_id + max(r$all_data$period_id),
-            capacity_skew = input$capacity_skew,
-            period_type = "Projected"
-          ) |>
-          dplyr::bind_rows(
-            reactive_values$calibration_data
-          ) |>
-          dplyr::arrange(
-            .data$period_id
-          ) |>
-          left_join(
-            r$period_lkp,
-            by = join_by(
-              period_id
+            ) |>
+            forecast_function(
+              number_timesteps = forecast_months - 1,
+              method = input$capacity_growth_type,
+              percent_change = input$capacity_growth
             )
-          )
 
-        # pass information to charting module
-        r$chart_specification$forecast_start <- min(input$forecast_date)
-        r$chart_specification$forecast_end <- max(input$forecast_date)
-        r$chart_specification$referrals_percent_change <- input$referral_growth
-        r$chart_specification$referrals_change_type <- input$referral_growth_type
-        r$chart_specification$scenario_type <- "Estimate performance (from capacity inputs)"
-        r$chart_specification$capacity_percent_change <- input$capacity_growth
-        r$chart_specification$capacity_change_type <- input$capacity_growth_type
-        r$chart_specification$capacity_skew <- input$capacity_skew
-        r$chart_specification$target_date <- NA
-        r$chart_specification$target_performance <- NA
+          t0_incompletes <- r$all_data |>
+            filter(
+              .data$type == "Incomplete",
+              .data$period == max(.data$period)
+            ) |>
+            select(
+              "months_waited_id",
+              incompletes = "value"
+            )
 
+          r$waiting_list <- NHSRtt::apply_params_to_projections(
+            capacity_projections = projections_capacity,
+            referrals_projections = projections_referrals,
+            incomplete_pathways = t0_incompletes,
+            renege_capacity_params = reactive_values$params$params[[1]] |>
+              mutate(
+                capacity_param = NHSRtt::apply_parameter_skew(
+                  .data$capacity_param,
+                  skew = input$capacity_skew
+                )
+              ),
+            max_months_waited = 12
+          ) |>
+            mutate(
+              period_id = .data$period_id + max(r$all_data$period_id),
+              capacity_skew = input$capacity_skew,
+              period_type = "Projected"
+            ) |>
+            dplyr::bind_rows(
+              reactive_values$calibration_data
+            ) |>
+            dplyr::arrange(
+              .data$period_id
+            ) |>
+            left_join(
+              r$period_lkp,
+              by = join_by(
+                period_id
+              )
+            )
+
+          # pass information to charting module
+          r$chart_specification$forecast_start <- min(input$forecast_date)
+          r$chart_specification$forecast_end <- max(input$forecast_date)
+          r$chart_specification$referrals_percent_change <- input$referral_growth
+          r$chart_specification$referrals_change_type <- input$referral_growth_type
+          r$chart_specification$scenario_type <- "Estimate performance (from capacity inputs)"
+          r$chart_specification$capacity_percent_change <- input$capacity_growth
+          r$chart_specification$capacity_change_type <- input$capacity_growth_type
+          r$chart_specification$capacity_skew <- input$capacity_skew
+          r$chart_specification$target_date <- NA
+          r$chart_specification$target_performance <- NA
+        }
       },
       ignoreInit = TRUE
     )
@@ -717,7 +718,7 @@ mod_02_planner_server <- function(id, r){
     observeEvent(
       c(input$optimise_capacity), {
 
-        if (isTRUE(reactive_values$data_downloaded)) {
+        if (input$optimise_capacity == 1) {
           skew <- dplyr::tibble(
             skew_param = seq(
               from = min(input$capacity_skew_range),
