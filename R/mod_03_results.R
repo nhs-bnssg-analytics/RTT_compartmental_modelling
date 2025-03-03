@@ -48,7 +48,7 @@ mod_03_results_ui <- function(id){
 }
 
 #' 03_results Server Functions
-#' @importFrom DT renderDT
+#' @importFrom DT renderDT formatRound datatable
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r){
@@ -57,7 +57,19 @@ mod_03_results_server <- function(id, r){
 
     output$scenario_projections <- DT::renderDT({
 
-      r$waiting_list
+      DT::datatable(
+        r$waiting_list,
+        filter = "top"
+      ) |>
+        DT::formatRound(
+          columns = c(
+            "calculated_treatments",
+            "reneges",
+            "incompletes",
+            "unadjusted_referrals"
+          ),
+          digits = 1
+        )
 
     })
 

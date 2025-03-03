@@ -172,6 +172,7 @@ mod_02_planner_server <- function(id, r){
     reactive_values$params <- NULL
     reactive_values$calibration_data <- NULL
     reactive_values$latest_performance <- NULL
+    reactive_values$referrals_uplift <- NULL
 
     r$chart_specification <- list(
       trust = NULL,
@@ -190,6 +191,10 @@ mod_02_planner_server <- function(id, r){
       target_performance = NULL
     )
 
+
+# create period_lkp -------------------------------------------------------
+
+    calibration_months <- 2
     # create period_lkp table from the first time period in the calibration data
     # to the final time period in the projection period
     observeEvent(
@@ -198,7 +203,7 @@ mod_02_planner_server <- function(id, r){
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        ) %m-% months(11)
+        ) %m-% months(calibration_months)
 
         r$period_lkp <- dplyr::tibble(
           period = seq(
@@ -215,6 +220,8 @@ mod_02_planner_server <- function(id, r){
     )
 
 
+
+# download data button ----------------------------------------------------
     observeEvent(
       input$dwnld_rtt_data, {
 
@@ -222,8 +229,7 @@ mod_02_planner_server <- function(id, r){
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        # ) %m-% months(11) # SWAP BACK FOR LIVE VERSION
-        ) %m-% months(1)
+        ) %m-% months(calibration_months)
 
         # pass some values to the charting module
         r$chart_specification$trust <- input$trust_codes
@@ -315,18 +321,54 @@ mod_02_planner_server <- function(id, r){
 
         reactive_values$data_downloaded <- TRUE
 
+        # calculate unadjusted referrals
+        unadjusted_referrals <- r$all_data |>
+          filter(
+            .data$type == "Referrals"
+          ) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            unadjusted_referrals = "value"
+          )
+
+        # calculate the referrals uplift value by calibrating the parameters
+        # with redistribute_m0_reneges set to FALSE
+        reactive_values$referrals_uplift <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12,
+          redistribute_m0_reneges = FALSE,
+          referrals_uplift = NULL
+        ) |>
+          tidyr::unnest(.data$params) |>
+          dplyr::filter(
+            .data$months_waited_id == 0
+          ) |>
+          dplyr::pull(.data$renege_param)
+
+        # check whether the referrals uplift value is negative
+        if (reactive_values$referrals_uplift < 0) {
+          reactive_values$referrals_uplift <- abs(reactive_values$referrals_uplift)
+        } else {
+          reactive_values$referrals_uplift <- NULL
+        }
+
+        # calculate the modelling parameters using the uplifted referrals
         reactive_values$params <- calibrate_parameters(
           r$all_data,
-          max_months_waited = 12
+          max_months_waited = 12,
+          redistribute_m0_reneges = FALSE,
+          referrals_uplift = reactive_values$referrals_uplift
         )
-
 
         # data frame of counts by period which get supplied to the 3rd module
         # for charting
         reactive_values$calibration_data <- calibrate_parameters(
           r$all_data,
           max_months_waited = 12,
-          full_breakdown = TRUE
+          full_breakdown = TRUE,
+          referrals_uplift = reactive_values$referrals_uplift,
+          redistribute_m0_reneges = FALSE
         ) |>
           select(
             "params"
@@ -338,6 +380,12 @@ mod_02_planner_server <- function(id, r){
             calculated_treatments = "treatments",
             "reneges",
             incompletes = "waiting_same_node"
+          ) |>
+          left_join(
+            unadjusted_referrals,
+            by = join_by(
+              period_id, months_waited_id
+            )
           ) |>
           dplyr::mutate(
             capacity_skew = 1,
@@ -437,6 +485,7 @@ mod_02_planner_server <- function(id, r){
       )
     )
 
+    # the latest perforamnce value to be displayed
     output$latest_performance_ui <- shiny::renderUI({
       if (is.null(reactive_values$latest_performance)) {
         return(NULL)
@@ -449,11 +498,9 @@ mod_02_planner_server <- function(id, r){
         )
       }
 
-    }
+    })
 
-    )
-
-# make buttons appear if the data has already been downloaded
+# make scenario buttons appear if the data has already been downloaded
     output$optimise_capacity_ui <- renderUI({
       if (isTRUE(reactive_values$data_downloaded)) {
         bslib::input_task_button(
@@ -475,6 +522,9 @@ mod_02_planner_server <- function(id, r){
         )
       }
     })
+
+
+# dynamic UI based on the scenario choice ---------------------------------
 
     # Generate the dynamic UI based on dropdown selection
     output$dynamic_interface <- renderUI({
@@ -632,7 +682,7 @@ mod_02_planner_server <- function(id, r){
             as.Date(input$forecast_date[[2]])
           ) %/% months(1)
 
-          projections_referrals <- r$all_data |>
+          unadjusted_projections_referrals <- r$all_data |>
             filter(
               .data$type == "Referrals"
             ) |>
@@ -641,6 +691,13 @@ mod_02_planner_server <- function(id, r){
               method = input$referral_growth_type,
               percent_change = input$referral_growth
             )
+
+          if (!is.null(reactive_values$referrals_uplift)) {
+            projections_referrals <- unadjusted_projections_referrals +
+              (unadjusted_projections_referrals * reactive_values$referrals_uplift)
+          } else {
+            projections_referrals <- unadjusted_projections_referrals
+          }
 
           projections_capacity <- r$all_data |>
             filter(
@@ -681,6 +738,20 @@ mod_02_planner_server <- function(id, r){
               ),
             max_months_waited = 12
           ) |>
+            # add referrals onto data
+            dplyr::left_join(
+              dplyr::tibble(
+                unadjusted_referrals = unadjusted_projections_referrals,
+                months_waited_id = 0
+              ) |>
+                dplyr::mutate(
+                  period_id = dplyr::row_number()
+                ),
+              by = join_by(
+                period_id,
+                months_waited_id
+              )
+            ) |>
             mutate(
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = input$capacity_skew,
@@ -715,6 +786,9 @@ mod_02_planner_server <- function(id, r){
       ignoreInit = TRUE
     )
 
+
+# optimising forecast based on performance inputs -------------------------
+
     observeEvent(
       c(input$optimise_capacity), {
 
@@ -735,7 +809,17 @@ mod_02_planner_server <- function(id, r){
           projections_referrals <- r$all_data |>
             filter(
               .data$type == "Referrals"
-            ) |>
+            )
+
+          if (!is.null(reactive_values$referrals_uplift)) {
+            projections_referrals <- projections_referrals |>
+              mutate(
+                value = .data$value +
+                  (.data$value * reactive_values$referrals_uplift)
+              )
+          }
+
+          projections_referrals <- projections_referrals |>
             forecast_function(
               number_timesteps = forecast_months_to_target - 1,
               method = input$referral_growth_type,
@@ -819,7 +903,7 @@ mod_02_planner_server <- function(id, r){
             as.Date(input$forecast_date[[2]])
           ) %/% months(1)
 
-          projections_referrals <- r$all_data |>
+          unadjusted_projections_referrals <- r$all_data |>
             filter(
               .data$type == "Referrals"
             ) |>
@@ -828,6 +912,13 @@ mod_02_planner_server <- function(id, r){
               method = input$referral_growth_type,
               percent_change = input$referral_growth
             )
+
+          if (!is.null(reactive_values$referrals_uplift)) {
+            projections_referrals <- unadjusted_projections_referrals +
+              (unadjusted_projections_referrals * reactive_values$referrals_uplift)
+          } else {
+            projections_referrals <- unadjusted_projections_referrals
+          }
 
           projections_capacity <- r$all_data |>
             filter(
@@ -852,6 +943,20 @@ mod_02_planner_server <- function(id, r){
             renege_capacity_params = min_uplift$params[[1]],
             max_months_waited = 12
           ) |>
+            # add referrals onto data
+            dplyr::left_join(
+              dplyr::tibble(
+                unadjusted_referrals = unadjusted_projections_referrals,
+                months_waited_id = 0
+              ) |>
+                dplyr::mutate(
+                  period_id = dplyr::row_number()
+                ),
+              by = join_by(
+                period_id,
+                months_waited_id
+              )
+            ) |>
             dplyr::mutate(
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = min_uplift$skew_param,

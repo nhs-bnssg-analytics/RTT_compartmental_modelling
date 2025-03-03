@@ -5,10 +5,13 @@
 #'   type, months_waited_id, value
 #' @param max_months_waited integer; the stock to pool the stocks that have
 #'   waited longer into
+#' @param referrals_uplift numeric; multiplier for referral inputs (calculated
+#'   from negative renege_params when calibrating the models). These occur due
+#'   to under-reporting of referrals data
 #'
 #' @importFrom dplyr filter distinct rename left_join join_by
 #' @importFrom tidyr complete nest
-create_modelling_data <- function(data, max_months_waited = 12) {
+create_modelling_data <- function(data, max_months_waited = 12, referrals_uplift) {
   periods <- unique(
     sort(
       data$period_id
@@ -45,7 +48,16 @@ create_modelling_data <- function(data, max_months_waited = 12) {
       specialty = specialties,
       .data$trust,
       fill = list(referrals = 0)
-    ) |>
+    )
+
+  if (!is.null(referrals_uplift)) {
+    referrals <- referrals |>
+      dplyr::mutate(
+        referrals = referrals + (referrals * referrals_uplift)
+      )
+  }
+
+  referrals <- referrals |>
     tidyr::nest(
       referrals_data = c(
         .data$period_id,
@@ -135,6 +147,9 @@ create_modelling_data <- function(data, max_months_waited = 12) {
 #'
 #' @description Uses the NHSRtt package to create the calibration parameters for
 #'   the downloaded data
+#' @param referrals_uplift numeric; multiplier for referral inputs (calculated
+#'   from negative renege_params when calibrating the models). These occur due
+#'   to under-reporting of referrals data
 #'
 #' @importFrom purrr pmap
 #' @importFrom NHSRtt calibrate_capacity_renege_params
@@ -143,9 +158,12 @@ create_modelling_data <- function(data, max_months_waited = 12) {
 #'   parameters data
 #'
 #' @noRd
-calibrate_parameters <- function(rtt_data, max_months_waited = 12, full_breakdown = FALSE) {
+calibrate_parameters <- function(rtt_data, max_months_waited = 12, redistribute_m0_reneges, referrals_uplift, full_breakdown = FALSE) {
 
-  params <- create_modelling_data(rtt_data) |>
+  params <- create_modelling_data(
+    data = rtt_data,
+    referrals_uplift = referrals_uplift
+  ) |>
     mutate(
       params = purrr::pmap(
         .l = list(
@@ -158,7 +176,7 @@ calibrate_parameters <- function(rtt_data, max_months_waited = 12, full_breakdow
           completes = comp,
           incompletes = incomp,
           max_months_waited = max_months_waited,
-          redistribute_m0_reneges = FALSE,
+          redistribute_m0_reneges = redistribute_m0_reneges,
           full_breakdown = full_breakdown
         )
       )

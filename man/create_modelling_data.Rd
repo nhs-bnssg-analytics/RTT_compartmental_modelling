@@ -4,7 +4,7 @@
 \alias{create_modelling_data}
 \title{Create the calibration dataset from the main data table}
 \usage{
-create_modelling_data(data, max_months_waited = 12)
+create_modelling_data(data, max_months_waited = 12, referrals_uplift)
 }
 \arguments{
 \item{data}{table of referrals, competes and incompletes (as different
@@ -13,6 +13,10 @@ type, months_waited_id, value}
 
 \item{max_months_waited}{integer; the stock to pool the stocks that have
 waited longer into}
+
+\item{referrals_uplift}{numeric; multiplier for referral inputs (calculated
+from negative renege_params when calibrating the models). These occur due
+to under-reporting of referrals data}
 }
 \description{
 Create the calibration dataset from the main data table
