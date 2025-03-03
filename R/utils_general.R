@@ -12,6 +12,27 @@
 #' @importFrom rlang .data
 #' @noRd
 calc_performance <- function(incompletes_data, target_bin) {
+
+  # check one record per month waited per period
+  check_counts <- incompletes_data |>
+    dplyr::count(
+      .data$period,
+      .data$months_waited_id
+    ) |>
+    dplyr::filter(
+      .data$n > 1
+    )
+
+  if (nrow(check_counts) > 0) stop("duplicate counts per period and month waited")
+
+  # check target_bin within the range of bins available
+  if (!(target_bin %in% incompletes_data[["months_waited_id"]]))
+    stop("target_bin not a valid month waited in the incompletes_data")
+
+  # check names
+  if (!all(c("period", "months_waited_id", "value") %in% names(incompletes_data)))
+    stop("'period', 'months_waited_id' and 'value' should be present in incompletes_data")
+
   performance <- incompletes_data |>
     mutate(
       perf = case_when(
@@ -45,6 +66,9 @@ calc_performance <- function(incompletes_data, target_bin) {
 #'   for a filter() operation
 #' @noRd
 extract_pval <- function(lm_object, input_term) {
+
+  if (class(lm_object) != "lm") stop("lm_object not lm class")
+
   p_val <- summary(lm_object)$coefficients |>
     dplyr::as_tibble(rownames = "term") |>
     filter(.data$term == input_term) |>
@@ -60,13 +84,14 @@ extract_pval <- function(lm_object, input_term) {
 #' vector
 #' @param string_vector A character vector
 #' @param replacement_vector A named vector where names correspond to values in
-#'   string_vector and values are the replacements
+#'   string_vector, adn can be regular expressions, and values are the
+#'   replacements
 #' @return A character vector with replaced values
 #' @noRd
 replace_fun <- function(string_vector, replacement_vector) {
   # Check if replacement_vector has names
   if (is.null(names(replacement_vector))) {
-    stop("replacement_vector must have names (regular expressions).")
+    stop("replacement_vector must have names")
   }
 
   replaced_vector <- string_vector
