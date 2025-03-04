@@ -3,3 +3,4 @@
 * Minimum viable product created
 * Optimisation capability
 * Future scenario capability
+* progress bars for downloading and optimising
