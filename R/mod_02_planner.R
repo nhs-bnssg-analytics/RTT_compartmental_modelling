@@ -150,8 +150,7 @@ mod_02_planner_ui <- function(id){
 #' 02_planner Server Functions
 #'
 #' @importFrom shiny observeEvent renderUI dateInput tagList numericInput
-#'   eventReactive Progress
-#' @importFrom shinyWidgets numericRangeInput
+#'   eventReactive Progress sliderInput
 #' @importFrom NHSRtt get_rtt_data latest_rtt_date convert_months_waited_to_id
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
@@ -608,7 +607,7 @@ mod_02_planner_server <- function(id, r){
                 placement = "right"
               )
             ),
-            numericRangeInput(
+            sliderInput(
               inputId = ns("capacity_skew_range"),
               label = NULL,
               value = c(0.8, 1.2),
