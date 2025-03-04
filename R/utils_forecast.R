@@ -137,15 +137,4 @@ calculate_t1_value <- function(monthly_rtt) {
   return(first_val)
 }
 
-local_enframe <- function(named_vector, name, value_name) {
-  df <- dplyr::tibble(
-    name = names(named_vector),
-    value_name = unname(named_vector)
-  ) |>
-    setNames(
-      nm = c(name, value_name)
-    )
 
-  return(df)
-
-}

@@ -123,3 +123,124 @@ test_that("replace_fun works", {
     info = "replace_fun works"
   )
 })
+
+test_that("local_enframe errors", {
+  vec <- letters[1:5]
+
+  new_name <- "letters"
+  new_values <- "values"
+
+  expect_error(
+    local_enframe(
+      named_vector = vec,
+      name = new_name,
+      value_name = new_values
+    ),
+    "named_vector must have names"
+  )
+})
+
+test_that("local_enframe works", {
+  vec <- setNames(
+    1:5,
+    nm = letters[1:5]
+  )
+
+  new_name <- "letters"
+  new_values <- "values"
+
+  expect_equal(
+    local_enframe(
+      named_vector = vec,
+      name = new_name,
+      value_name = new_values
+    ),
+    dplyr::tibble(
+      letters = letters[1:5],
+      values = 1:5
+    ),
+    info = "local_enframe works as expected"
+  )
+})
+
+
+test_that("org_name_lkp errors", {
+  expect_snapshot(
+    org_name_lkp(
+      names = "BUCKSHAW HOSPITAL",
+      type = "PROVIDER Org"
+    ),
+    error = TRUE
+  )
+
+  expect_warning(
+    org_name_lkp(
+      names = c("BUCKSHAW HOSPITAL", "Made up hospital"),
+      type = "Provider Org"
+    ),
+    "some names were not translated to codes as they were missing from the lookup"
+  )
+})
+
+test_that("org_name_lkp works", {
+
+  # "Commissioner Parent",
+  # "Commissioner Org"
+
+  expect_equal(
+    org_name_lkp(
+      names = c("London", "South West"),
+      type = "NHS Region"
+    ),
+    c("Y58", "Y56"),
+    info = "region lookup works as expected"
+  )
+
+  expect_equal(
+    org_name_lkp(
+      names = "NHS MID AND SOUTH ESSEX INTEGRATED CARE BOARD",
+      type = "Provider Parent"
+    ),
+    "QH8",
+    info = "provider parent lookup works as expected"
+  )
+
+  expect_equal(
+    org_name_lkp(
+      names = "NHS GREATER MANCHESTER INTEGRATED CARE BOARD",
+      type = "Commissioner Parent"
+    ),
+    "QOP",
+    info = "commissioner parent lookup works as expected"
+  )
+
+  expect_equal(
+    org_name_lkp(
+      names = "BUCKSHAW HOSPITAL",
+      type = "Provider Org"
+    ),
+    "A4M8P",
+    info = "provider lookup works as expected"
+  )
+
+  expect_equal(
+    org_name_lkp(
+      names = "NHS BLACKBURN WITH DARWEN (SUB ICB LOCATION)",
+      type = "Commissioner Org"
+    ),
+    "00Q",
+    info = "commissioner org lookup works as expected"
+  )
+
+  expect_equal(
+    org_name_lkp(
+      names = NULL,
+      type = "Provider Org"
+    ),
+    NULL,
+    info = "NULL input returns NULL output"
+  )
+
+
+
+})

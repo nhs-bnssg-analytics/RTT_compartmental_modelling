@@ -157,5 +157,25 @@ org_name_lkp <- function(names = NULL, type) {
     ) |>
     dplyr::pull(.data$code)
 
+  if (length(names) != length(codes))
+    warning("some names were not translated to codes as they were missing from the lookup")
+
   return(codes)
+}
+
+
+local_enframe <- function(named_vector, name, value_name) {
+
+  if (is.null(names(named_vector))) stop("named_vector must have names")
+
+  df <- dplyr::tibble(
+    name = names(named_vector),
+    value_name = unname(named_vector)
+  ) |>
+    setNames(
+      nm = c(name, value_name)
+    )
+
+  return(df)
+
 }
