@@ -31,10 +31,7 @@ mod_03_results_ui <- function(id){
          plotOutput(
            ns("wl_size"),
            click = "plot_click"
-         ),
-        DT::DTOutput(
-          ns("wl_size_table")
-        )
+         )
       ),
       nav_panel(
         title = "WL 4mth Performance",
@@ -45,10 +42,26 @@ mod_03_results_ui <- function(id){
                 )
         ),
       nav_panel(
-        title = "WL Reneges",
+        title = "WL Referrals",
         p("Second tab content."),
         plotOutput(
-          ns("wl_reneging_plot"),
+          ns("wl_referrals"),
+          click = NULL
+        )
+      ),
+      nav_panel(
+        title = "WL Reneges Total",
+        p("Second tab content."),
+        plotOutput(
+          ns("wl_reneging_plot_total"),
+          click = NULL
+        )
+      ),
+      nav_panel(
+        title = "WL Reneges Split",
+        p("Second tab content."),
+        plotOutput(
+          ns("wl_reneging_plot_split"),
           click = NULL
         )
       ),
@@ -83,7 +96,133 @@ mod_03_results_server <- function(id, r){
     ## Create waiting list size plot(s)
     output$wl_size <- renderPlot({
       dat<- r$waiting_list |>
-        dplyr::summarise(tot = sum(incompletes, na.rm = T),
+        dplyr::summarise(p_var = sum(incompletes, na.rm = T),
+                         .by = c(period, period_type))
+
+      # determine skew applied from model
+      skews <- unique(r$waiting_list$capacity_skew)
+      if (length(skews)== 1) {cap_skew <- 1} else {cap_skew <- skews[skews!=1]}
+
+
+      plot_output(data = dat,
+                  p_trust = r$chart_specification$trust,
+                  p_speciality = r$chart_specification$speciality,
+                  p_chart = "waiting list size",
+                  p_scenario = r$chart_specification$scenario_type,
+                  p_cap_change = r$chart_specification$capacity_percent_change,
+                  p_cap_skew = r$chart_specification$capacity_skew,
+                  p_cap_change_type = r$chart_specification$capacity_change_type,
+                  p_target_date = r$chart_specification$target_date,
+                  p_target_performance = r$chart_specification$target_performance,
+                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = r$chart_specification$referrals_change_type,
+                  p_perc = F)
+
+
+   }, res = 96)
+
+    ## Create waiting 4 month performance plots here
+    output$wl_performance <- renderPlot({
+      perf <- r$waiting_list |>
+          dplyr::mutate(target_flag = dplyr::if_else (months_waited_id <= 3, 1, 0)) |>
+          dplyr::summarise(tot_wait = sum(incompletes),
+                           .by = c(target_flag, period, period_type)) |>
+          dplyr::mutate(p_var = tot_wait / sum(tot_wait),
+                        .by = c(period, period_type)) |>
+          dplyr::filter(target_flag == 1)
+
+      plot_output(data = perf,
+                  p_trust = r$chart_specification$trust,
+                  p_speciality = r$chart_specification$speciality,
+                  p_chart = "4 month performance",
+                  p_scenario = r$chart_specification$scenario_type,
+                  p_cap_change = r$chart_specification$capacity_percent_change,
+                  p_cap_skew = r$chart_specification$capacity_skew,
+                  p_cap_change_type = r$chart_specification$capacity_change_type,
+                  p_target_date = r$chart_specification$target_date,
+                  p_target_performance = r$chart_specification$target_performance,
+                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = r$chart_specification$referrals_change_type,
+                  p_perc = T)
+
+
+      # ggplot2::ggplot() +
+      #   geom_line(
+      #     data = dplyr::filter(perf, period_type == "Observed"),
+      #     aes(x = period,
+      #         y = perf_perc,
+      #         group = 1),
+      #     colour = "black") +
+      #   geom_line(
+      #     data = dplyr::filter(perf, period_type == "Projected"),
+      #     aes(x = period,
+      #         y = perf_perc,
+      #         group = 2),
+      #     colour = "blue",
+      #     linetype = "dashed"
+      #     ) +
+      #   theme_minimal() +
+      #   scale_y_continuous(labels = scales::percent) +
+      #   scale_x_date(breaks = "3 month",
+      #                minor_breaks = "1 month",
+      #                date_labels = "%b %y") +
+      #   ylab("4 Months performance achievement") +
+      #   xlab(NULL) +
+      #   labs(
+      #     title = paste0("Observed and projected 4 month performance: ", format(min(d$period), "%b %Y"), "-", format(max(d$period), "%b %Y")),
+      #     subtitle = paste0("Based on "),
+      #     caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ", format(Sys.Date(), "%d/%m/%Y"))
+      #   )
+
+    }, res = 96)
+
+
+    ## Create waiting list size plots here
+    output$wl_referrals <- renderPlot({
+
+      referrals <- r$waiting_list |>
+        dplyr::filter(months_waited_id == 0) |>
+        dplyr::mutate(referrals  = sum(incompletes + calculated_treatments),
+                      .by = c(period, period_type))
+
+
+      ggplot2::ggplot() +
+        geom_line(
+          data = dplyr::filter(referrals, period_type == "Observed"),
+          aes(x = period,
+              y = referrals,
+              group = 1),
+          colour = "black") +
+        geom_line(
+          data = dplyr::filter(referrals, period_type == "Projected"),
+          aes(x = period,
+              y = referrals,
+              group = 2),
+          colour = "blue",
+          linetype = "dashed"
+        ) +
+        theme_minimal() +
+        scale_x_date(breaks = "3 month",
+                     minor_breaks = "1 month",
+                     date_labels = "%b %y") +
+        ylab("Referrals") +
+        xlab(NULL) +
+        labs(
+          title = paste0("Observed and projected referrals: ", format(min(d$period), "%b %Y"), "-", format(max(d$period), "%b %Y")),
+          subtitle = paste0("Based on "),
+          caption = paste0("Data taken from blah blah on ", format(Sys.Date(), "%d/%m/%Y"))
+        )
+
+    }, res = 96)
+
+
+
+
+    ## Create reneging plots - total
+    output$wl_reneging_plot_total <- renderPlot({
+
+      dat<- r$waiting_list |>
+        dplyr::summarise(tot = sum(reneges, na.rm = T),
                          .by = c(period, period_type))
 
       # determine skew applied from model
@@ -105,70 +244,19 @@ mod_03_results_server <- function(id, r){
                   colour = 'blue',
                   linetype = 'dashed') +
         theme_minimal() +
-        ylab('Total patients waiting') +
+        ylab('Total patients reneging') +
         xlab(NULL) +
         scale_x_date(breaks = "3 month", minor_breaks = "1 month", date_labels = "%b %y" ) +
-        labs(title = paste0 ('Observed and projected waiting list size: ', format(min(dat$period),'%b %Y'), '-', format(max(dat$period),'%b %Y')),
+        labs(title = paste0 ('Observed and projected reneges: ', format(min(dat$period),'%b %Y'), '-', format(max(dat$period),'%b %Y')),
              subtitle = paste0('Based on skew of ', cap_skew))
 
       p
-   }, res = 96)
 
-
-    output$wl_size_table <- DT::renderDT({
-
-      r$waiting_list |>
-        dplyr::arrange (period) |>
-        dplyr::mutate(period = format(period,'%m-%y')) |>
-        dplyr::summarise(tot = round(sum(incompletes, na.rm = T),0),
-                         .by = c(period)) |>
-        tidyr::pivot_wider(names_from = period, values_from = tot)
-
-    })
-
-    ## Create performance plots here
-    output$wl_performance <- renderPlot({
-      perf <- r$waiting_list |>
-          dplyr::mutate(target_flag = dplyr::if_else (months_waited_id <= 3, 1, 0)) |>
-          dplyr::summarise(tot_wait = sum(incompletes),
-                           .by = c(target_flag, period, period_type)) |>
-          dplyr::mutate(perf_perc = tot_wait / sum(tot_wait),
-                        .by = c(period, period_type)) |>
-          dplyr::filter(target_flag == 1)
-
-
-      ggplot2::ggplot() +
-        geom_line(
-          data = dplyr::filter(perf, period_type == "Observed"),
-          aes(x = period,
-              y = perf_perc,
-              group = 1),
-          colour = "black") +
-        geom_line(
-          data = dplyr::filter(perf, period_type == "Projected"),
-          aes(x = period,
-              y = perf_perc,
-              group = 2),
-          colour = "blue",
-          linetype = "dashed"
-          ) +
-        theme_minimal() +
-        scale_y_continuous(labels = scales::percent) +
-        scale_x_date(breaks = "3 month",
-                     minor_breaks = "1 month",
-                     date_labels = "%b %y") +
-        ylab("4 Months performance achievement") +
-        xlab(NULL) +
-        labs(
-          title = paste0("Observed and projected 4 month performance: ", format(min(d$period), "%b %Y"), "-", format(max(d$period), "%b %Y")),
-          subtitle = paste0("Based on "),
-          caption = paste0("Data taken from blah blah on ", format(Sys.Date(), "%d/%m/%Y"))
-        )
 
     }, res = 96)
 
-    ## Create reneging plots
-    output$wl_reneging_plot <- renderPlot({
+    ## Create reneging plots - split
+    output$wl_reneging_plot_split <- renderPlot({
 
       dat<- r$waiting_list |>
         dplyr::summarise(tot = sum(reneges, na.rm = T),
