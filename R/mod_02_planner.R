@@ -150,7 +150,7 @@ mod_02_planner_ui <- function(id){
 #' 02_planner Server Functions
 #'
 #' @importFrom shiny observeEvent renderUI dateInput tagList numericInput
-#'   eventReactive
+#'   eventReactive Progress
 #' @importFrom shinyWidgets numericRangeInput
 #' @importFrom NHSRtt get_rtt_data latest_rtt_date convert_months_waited_to_id
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
@@ -237,7 +237,20 @@ mod_02_planner_server <- function(id, r){
         r$chart_specification$observed_start <- min_download_date
         r$chart_specification$observed_end <- max_download_date
 
-        r$all_data <- NHSRtt::get_rtt_data(
+
+
+        # create progress bar
+        progress <- Progress$new(
+          session,
+          min = 1,
+          max = calibration_months + 1
+        )
+
+        on.exit(progress$close())
+        progress$set(message = 'Downloading public data from RTT statistics',
+                     detail = 'This is used for calibrating the model')
+
+        r$all_data <- get_rtt_data_with_progress(
           date_start = min_download_date,
           date_end = max_download_date,
           # trust_parent_codes = input$trust_parent_codes,
@@ -246,7 +259,8 @@ mod_02_planner_server <- function(id, r){
           # commissioner_org_codes = input$commissioner_org_codes,
           specialty_codes = specialty_lkp |>
             filter(.data$Treatment.Function.Name %in% input$specialty_codes) |>
-            pull(.data$Treatment.Function.Code)
+            pull(.data$Treatment.Function.Code),
+          progress = progress
         ) |>
           summarise(
             value = sum(.data$value),
@@ -872,22 +886,38 @@ mod_02_planner_server <- function(id, r){
             cap_prof <- "linear_change"
           }
 
+          progress <- Progress$new(
+            session,
+            min = 1,
+            max = nrow(skewed_params))
+          on.exit(progress$close())
+
+          progress$set(
+            message = 'Calculating capacity change based on range of skews provided',
+            detail = 'This may take a while...'
+          )
+
           # calculate optimised uplift
           min_uplift <- skewed_params |>
             mutate(
-              uplift = purrr::map(
+              rowid = dplyr::row_number(),
+              uplift = purrr::map2(
                 .x = .data$params,
-                ~ optimise_capacity(
-                  t_1_capacity = t1_capacity,
-                  referrals_projections = projections_referrals,
-                  incomplete_pathways = t0_incompletes,
-                  renege_capacity_params = .x,
-                  target = paste0(1 - (input$target_value / 100), "%"),
-                  target_bin = 4,
-                  capacity_profile = cap_prof,
-                  tolerance = 0.001,
-                  max_iterations = 35
-                )
+                .y = .data$rowid,
+                \(x, y) {
+                  progress$set(value = y)
+                  optimise_capacity(
+                    t_1_capacity = t1_capacity,
+                    referrals_projections = projections_referrals,
+                    incomplete_pathways = t0_incompletes,
+                    renege_capacity_params = x,
+                    target = paste0(1 - (input$target_value / 100), "%"),
+                    target_bin = 4,
+                    capacity_profile = cap_prof,
+                    tolerance = 0.001,
+                    max_iterations = 35
+                  )
+                }
               ),
               status = names(unlist(.data$uplift)),
               uplift = as.numeric(.data$uplift)

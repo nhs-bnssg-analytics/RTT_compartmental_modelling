@@ -67,7 +67,7 @@ calc_performance <- function(incompletes_data, target_bin) {
 #' @noRd
 extract_pval <- function(lm_object, input_term) {
 
-  if (class(lm_object) != "lm") stop("lm_object not lm class")
+  if (!inherits(lm_object, "lm")) stop("lm_object not lm class")
 
   p_val <- summary(lm_object)$coefficients |>
     dplyr::as_tibble(rownames = "term") |>
