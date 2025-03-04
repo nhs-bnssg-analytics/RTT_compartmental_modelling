@@ -13,48 +13,76 @@
 mod_02_planner_ui <- function(id){
   ns <- NS(id)
 
-  filters_card <- card(
-    card_header("Select filters on data"),
-    card_body(
-      min_height = 600,
-      # selectInput(
-      #   inputId = ns("trust_parent_codes"),
-      #   label = "Select trust parent codes",
-      #   choices = c("QE1", "QUY"),
-      #   multiple = TRUE
-      # ),
-      # selectInput(
-      #   inputId = ns("commissioner_parent_codes"),
-      #   label = "Select commissioner parent codes",
-      #   choices = c("QE1", "QUY"),
-      #   multiple = TRUE
-      # ),
-      # selectInput(
-      #   inputId = ns("commissioner_org_codes"),
-      #   label = "Select commissioner org codes",
-      #   choices = c("00R", "15M"),
-      #   multiple = TRUE
-      # ),
-      selectInput(
-        inputId = ns("trust_codes"),
-        label = "Select trust codes",
-        choices = unname(trust_lkp),
-        multiple = FALSE
+  filters_sidebar <- sidebar(
+
+    # card_header("Select filters on data"),
+    open = TRUE,
+    width = '35%',
+
+    selectizeInput(
+      inputId = ns("region"),
+      label = "Select NHS Region(s)",
+      choices = sort(unique(org_lkp$`NHS Region Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available regions"
       ),
-      selectInput(
-        inputId = ns("specialty_codes"),
-        label = "Select specialty codes",
-        choices = unname(treatment_function_codes),
-        multiple = FALSE
+      multiple = TRUE
+    ),
+    selectizeInput(
+      inputId = ns("trust_parent_codes"),
+      label = "Select Provider Parent(s)",
+      choices = sort(unique(org_lkp$`Provider Parent Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available provider parent orgs"
       ),
-      bslib::input_task_button(
-        id = ns("dwnld_rtt_data"),
-        label = "Download RTT data",
-        label_busy = "Downloading...",
-        type = "secondary"
-      )
+      multiple = TRUE
+    ),
+    selectizeInput(
+      inputId = ns("commissioner_parent_codes"),
+      label = "Select Commissioner Parent(s)",
+      choices = sort(unique(org_lkp$`Commissioner Parent Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available commissioner parent orgs"
+      ),
+      multiple = TRUE
+    ),
+    selectizeInput(
+      inputId = ns("commissioner_org_codes"),
+      label = "Select Commissioner Org(s)",
+      choices = sort(unique(org_lkp$`Commissioner Org Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available commissioner orgs"
+      ),
+      multiple = TRUE
+    ),
+    selectizeInput(
+      inputId = ns("trust_codes"),
+      label = "Select Provider(s)",
+      choices = sort(unique(org_lkp$`Provider Org Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available providers"
+      ),
+      multiple = TRUE
+    ),
+    selectInput(
+      inputId = ns("specialty_codes"),
+      label = "Select Specialties",
+      choices = unname(treatment_function_codes),
+      multiple = FALSE
+    ),
+    checkboxInput(
+      inputId = ns("nhs_only"),
+      label = "Show NHS providers only",
+      value = TRUE,
+    ),
+    bslib::input_task_button(
+      id = ns("dwnld_rtt_data"),
+      label = "Download RTT data",
+      label_busy = "Downloading...",
+      type = "secondary"
     )
   )
+
 
   scenario_card <- card(
     card_header("Select dates for analysis and forecasting"),
@@ -133,11 +161,7 @@ mod_02_planner_ui <- function(id){
     bslib::page_fluid(
       theme = bslib::bs_theme(version = 5),
       bslib::layout_sidebar(
-        sidebar = sidebar(
-          filters_card,
-          open = TRUE,
-          width = '25%'
-        ),
+        sidebar = filters_sidebar,
         scenario_card,
         fill = FALSE,
         fillable = FALSE
@@ -219,6 +243,119 @@ mod_02_planner_server <- function(id, r){
     )
 
 
+# area selection filtering based on other selections ----------------------
+    data_table <- reactiveVal(org_lkp)
+
+    observeEvent(
+      c(input$region,
+        input$trust_parent_codes,
+        input$commissioner_parent_codes,
+        input$commissioner_org_codes,
+        input$trust_codes,
+        input$nhs_only
+      ), {
+
+        data_table <- org_lkp
+
+        if (isTRUE(input$nhs_only)) {
+          data_table <- data_table |>
+            dplyr::filter(
+              grepl("NHS", .data$`Provider Org Name`)
+            )
+        }
+
+        if (length(input$region) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`NHS Region Name` %in% input$region
+            )
+        }
+
+        if (length(input$trust_parent_codes) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`Provider Parent Name` %in% input$trust_parent_codes
+            )
+        }
+
+        if (length(input$commissioner_parent_codes) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`Commissioner Parent Name` %in% input$commissioner_parent_codes
+            )
+        }
+
+        if (length(input$commissioner_org_codes) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`Commissioner Org Name` %in% input$commissioner_org_codes
+            )
+        }
+
+        if (length(input$trust_codes) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`Provider Org Name` %in% input$trust_codes
+            )
+        }
+
+        # provider_parent current selections
+        current_provider_parent <- dplyr::intersect(
+          input$trust_parent_codes,
+          unique(data_table[["Provider Parent Name"]])
+        )
+        # if (is.null(current_provider_parent)) current_provider_parent <- "All"
+
+        updateSelectizeInput(
+          session,
+          inputId = "trust_parent_codes",
+          choices = sort(unique(data_table[["Provider Parent Name"]])),
+          selected = current_provider_parent
+        )
+
+
+        # commissioner_parent current selections
+        current_commissioner_parent <- dplyr::intersect(
+          input$commissioner_parent_codes,
+          unique(data_table[["Commissioner Parent Name"]])
+        )
+
+        # if (is.null(current_commissioner_parent)) current_commissioner_parent <- "All"
+        updateSelectizeInput(
+          session,
+          inputId = "commissioner_parent_codes",
+          choices = sort(unique(data_table[["Commissioner Parent Name"]])),
+          selected = current_commissioner_parent
+        )
+
+        # commissioner_org current selections
+        current_commissioner_org <- dplyr::intersect(
+          input$commissioner_org_codes,
+          unique(data_table[["Commissioner Org Name"]])
+        )
+
+        # if (is.null(current_commissioner_org)) current_commissioner_org <- "All"
+        updateSelectizeInput(
+          session,
+          inputId = "commissioner_org_codes",
+          choices = sort(unique(data_table[["Commissioner Org Name"]])),
+          selected = current_commissioner_org
+        )
+
+        # provider current selections
+        current_provider <- dplyr::intersect(
+          input$trust_codes,
+          unique(data_table[["Provider Org Name"]])
+        )
+
+        # if (is.null(current_provider)) current_provider <- "All"
+        updateSelectizeInput(
+          session,
+          inputId = "trust_codes",
+          choices = sort(unique(data_table[["Provider Org Name"]])),
+          selected = current_provider
+        )
+      })
 
 # download data button ----------------------------------------------------
     observeEvent(
@@ -236,8 +373,6 @@ mod_02_planner_server <- function(id, r){
         r$chart_specification$observed_start <- min_download_date
         r$chart_specification$observed_end <- max_download_date
 
-
-
         # create progress bar
         progress <- Progress$new(
           session,
@@ -252,10 +387,22 @@ mod_02_planner_server <- function(id, r){
         r$all_data <- get_rtt_data_with_progress(
           date_start = min_download_date,
           date_end = max_download_date,
-          # trust_parent_codes = input$trust_parent_codes,
-          trust_codes = names(trust_lkp[trust_lkp %in% input$trust_codes]),
-          # commissioner_parent_codes = input$commissioner_parent_codes,
-          # commissioner_org_codes = input$commissioner_org_codes,
+          trust_parent_codes = org_name_lkp(
+            names = input$trust_parent_codes,
+            type = "Provider Parent"
+          ),
+          trust_codes = org_name_lkp(
+            names = input$trust_codes,
+            type = "Provider Org"
+          ),
+          commissioner_parent_codes = org_name_lkp(
+            names = input$commissioner_parent_codes,
+            type = "Commissioner Parent"
+          ),
+          commissioner_org_codes = org_name_lkp(
+            names = input$commissioner_org_codes,
+            type = "Commissioner Org"
+          ),
           specialty_codes = specialty_lkp |>
             filter(.data$Treatment.Function.Name %in% input$specialty_codes) |>
             pull(.data$Treatment.Function.Code),
@@ -434,6 +581,8 @@ mod_02_planner_server <- function(id, r){
     )
 
 # dynamic UI --------------------------------------------------------------
+
+    # data selectors
 
     # create forecast horizon default dates
     forecast_dates <- reactive({

@@ -104,3 +104,58 @@ replace_fun <- function(string_vector, replacement_vector) {
 
   return(replaced_vector)
 }
+
+#' @param names character vector of names
+#' @param type string; one of "NHS Region", "Provider Parent", "Provider Org",
+#'   "Commissioner Parent", "Commissioner Org"
+#' @importFrom dplyr all_of select rename distinct filter pull
+#' @noRd
+org_name_lkp <- function(names = NULL, type) {
+  type <- match.arg(
+    type,
+    c("NHS Region",
+      "Provider Parent",
+      "Provider Org",
+      "Commissioner Parent",
+      "Commissioner Org"
+    )
+  )
+
+  if (length(names) == 0) return(NULL)
+
+  if (type == "NHS Region") {
+    code_col <- "NHS Region Code"
+    name_col <- "NHS Region Name"
+  } else if (type == "Provider Parent") {
+    code_col <- "Provider Parent Org Code"
+    name_col <- "Provider Parent Name"
+  } else if (type == "Provider Org") {
+    code_col <- "Provider Org Code"
+    name_col <- "Provider Org Name"
+  } else if (type == "Commissioner Parent") {
+    code_col <- "Commissioner Parent Org Code"
+    name_col <- "Commissioner Parent Name"
+  } else if (type == "Commissioner Org") {
+    code_col <- "Commissioner Org Code"
+    name_col <- "Commissioner Org Name"
+  }
+
+  codes <- org_lkp |>
+    dplyr::select(
+      dplyr::all_of(
+        c(code_col,
+          name_col)
+      )
+    ) |>
+    dplyr::rename(
+      code = all_of(code_col),
+      name = all_of(name_col)
+    ) |>
+    dplyr::distinct() |>
+    dplyr::filter(
+      .data$name %in% names
+    ) |>
+    dplyr::pull(.data$code)
+
+  return(codes)
+}
