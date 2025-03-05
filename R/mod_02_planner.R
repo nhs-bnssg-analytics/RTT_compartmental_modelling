@@ -13,48 +13,76 @@
 mod_02_planner_ui <- function(id){
   ns <- NS(id)
 
-  filters_card <- card(
-    card_header("Select filters on data"),
-    card_body(
-      min_height = 600,
-      # selectInput(
-      #   inputId = ns("trust_parent_codes"),
-      #   label = "Select trust parent codes",
-      #   choices = c("QE1", "QUY"),
-      #   multiple = TRUE
-      # ),
-      # selectInput(
-      #   inputId = ns("commissioner_parent_codes"),
-      #   label = "Select commissioner parent codes",
-      #   choices = c("QE1", "QUY"),
-      #   multiple = TRUE
-      # ),
-      # selectInput(
-      #   inputId = ns("commissioner_org_codes"),
-      #   label = "Select commissioner org codes",
-      #   choices = c("00R", "15M"),
-      #   multiple = TRUE
-      # ),
-      selectInput(
-        inputId = ns("trust_codes"),
-        label = "Select trust codes",
-        choices = unname(trust_lkp),
-        multiple = FALSE
+  filters_sidebar <- sidebar(
+
+    # card_header("Select filters on data"),
+    open = TRUE,
+    width = '35%',
+
+    selectizeInput(
+      inputId = ns("region"),
+      label = "Select NHS Region(s)",
+      choices = sort(unique(org_lkp$`NHS Region Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available regions"
       ),
-      selectInput(
-        inputId = ns("specialty_codes"),
-        label = "Select specialty codes",
-        choices = unname(treatment_function_codes),
-        multiple = FALSE
+      multiple = TRUE
+    ),
+    selectizeInput(
+      inputId = ns("trust_parent_codes"),
+      label = "Select Provider Parent(s)",
+      choices = sort(unique(org_lkp$`Provider Parent Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available provider parent orgs"
       ),
-      bslib::input_task_button(
-        id = ns("dwnld_rtt_data"),
-        label = "Download RTT data",
-        label_busy = "Downloading...",
-        type = "secondary"
-      )
+      multiple = TRUE
+    ),
+    selectizeInput(
+      inputId = ns("commissioner_parent_codes"),
+      label = "Select Commissioner Parent(s)",
+      choices = sort(unique(org_lkp$`Commissioner Parent Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available commissioner parent orgs"
+      ),
+      multiple = TRUE
+    ),
+    selectizeInput(
+      inputId = ns("commissioner_org_codes"),
+      label = "Select Commissioner Org(s)",
+      choices = sort(unique(org_lkp$`Commissioner Org Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available commissioner orgs"
+      ),
+      multiple = TRUE
+    ),
+    selectizeInput(
+      inputId = ns("trust_codes"),
+      label = "Select Provider(s)",
+      choices = sort(unique(org_lkp$`Provider Org Name`)),
+      options = list(
+        placeholder = "Leave blank to aggregate all available providers"
+      ),
+      multiple = TRUE
+    ),
+    selectInput(
+      inputId = ns("specialty_codes"),
+      label = "Select Specialties",
+      choices = unname(treatment_function_codes),
+      multiple = FALSE
+    ),
+    checkboxInput(
+      inputId = ns("nhs_only"),
+      label = "Show NHS providers only",
+      value = TRUE,
+    ),
+    bslib::input_task_button(
+      id = ns("dwnld_rtt_data"),
+      label = "Download RTT data",
+      label_busy = "Downloading...",
+      type = "secondary"
     )
   )
+
 
   scenario_card <- card(
     card_header("Select dates for analysis and forecasting"),
@@ -133,11 +161,7 @@ mod_02_planner_ui <- function(id){
     bslib::page_fluid(
       theme = bslib::bs_theme(version = 5),
       bslib::layout_sidebar(
-        sidebar = sidebar(
-          filters_card,
-          open = TRUE,
-          width = '25%'
-        ),
+        sidebar = filters_sidebar,
         scenario_card,
         fill = FALSE,
         fillable = FALSE
@@ -150,8 +174,7 @@ mod_02_planner_ui <- function(id){
 #' 02_planner Server Functions
 #'
 #' @importFrom shiny observeEvent renderUI dateInput tagList numericInput
-#'   eventReactive
-#' @importFrom shinyWidgets numericRangeInput
+#'   eventReactive Progress sliderInput
 #' @importFrom NHSRtt get_rtt_data latest_rtt_date convert_months_waited_to_id
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
@@ -172,6 +195,7 @@ mod_02_planner_server <- function(id, r){
     reactive_values$params <- NULL
     reactive_values$calibration_data <- NULL
     reactive_values$latest_performance <- NULL
+    reactive_values$referrals_uplift <- NULL
 
     r$chart_specification <- list(
       trust = NULL,
@@ -190,6 +214,10 @@ mod_02_planner_server <- function(id, r){
       target_performance = NULL
     )
 
+
+# create period_lkp -------------------------------------------------------
+
+    calibration_months <- 2
     # create period_lkp table from the first time period in the calibration data
     # to the final time period in the projection period
     observeEvent(
@@ -198,7 +226,7 @@ mod_02_planner_server <- function(id, r){
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        ) %m-% months(11)
+        ) %m-% months(calibration_months)
 
         r$period_lkp <- dplyr::tibble(
           period = seq(
@@ -215,6 +243,121 @@ mod_02_planner_server <- function(id, r){
     )
 
 
+# area selection filtering based on other selections ----------------------
+    data_table <- reactiveVal(org_lkp)
+
+    observeEvent(
+      c(input$region,
+        input$trust_parent_codes,
+        input$commissioner_parent_codes,
+        input$commissioner_org_codes,
+        input$trust_codes,
+        input$nhs_only
+      ), {
+
+        data_table <- org_lkp
+
+        if (isTRUE(input$nhs_only)) {
+          data_table <- data_table |>
+            dplyr::filter(
+              grepl("NHS", .data$`Provider Org Name`)
+            )
+        }
+
+        if (length(input$region) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`NHS Region Name` %in% input$region
+            )
+        }
+
+        if (length(input$trust_parent_codes) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`Provider Parent Name` %in% input$trust_parent_codes
+            )
+        }
+
+        if (length(input$commissioner_parent_codes) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`Commissioner Parent Name` %in% input$commissioner_parent_codes
+            )
+        }
+
+        if (length(input$commissioner_org_codes) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`Commissioner Org Name` %in% input$commissioner_org_codes
+            )
+        }
+
+        if (length(input$trust_codes) > 0) {
+          data_table <- data_table |>
+            dplyr::filter(
+              .data$`Provider Org Name` %in% input$trust_codes
+            )
+        }
+
+        # provider_parent current selections
+        current_provider_parent <- dplyr::intersect(
+          input$trust_parent_codes,
+          unique(data_table[["Provider Parent Name"]])
+        )
+        # if (is.null(current_provider_parent)) current_provider_parent <- "All"
+
+        updateSelectizeInput(
+          session,
+          inputId = "trust_parent_codes",
+          choices = sort(unique(data_table[["Provider Parent Name"]])),
+          selected = current_provider_parent
+        )
+
+
+        # commissioner_parent current selections
+        current_commissioner_parent <- dplyr::intersect(
+          input$commissioner_parent_codes,
+          unique(data_table[["Commissioner Parent Name"]])
+        )
+
+        # if (is.null(current_commissioner_parent)) current_commissioner_parent <- "All"
+        updateSelectizeInput(
+          session,
+          inputId = "commissioner_parent_codes",
+          choices = sort(unique(data_table[["Commissioner Parent Name"]])),
+          selected = current_commissioner_parent
+        )
+
+        # commissioner_org current selections
+        current_commissioner_org <- dplyr::intersect(
+          input$commissioner_org_codes,
+          unique(data_table[["Commissioner Org Name"]])
+        )
+
+        # if (is.null(current_commissioner_org)) current_commissioner_org <- "All"
+        updateSelectizeInput(
+          session,
+          inputId = "commissioner_org_codes",
+          choices = sort(unique(data_table[["Commissioner Org Name"]])),
+          selected = current_commissioner_org
+        )
+
+        # provider current selections
+        current_provider <- dplyr::intersect(
+          input$trust_codes,
+          unique(data_table[["Provider Org Name"]])
+        )
+
+        # if (is.null(current_provider)) current_provider <- "All"
+        updateSelectizeInput(
+          session,
+          inputId = "trust_codes",
+          choices = sort(unique(data_table[["Provider Org Name"]])),
+          selected = current_provider
+        )
+      })
+
+# download data button ----------------------------------------------------
     observeEvent(
       input$dwnld_rtt_data, {
 
@@ -222,8 +365,7 @@ mod_02_planner_server <- function(id, r){
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        # ) %m-% months(11) # SWAP BACK FOR LIVE VERSION
-        ) %m-% months(1)
+        ) %m-% months(calibration_months)
 
         # pass some values to the charting module
         r$chart_specification$trust <- input$trust_codes
@@ -231,16 +373,40 @@ mod_02_planner_server <- function(id, r){
         r$chart_specification$observed_start <- min_download_date
         r$chart_specification$observed_end <- max_download_date
 
-        r$all_data <- NHSRtt::get_rtt_data(
+        # create progress bar
+        progress <- Progress$new(
+          session,
+          min = 1,
+          max = calibration_months + 1
+        )
+
+        on.exit(progress$close())
+        progress$set(message = 'Downloading public data from RTT statistics',
+                     detail = 'This is used for calibrating the model')
+
+        r$all_data <- get_rtt_data_with_progress(
           date_start = min_download_date,
           date_end = max_download_date,
-          # trust_parent_codes = input$trust_parent_codes,
-          trust_codes = names(trust_lkp[trust_lkp %in% input$trust_codes]),
-          # commissioner_parent_codes = input$commissioner_parent_codes,
-          # commissioner_org_codes = input$commissioner_org_codes,
+          trust_parent_codes = org_name_lkp(
+            names = input$trust_parent_codes,
+            type = "Provider Parent"
+          ),
+          trust_codes = org_name_lkp(
+            names = input$trust_codes,
+            type = "Provider Org"
+          ),
+          commissioner_parent_codes = org_name_lkp(
+            names = input$commissioner_parent_codes,
+            type = "Commissioner Parent"
+          ),
+          commissioner_org_codes = org_name_lkp(
+            names = input$commissioner_org_codes,
+            type = "Commissioner Org"
+          ),
           specialty_codes = specialty_lkp |>
             filter(.data$Treatment.Function.Name %in% input$specialty_codes) |>
-            pull(.data$Treatment.Function.Code)
+            pull(.data$Treatment.Function.Code),
+          progress = progress
         ) |>
           summarise(
             value = sum(.data$value),
@@ -315,18 +481,54 @@ mod_02_planner_server <- function(id, r){
 
         reactive_values$data_downloaded <- TRUE
 
+        # calculate unadjusted referrals
+        unadjusted_referrals <- r$all_data |>
+          filter(
+            .data$type == "Referrals"
+          ) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            unadjusted_referrals = "value"
+          )
+
+        # calculate the referrals uplift value by calibrating the parameters
+        # with redistribute_m0_reneges set to FALSE
+        reactive_values$referrals_uplift <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12,
+          redistribute_m0_reneges = FALSE,
+          referrals_uplift = NULL
+        ) |>
+          tidyr::unnest(.data$params) |>
+          dplyr::filter(
+            .data$months_waited_id == 0
+          ) |>
+          dplyr::pull(.data$renege_param)
+
+        # check whether the referrals uplift value is negative
+        if (reactive_values$referrals_uplift < 0) {
+          reactive_values$referrals_uplift <- abs(reactive_values$referrals_uplift)
+        } else {
+          reactive_values$referrals_uplift <- NULL
+        }
+
+        # calculate the modelling parameters using the uplifted referrals
         reactive_values$params <- calibrate_parameters(
           r$all_data,
-          max_months_waited = 12
+          max_months_waited = 12,
+          redistribute_m0_reneges = FALSE,
+          referrals_uplift = reactive_values$referrals_uplift
         )
-
 
         # data frame of counts by period which get supplied to the 3rd module
         # for charting
         reactive_values$calibration_data <- calibrate_parameters(
           r$all_data,
           max_months_waited = 12,
-          full_breakdown = TRUE
+          full_breakdown = TRUE,
+          referrals_uplift = reactive_values$referrals_uplift,
+          redistribute_m0_reneges = FALSE
         ) |>
           select(
             "params"
@@ -338,6 +540,12 @@ mod_02_planner_server <- function(id, r){
             calculated_treatments = "treatments",
             "reneges",
             incompletes = "waiting_same_node"
+          ) |>
+          left_join(
+            unadjusted_referrals,
+            by = join_by(
+              period_id, months_waited_id
+            )
           ) |>
           dplyr::mutate(
             capacity_skew = 1,
@@ -373,6 +581,8 @@ mod_02_planner_server <- function(id, r){
     )
 
 # dynamic UI --------------------------------------------------------------
+
+    # data selectors
 
     # create forecast horizon default dates
     forecast_dates <- reactive({
@@ -437,6 +647,7 @@ mod_02_planner_server <- function(id, r){
       )
     )
 
+    # the latest perforamnce value to be displayed
     output$latest_performance_ui <- shiny::renderUI({
       if (is.null(reactive_values$latest_performance)) {
         return(NULL)
@@ -449,11 +660,9 @@ mod_02_planner_server <- function(id, r){
         )
       }
 
-    }
+    })
 
-    )
-
-# make buttons appear if the data has already been downloaded
+# make scenario buttons appear if the data has already been downloaded
     output$optimise_capacity_ui <- renderUI({
       if (isTRUE(reactive_values$data_downloaded)) {
         bslib::input_task_button(
@@ -475,6 +684,9 @@ mod_02_planner_server <- function(id, r){
         )
       }
     })
+
+
+# dynamic UI based on the scenario choice ---------------------------------
 
     # Generate the dynamic UI based on dropdown selection
     output$dynamic_interface <- renderUI({
@@ -544,7 +756,7 @@ mod_02_planner_server <- function(id, r){
                 placement = "right"
               )
             ),
-            numericRangeInput(
+            sliderInput(
               inputId = ns("capacity_skew_range"),
               label = NULL,
               value = c(0.8, 1.2),
@@ -632,7 +844,7 @@ mod_02_planner_server <- function(id, r){
             as.Date(input$forecast_date[[2]])
           ) %/% months(1)
 
-          projections_referrals <- r$all_data |>
+          unadjusted_projections_referrals <- r$all_data |>
             filter(
               .data$type == "Referrals"
             ) |>
@@ -641,6 +853,13 @@ mod_02_planner_server <- function(id, r){
               method = input$referral_growth_type,
               percent_change = input$referral_growth
             )
+
+          if (!is.null(reactive_values$referrals_uplift)) {
+            projections_referrals <- unadjusted_projections_referrals +
+              (unadjusted_projections_referrals * reactive_values$referrals_uplift)
+          } else {
+            projections_referrals <- unadjusted_projections_referrals
+          }
 
           projections_capacity <- r$all_data |>
             filter(
@@ -681,6 +900,20 @@ mod_02_planner_server <- function(id, r){
               ),
             max_months_waited = 12
           ) |>
+            # add referrals onto data
+            dplyr::left_join(
+              dplyr::tibble(
+                unadjusted_referrals = unadjusted_projections_referrals,
+                months_waited_id = 0
+              ) |>
+                dplyr::mutate(
+                  period_id = dplyr::row_number()
+                ),
+              by = join_by(
+                period_id,
+                months_waited_id
+              )
+            ) |>
             mutate(
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = input$capacity_skew,
@@ -715,6 +948,9 @@ mod_02_planner_server <- function(id, r){
       ignoreInit = TRUE
     )
 
+
+# optimising forecast based on performance inputs -------------------------
+
     observeEvent(
       c(input$optimise_capacity), {
 
@@ -735,7 +971,17 @@ mod_02_planner_server <- function(id, r){
           projections_referrals <- r$all_data |>
             filter(
               .data$type == "Referrals"
-            ) |>
+            )
+
+          if (!is.null(reactive_values$referrals_uplift)) {
+            projections_referrals <- projections_referrals |>
+              mutate(
+                value = .data$value +
+                  (.data$value * reactive_values$referrals_uplift)
+              )
+          }
+
+          projections_referrals <- projections_referrals |>
             forecast_function(
               number_timesteps = forecast_months_to_target - 1,
               method = input$referral_growth_type,
@@ -788,22 +1034,38 @@ mod_02_planner_server <- function(id, r){
             cap_prof <- "linear_change"
           }
 
+          progress <- Progress$new(
+            session,
+            min = 1,
+            max = nrow(skewed_params))
+          on.exit(progress$close())
+
+          progress$set(
+            message = 'Calculating capacity change based on range of skews provided',
+            detail = 'This may take a while...'
+          )
+
           # calculate optimised uplift
           min_uplift <- skewed_params |>
             mutate(
-              uplift = purrr::map(
+              rowid = dplyr::row_number(),
+              uplift = purrr::map2(
                 .x = .data$params,
-                ~ optimise_capacity(
-                  t_1_capacity = t1_capacity,
-                  referrals_projections = projections_referrals,
-                  incomplete_pathways = t0_incompletes,
-                  renege_capacity_params = .x,
-                  target = paste0(1 - (input$target_value / 100), "%"),
-                  target_bin = 4,
-                  capacity_profile = cap_prof,
-                  tolerance = 0.001,
-                  max_iterations = 35
-                )
+                .y = .data$rowid,
+                \(x, y) {
+                  progress$set(value = y)
+                  optimise_capacity(
+                    t_1_capacity = t1_capacity,
+                    referrals_projections = projections_referrals,
+                    incomplete_pathways = t0_incompletes,
+                    renege_capacity_params = x,
+                    target = paste0(1 - (input$target_value / 100), "%"),
+                    target_bin = 4,
+                    capacity_profile = cap_prof,
+                    tolerance = 0.001,
+                    max_iterations = 35
+                  )
+                }
               ),
               status = names(unlist(.data$uplift)),
               uplift = as.numeric(.data$uplift)
@@ -819,7 +1081,7 @@ mod_02_planner_server <- function(id, r){
             as.Date(input$forecast_date[[2]])
           ) %/% months(1)
 
-          projections_referrals <- r$all_data |>
+          unadjusted_projections_referrals <- r$all_data |>
             filter(
               .data$type == "Referrals"
             ) |>
@@ -828,6 +1090,13 @@ mod_02_planner_server <- function(id, r){
               method = input$referral_growth_type,
               percent_change = input$referral_growth
             )
+
+          if (!is.null(reactive_values$referrals_uplift)) {
+            projections_referrals <- unadjusted_projections_referrals +
+              (unadjusted_projections_referrals * reactive_values$referrals_uplift)
+          } else {
+            projections_referrals <- unadjusted_projections_referrals
+          }
 
           projections_capacity <- r$all_data |>
             filter(
@@ -852,6 +1121,20 @@ mod_02_planner_server <- function(id, r){
             renege_capacity_params = min_uplift$params[[1]],
             max_months_waited = 12
           ) |>
+            # add referrals onto data
+            dplyr::left_join(
+              dplyr::tibble(
+                unadjusted_referrals = unadjusted_projections_referrals,
+                months_waited_id = 0
+              ) |>
+                dplyr::mutate(
+                  period_id = dplyr::row_number()
+                ),
+              by = join_by(
+                period_id,
+                months_waited_id
+              )
+            ) |>
             dplyr::mutate(
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = min_uplift$skew_param,

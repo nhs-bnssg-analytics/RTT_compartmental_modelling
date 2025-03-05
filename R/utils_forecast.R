@@ -3,18 +3,24 @@
 #' @param rtt_table tibble containing a record for each period, and a value
 #'   column
 #' @param number_timesteps integer; number of time steps to forecast
-#' @param method string; "tbats" or "linear"
-#' @param percent_change numeric vector; if method is "linear" the percentage
-#'   uplift required by the final time step relative to the extrapolated first
-#'   time step (where 1 is a 1% uplift). The number of items determines the
-#'   number of columns in the final tibble
+#' @param method string; "Uniform" or "Linear"
+#' @param percent_change numeric vector; if method is "Linear" thepercent_change
+#'   is the annual percentage change required relative to the extrapolated first
+#'   time step (where 1 is a 1% annual uplift by time step 13)
 #' @importFrom dplyr tibble mutate case_when summarise
 #' @importFrom purrr map
 #' @importFrom tidyr pivot_longer unnest pivot_wider
 #' @importFrom stats lm predict setNames
 #' @importFrom rlang .data
-#'
+#' @noRd
 forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_change) {
+
+  method <- match.arg(
+    method,
+    c("Linear",
+      "Uniform")
+  )
+
   if (method == "Uniform") {
     first_val <- calculate_t1_value(rtt_table)
 
@@ -99,6 +105,10 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
 #' @noRd
 calculate_t1_value <- function(monthly_rtt) {
 
+  # check names
+  if (length(setdiff(c("period_id", "value"), names(monthly_rtt))) > 0)
+    stop("monthly_rtt is missing either 'period_id' or 'value' field")
+
   first_period_id <- max(monthly_rtt[["period_id"]])# + 1
 
   first_val <- monthly_rtt |>
@@ -121,7 +131,6 @@ calculate_t1_value <- function(monthly_rtt) {
       )
     ) |>
     mutate(
-      # t_1_val = mean_val
       t_1_val = case_when(
         pval <= 0.05 ~ as.numeric(.data$lm_val),
         .default = .data$mean_val
@@ -137,15 +146,4 @@ calculate_t1_value <- function(monthly_rtt) {
   return(first_val)
 }
 
-local_enframe <- function(named_vector, name, value_name) {
-  df <- dplyr::tibble(
-    name = names(named_vector),
-    value_name = unname(named_vector)
-  ) |>
-    setNames(
-      nm = c(name, value_name)
-    )
 
-  return(df)
-
-}

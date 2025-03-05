@@ -4,7 +4,7 @@
 \alias{create_modelling_data}
 \title{Create the calibration dataset from the main data table}
 \usage{
-create_modelling_data(data, max_months_waited = 12)
+create_modelling_data(data, max_months_waited = 12, referrals_uplift)
 }
 \arguments{
 \item{data}{table of referrals, competes and incompletes (as different
@@ -13,7 +13,51 @@ type, months_waited_id, value}
 
 \item{max_months_waited}{integer; the stock to pool the stocks that have
 waited longer into}
+
+\item{referrals_uplift}{numeric; single value - parameter to apply to
+  referral inputs (absolute value of the renege_params in the first stock
+  when calibrating the models). These occur due to under-reporting of
+  referrals data. This is applied to the observed referrals using the
+  following formula:
+
+  \deqn{referrals_{adjusted} = referrals_{obs} + (referrals_{obs} *
+  uplift\_parameter)}
+
+  See details for more information on this argument and how it is applied.}
 }
 \description{
 Create the calibration dataset from the main data table
+}
+\details{
+This is the maths for stock = 0. We know:
+
+
+  (Equation 1) \deqn{incomplete_{obs} = referrals_{obs} - complete_{obs} -
+  reneges_{calc}}
+
+  BUT, when \eqn{reneges_{calc}} are negative, we want to adjust referrals by
+  that amount
+
+  \deqn{incompletes_{obs} = referrals\_adj_{calc} - complete_{obs}}
+
+  WHERE
+
+  (Equation 2) \deqn{referrals\_adj_{calc} = referrals_{obs} +
+  reneges_{calc}} (where \eqn{reneges_{calc}} is from equation 1)
+
+  ALSO
+
+  (Equation 3)
+
+  \deqn{renege\_param_{calc} = \frac{reneges_{calc}}{referrals_{obs}}}
+
+  THEREFORE, combining eq. 2 and eq. 3 (substituting \eqn{reneges_{calc}})
+
+  (Equation 4) \deqn{renege\_param_{calc} = \frac{referrals\_adj_{calc} -
+  referrals_{obs}}{referrals_{obs}}}
+
+  REARRANGING eq. 4
+
+  \deqn{referrals\_adj_{calc} = (renege\_param_{calc} * referrals_{obs}) +
+  referrals_{obs}}
 }

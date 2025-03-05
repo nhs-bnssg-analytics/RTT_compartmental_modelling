@@ -19,6 +19,9 @@
 *.vcf
 *.xml
 *.rds
+*.RData
+*.Rhistory
+
 
 ### direnv ###
 .direnv
