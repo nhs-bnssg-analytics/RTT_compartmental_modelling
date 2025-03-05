@@ -103,10 +103,9 @@ mod_03_results_server <- function(id, r){
       skews <- unique(r$waiting_list$capacity_skew)
       if (length(skews)== 1) {cap_skew <- 1} else {cap_skew <- skews[skews!=1]}
 
-
       plot_output(data = dat,
                   p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$speciality,
+                  p_speciality = r$chart_specification$specialty,
                   p_chart = "waiting list size",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
@@ -133,7 +132,7 @@ mod_03_results_server <- function(id, r){
 
       plot_output(data = perf,
                   p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$speciality,
+                  p_speciality = r$chart_specification$specialty,
                   p_chart = "4 month performance",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
@@ -182,36 +181,50 @@ mod_03_results_server <- function(id, r){
 
       referrals <- r$waiting_list |>
         dplyr::filter(months_waited_id == 0) |>
-        dplyr::mutate(referrals  = sum(incompletes + calculated_treatments),
+        dplyr::mutate(p_var  = sum(incompletes + calculated_treatments),
                       .by = c(period, period_type))
 
 
-      ggplot2::ggplot() +
-        geom_line(
-          data = dplyr::filter(referrals, period_type == "Observed"),
-          aes(x = period,
-              y = referrals,
-              group = 1),
-          colour = "black") +
-        geom_line(
-          data = dplyr::filter(referrals, period_type == "Projected"),
-          aes(x = period,
-              y = referrals,
-              group = 2),
-          colour = "blue",
-          linetype = "dashed"
-        ) +
-        theme_minimal() +
-        scale_x_date(breaks = "3 month",
-                     minor_breaks = "1 month",
-                     date_labels = "%b %y") +
-        ylab("Referrals") +
-        xlab(NULL) +
-        labs(
-          title = paste0("Observed and projected referrals: ", format(min(d$period), "%b %Y"), "-", format(max(d$period), "%b %Y")),
-          subtitle = paste0("Based on "),
-          caption = paste0("Data taken from blah blah on ", format(Sys.Date(), "%d/%m/%Y"))
-        )
+      plot_output(data = perf,
+                  p_trust = r$chart_specification$trust,
+                  p_speciality = r$chart_specification$specialty,
+                  p_chart = "Observed and projected referralse",
+                  p_scenario = r$chart_specification$scenario_type,
+                  p_cap_change = r$chart_specification$capacity_percent_change,
+                  p_cap_skew = r$chart_specification$capacity_skew,
+                  p_cap_change_type = r$chart_specification$capacity_change_type,
+                  p_target_date = r$chart_specification$target_date,
+                  p_target_performance = r$chart_specification$target_performance,
+                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = r$chart_specification$referrals_change_type,
+                  p_perc = T)
+
+      # ggplot2::ggplot() +
+      #   geom_line(
+      #     data = dplyr::filter(referrals, period_type == "Observed"),
+      #     aes(x = period,
+      #         y = referrals,
+      #         group = 1),
+      #     colour = "black") +
+      #   geom_line(
+      #     data = dplyr::filter(referrals, period_type == "Projected"),
+      #     aes(x = period,
+      #         y = referrals,
+      #         group = 2),
+      #     colour = "blue",
+      #     linetype = "dashed"
+      #   ) +
+      #   theme_minimal() +
+      #   scale_x_date(breaks = "3 month",
+      #                minor_breaks = "1 month",
+      #                date_labels = "%b %y") +
+      #   ylab("Referrals") +
+      #   xlab(NULL) +
+      #   labs(
+      #     title = paste0("Observed and projected referrals: ", format(min(d$period), "%b %Y"), "-", format(max(d$period), "%b %Y")),
+      #     subtitle = paste0("Based on "),
+      #     caption = paste0("Data taken from blah blah on ", format(Sys.Date(), "%d/%m/%Y"))
+      #   )
 
     }, res = 96)
 
