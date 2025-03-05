@@ -164,6 +164,93 @@ org_name_lkp <- function(names = NULL, type) {
 }
 
 
+#' function to create standard names so the subsequent aggregation tasks don't
+#' break. This function is focussed on performing analysis for a single
+#' selection within the tool, rather than analysing trusts/specialties as a
+#' batch process
+filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
+  selected_trust_parents <- org_name_lkp(
+    names = trust_parents,
+    type = "Provider Parent"
+  )
+
+  selected_trusts <- org_name_lkp(
+    names = trusts,
+    type = "Provider Org"
+  )
+
+  selected_commissioner_parents <- org_name_lkp(
+    names = comm_parents,
+    type = "Commissioner Parent"
+  )
+
+  selected_commissioners <- org_name_lkp(
+    names = comms,
+    type = "Commissioner Org"
+  )
+  selected_specialties <- spec
+
+  if (length(selected_trust_parents) > 1 |
+      is.null(selected_trust_parents)) {
+    display_trust_parents <- "Aggregated"
+  } else {
+    display_trust_parents <- selected_trust_parents
+  }
+
+  if (length(selected_trusts) > 1 |
+      is.null(selected_trusts)) {
+    display_trusts <- "Aggregated"
+  } else {
+    display_trusts <- selected_trusts
+  }
+
+  if (length(selected_commissioner_parents) > 1 |
+      is.null(selected_commissioner_parents)) {
+    display_commissioner_parents <- "Aggregated"
+  } else {
+    display_commissioner_parents <- selected_commissioner_parents
+  }
+
+  if (length(selected_commissioners) > 1 |
+      is.null(selected_commissioners)) {
+    display_commissioners <- "Aggregated"
+  } else {
+    display_commissioners <- selected_commissioners
+  }
+
+  if (length(selected_specialties) > 1 |
+      is.null(selected_specialties)) {
+    display_specialties <- "Aggregated"
+  } else {
+    display_specialties <- selected_specialties
+  }
+
+  return(
+    list(
+      trust_parents = list(
+        selected = selected_trust_parents,
+        display = display_trust_parents
+      ),
+      trusts = list(
+        selected = selected_trusts,
+        display = display_trusts
+      ),
+      commissioner_parents = list(
+        selected = selected_commissioner_parents,
+        display = display_commissioner_parents
+      ),
+      commissioners = list(
+        selected = selected_commissioners,
+        display = display_commissioners
+      ),
+      specialties = list(
+        selected = selected_specialties,
+        display = display_specialties
+      )
+    )
+  )
+}
+
 local_enframe <- function(named_vector, name, value_name) {
 
   if (is.null(names(named_vector))) stop("named_vector must have names")
