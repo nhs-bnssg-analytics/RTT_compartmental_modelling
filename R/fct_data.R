@@ -1,4 +1,4 @@
-#' data iwth progress bar
+#' data with progress bar
 #'
 #' @description Adds a progress bar to the NHSRtt get_rtt_data function
 #'
