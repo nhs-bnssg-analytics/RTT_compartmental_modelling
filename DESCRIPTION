@@ -18,11 +18,10 @@ Imports:
     ggplot2,
     golem (>= 0.4.1),
     lubridate,
-    NHSRtt (>= 0.2.2),
+    NHSRtt (>= 0.2.3),
     purrr,
     rlang,
     shiny (>= 1.8.1.1),
-    shinyWidgets,
     stats,
     tidyr,
     utils

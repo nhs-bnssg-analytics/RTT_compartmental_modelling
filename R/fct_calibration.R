@@ -5,10 +5,66 @@
 #'   type, months_waited_id, value
 #' @param max_months_waited integer; the stock to pool the stocks that have
 #'   waited longer into
+#' @param referrals_uplift numeric; single value - parameter to apply to
+#'   referral inputs (absolute value of the renege_params in the first stock
+#'   when calibrating the models). These occur due to under-reporting of
+#'   referrals data. This is applied to the observed referrals using the
+#'   following formula:
+#'
+#'   \deqn{referrals_{adjusted} = referrals_{obs} + (referrals_{obs} *
+#'   uplift\_parameter)}
+#'
+#'   See details for more information on this argument and how it is applied.
+#'
+#' @details This is the maths for stock = 0. We know:
+#'
+#'
+#'   (Equation 1) \deqn{incomplete_{obs} = referrals_{obs} - complete_{obs} -
+#'   reneges_{calc}}
+#'
+#'   BUT, when \eqn{reneges_{calc}} are negative, we want to adjust referrals by
+#'   that amount
+#'
+#'   \deqn{incompletes_{obs} = referrals\_adj_{calc} - complete_{obs}}
+#'
+#'   WHERE
+#'
+#'   (Equation 2) \deqn{referrals\_adj_{calc} = referrals_{obs} +
+#'   reneges_{calc}} (where \eqn{reneges_{calc}} is from equation 1)
+#'
+#'   ALSO
+#'
+#'   (Equation 3)
+#'
+#'   \deqn{renege\_param_{calc} = \frac{reneges_{calc}}{referrals_{obs}}}
+#'
+#'   THEREFORE, combining eq. 2 and eq. 3 (substituting \eqn{reneges_{calc}})
+#'
+#'   (Equation 4) \deqn{renege\_param_{calc} = \frac{referrals\_adj_{calc} -
+#'   referrals_{obs}}{referrals_{obs}}}
+#'
+#'   REARRANGING eq. 4
+#'
+#'   \deqn{referrals\_adj_{calc} = (renege\_param_{calc} * referrals_{obs}) +
+#'   referrals_{obs}}
+#'
 #'
 #' @importFrom dplyr filter distinct rename left_join join_by
 #' @importFrom tidyr complete nest
-create_modelling_data <- function(data, max_months_waited = 12) {
+create_modelling_data <- function(data, max_months_waited = 12, referrals_uplift) {
+
+  required_fields <- c(
+    "trust",
+    "specialty",
+    "period_id",
+    "type",
+    "months_waited_id",
+    "value"
+  )
+
+  if (length(dplyr::setdiff(required_fields, names(data)) > 0))
+    stop("incorrect fields in data object - requires 'trust', 'specialty', 'period_id', 'type', 'months_waited_id', 'value'")
+
   periods <- unique(
     sort(
       data$period_id
@@ -45,11 +101,22 @@ create_modelling_data <- function(data, max_months_waited = 12) {
       specialty = specialties,
       .data$trust,
       fill = list(referrals = 0)
-    ) |>
+    )
+
+  if (!is.null(referrals_uplift)) {
+
+
+    referrals <- referrals |>
+      dplyr::mutate(
+        referrals = referrals + (referrals * referrals_uplift)
+      )
+  }
+
+  referrals <- referrals |>
     tidyr::nest(
       referrals_data = c(
-        .data$period_id,
-        .data$referrals
+        "period_id",
+        "referrals"
       )
     )
 
@@ -76,9 +143,9 @@ create_modelling_data <- function(data, max_months_waited = 12) {
     ) |>
     tidyr::nest(
       completes_data = c(
-        .data$period_id,
-        .data$months_waited_id,
-        .data$treatments
+        "period_id",
+        "months_waited_id",
+        "treatments"
       )
     )
 
@@ -106,9 +173,9 @@ create_modelling_data <- function(data, max_months_waited = 12) {
     ) |>
     tidyr::nest(
       incompletes_data = c(
-        .data$period_id,
-        .data$months_waited_id,
-        .data$incompletes
+        "period_id",
+        "months_waited_id",
+        "incompletes"
       )
     )
 
@@ -135,6 +202,9 @@ create_modelling_data <- function(data, max_months_waited = 12) {
 #'
 #' @description Uses the NHSRtt package to create the calibration parameters for
 #'   the downloaded data
+#' @param referrals_uplift numeric; multiplier for referral inputs (calculated
+#'   from negative renege_params when calibrating the models). These occur due
+#'   to under-reporting of referrals data
 #'
 #' @importFrom purrr pmap
 #' @importFrom NHSRtt calibrate_capacity_renege_params
@@ -143,9 +213,12 @@ create_modelling_data <- function(data, max_months_waited = 12) {
 #'   parameters data
 #'
 #' @noRd
-calibrate_parameters <- function(rtt_data, max_months_waited = 12, full_breakdown = FALSE) {
+calibrate_parameters <- function(rtt_data, max_months_waited = 12, redistribute_m0_reneges, referrals_uplift, full_breakdown = FALSE) {
 
-  params <- create_modelling_data(rtt_data) |>
+  params <- create_modelling_data(
+    data = rtt_data,
+    referrals_uplift = referrals_uplift
+  ) |>
     mutate(
       params = purrr::pmap(
         .l = list(
@@ -158,7 +231,7 @@ calibrate_parameters <- function(rtt_data, max_months_waited = 12, full_breakdow
           completes = comp,
           incompletes = incomp,
           max_months_waited = max_months_waited,
-          redistribute_m0_reneges = FALSE,
+          redistribute_m0_reneges = redistribute_m0_reneges,
           full_breakdown = full_breakdown
         )
       )

@@ -1,20 +1,16 @@
 
-## trust lookup
-trust_lkp <- c(
-  "R0D" = "UNIVERSITY HOSPITALS DORSET NHS FOUNDATION TRUST",
-  "RA7" = "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
-  "RA9" = "TORBAY AND SOUTH DEVON NHS FOUNDATION TRUST",
-  "RBD" = "DORSET COUNTY HOSPITAL NHS FOUNDATION TRUST",
-  "RD1" = "ROYAL UNITED HOSPITALS BATH NHS FOUNDATION TRUST",
-  "REF" = "ROYAL CORNWALL HOSPITALS NHS TRUST",
-  "RH5" = "SOMERSET NHS FOUNDATION TRUST",
-  "RH8" = "ROYAL DEVON UNIVERSITY HEALTHCARE NHS FOUNDATION TRUST",
-  "RJ8" = "CORNWALL PARTNERSHIP NHS FOUNDATION TRUST",
-  "RK9" = "UNIVERSITY HOSPITALS PLYMOUTH NHS TRUST",
-  "RN3" = "GREAT WESTERN HOSPITALS NHS FOUNDATION TRUST",
-  "RNZ" = "SALISBURY NHS FOUNDATION TRUST",
-  "RTE" = "GLOUCESTERSHIRE HOSPITALS NHS FOUNDATION TRUST",
-  "RVJ" = "NORTH BRISTOL NHS TRUST"
+
+org_lkp <- NHSRtt::latest_orgs()
+
+trust_lkp <- org_lkp |>
+  dplyr::distinct(
+    .data$`Provider Org Code`,
+    .data$`Provider Org Name`
+  )
+
+trust_lkp <- setNames(
+  trust_lkp[["Provider Org Name"]],
+  nm = trust_lkp[["Provider Org Code"]]
 )
 
 ## specialty lookup
@@ -61,15 +57,16 @@ specialty_lkp <- dplyr::tribble(
   "C_410",              "Rheumatology",
   "C_430",          "Elderly Medicine",
   "C_502",               "Gynaecology",
-  "C_999",                             "Total",
-  "X02",          "Other",
-  "X03",    "Other",
-  "X04",       "Other",
-  "X05",         "Other",
-  "X06",            "Other"
+  "C_999",                     "Total",
+  "X02",                       "Other",
+  "X03",                       "Other",
+  "X04",                       "Other",
+  "X05",                       "Other",
+  "X06",                       "Other"
 )
 
 usethis::use_data(
+  org_lkp,
   trust_lkp,
   treatment_function_codes,
   specialty_lkp,

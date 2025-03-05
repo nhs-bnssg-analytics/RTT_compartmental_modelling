@@ -28,6 +28,7 @@ golem::add_module(name = "03_results", with_test = TRUE) # Name of the module
 ## Creates fct_* and utils_*
 golem::add_fct("calibration", with_test = TRUE)
 golem::add_fct("charts", with_test = TRUE)
+golem::add_fct("data", with_test = TRUE)
 golem::add_utils("forecast", with_test = TRUE)
 golem::add_utils("general", with_test = TRUE)
 
