@@ -184,9 +184,6 @@ test_that("org_name_lkp errors", {
 
 test_that("org_name_lkp works", {
 
-  # "Commissioner Parent",
-  # "Commissioner Org"
-
   expect_equal(
     org_name_lkp(
       names = c("London", "South West"),
@@ -240,6 +237,50 @@ test_that("org_name_lkp works", {
     NULL,
     info = "NULL input returns NULL output"
   )
+})
+
+
+test_that("filters_displays works", {
+
+  specs <- c("C_100", "C_999")
+
+  lbls <- filters_displays(
+    trust_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
+    trusts = "FULWOOD HALL HOSPITAL",
+    comm_parents = c("NHS SOUTH YORKSHIRE INTEGRATED CARE BOARD",
+                     "NHS NORTH EAST LONDON INTEGRATED CARE BOARD"),
+    comms = NULL,
+    spec = specs
+  )
+
+  expect_equal(
+    length(lbls),
+    5,
+    info = "function returns 5 items"
+  )
+
+  expect_equal(
+    lapply(lbls, names) |>
+      unlist() |>
+      unique(),
+    c("selected", "display"),
+    info = "all names of subgroups are expected"
+  )
+
+  expect_true(
+    all(
+      lbls$commissioner_parents$display == "Aggregated",
+      lbls$commissioners$display == "Aggregated",
+      lbls$specialties$display == "Aggregated"
+    )
+  )
+
+  expect_equal(
+    lbls$specialties$selected,
+    specs,
+    info = "selected specialties remain unchanged"
+  )
+
 
 
 

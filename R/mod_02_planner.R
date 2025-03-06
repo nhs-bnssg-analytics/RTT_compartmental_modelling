@@ -384,28 +384,24 @@ mod_02_planner_server <- function(id, r){
         progress$set(message = 'Downloading public data from RTT statistics',
                      detail = 'This is used for calibrating the model')
 
+        selections_labels <- filters_displays(
+          trust_parents = input$trust_parent_codes,
+          trusts = input$trust_codes,
+          comm_parents = input$commissioner_parent_codes,
+          comms = input$commissioner_org_codes,
+          spec = specialty_lkp |>
+            filter(.data$Treatment.Function.Name %in% input$specialty_codes) |>
+            pull(.data$Treatment.Function.Code)
+        )
+
         r$all_data <- get_rtt_data_with_progress(
           date_start = min_download_date,
           date_end = max_download_date,
-          trust_parent_codes = org_name_lkp(
-            names = input$trust_parent_codes,
-            type = "Provider Parent"
-          ),
-          trust_codes = org_name_lkp(
-            names = input$trust_codes,
-            type = "Provider Org"
-          ),
-          commissioner_parent_codes = org_name_lkp(
-            names = input$commissioner_parent_codes,
-            type = "Commissioner Parent"
-          ),
-          commissioner_org_codes = org_name_lkp(
-            names = input$commissioner_org_codes,
-            type = "Commissioner Org"
-          ),
-          specialty_codes = specialty_lkp |>
-            filter(.data$Treatment.Function.Name %in% input$specialty_codes) |>
-            pull(.data$Treatment.Function.Code),
+          trust_parent_codes = selections_labels$trust_parents$selected,
+          trust_codes = selections_labels$trusts$selected,
+          commissioner_parent_codes = selections_labels$commissioner_parents$selected,
+          commissioner_org_codes = selections_labels$commissioners$selected,
+          specialty_codes = selections_labels$specialties$selected,
           progress = progress
         ) |>
           summarise(
@@ -418,16 +414,40 @@ mod_02_planner_server <- function(id, r){
             months_waited_id = NHSRtt::convert_months_waited_to_id(
               .data$months_waited,
               12 # this pools the data at 12+ months (this can be a user input in the future)
-            ),
-            trust = replace_fun(
-              .data$trust,
-              trust_lkp
-            ),
-            specialty = replace_fun(
-              .data$specialty,
-              treatment_function_codes
             )
-          ) |>
+          )
+
+        if (selections_labels$trusts$display == "Aggregated") {
+          r$all_data <- r$all_data |>
+            mutate(
+              trust = "Aggregated"
+            )
+        } else {
+          r$all_data <- r$all_data |>
+            mutate(
+              trust = replace_fun(
+                .data$trust,
+                trust_lkp
+              )
+            )
+        }
+
+        if (selections_labels$specialties$display == "Aggregated") {
+          r$all_data <- r$all_data |>
+            mutate(
+              specialty = "Aggregated"
+            )
+        } else {
+          r$all_data <- r$all_data |>
+            mutate(
+              specialty = replace_fun(
+                .data$specialty,
+                treatment_function_codes
+              )
+            )
+        }
+
+        r$all_data <- r$all_data |>
           summarise(
             value = sum(.data$value),
             .by = c(
