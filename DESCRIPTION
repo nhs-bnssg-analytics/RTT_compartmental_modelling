@@ -16,6 +16,7 @@ Imports:
     dplyr,
     DT,
     ggplot2,
+    ggtext,
     golem (>= 0.4.1),
     lubridate,
     NHSRtt (>= 0.2.3),
