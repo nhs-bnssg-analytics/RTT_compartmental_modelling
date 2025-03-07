@@ -155,7 +155,8 @@ mod_03_results_server <- function(id, r){
                   p_target_performance = r$chart_specification$target_performance,
                   p_referrals_percent_change = r$chart_specification$referrals_percent_change,
                   p_referrals_change_type = r$chart_specification$referrals_change_type,
-                  p_perc = T)
+                  p_perc = T,
+                  p_target_line = T)
 
     }, res = 96)
 
@@ -243,7 +244,7 @@ mod_03_results_server <- function(id, r){
       plot_output(data = dat_ren_split,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
-                  p_chart = "total net reneges",
+                  p_chart = "net reneges by months waiting",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
                   p_cap_skew = r$chart_specification$capacity_skew,
@@ -255,52 +256,19 @@ mod_03_results_server <- function(id, r){
                   p_perc = F,
                   p_facet = T)
 
-      #
-      # dat<- r$waiting_list |>
-      #   dplyr::summarise(tot = sum(reneges, na.rm = T),
-      #                    .by = c(period, period_type, months_waited_id))
-      #
-      # # determine skew applied from model
-      # skews <- unique(r$waiting_list$capacity_skew)
-      # if (length(skews)== 1) {cap_skew <- 1} else {cap_skew <- skews[skews!=1]}
-      #
-      # p <- ggplot2::ggplot() +
-      #   geom_line(data = dplyr::filter(dat, period_type == 'Observed'),
-      #             aes(x = period,
-      #                 y = tot,
-      #                 group = 1
-      #             ),  colour = 'black',
-      #             show.legend = T) +
-      #   geom_line(data = dplyr::filter(dat, period_type == 'Projected'),
-      #             aes(x = period,
-      #                 y = tot,
-      #                 group = 2
-      #             ),
-      #             colour = 'blue',
-      #             linetype = 'dashed') +
-      #   theme_minimal() +
-      #   facet_wrap(~months_waited_id, ncol = 4) +
-      #   ylab('Total patients waiting') +
-      #   xlab(NULL) +
-      #   scale_x_date(breaks = "3 month", minor_breaks = "1 month", date_labels = "%b %y" ) +
-      #   labs(title = paste0 ('Observed and projected reneges: ', format(min(dat$period),'%b %Y'), '-', format(max(dat$period),'%b %Y')),
-      #        subtitle = paste0('Based on skew of ', cap_skew))
-      #
-      # p
-
-
     }, res = 96)
 
     ## Create waiting list capacity plot(s)
-    output$wl_capacity <- renderPlot({
+    output$wl_capacity_tot <- renderPlot({
       dat_cap_tot<- r$waiting_list |>
-        dplyr::summarise(tot = sum(calculated_treatments, na.rm = T),
+        dplyr::summarise(p_var = sum(calculated_treatments, na.rm = T),
                          .by = c(period, period_type))
+
 
       plot_output(data = dat_cap_tot,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
-                  p_chart = "total net reneges",
+                  p_chart = "total capacity",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
                   p_cap_skew = r$chart_specification$capacity_skew,
@@ -312,28 +280,29 @@ mod_03_results_server <- function(id, r){
                   p_perc = F,
                   p_facet = F)
 
-      # p <- ggplot2::ggplot() +
-      #   geom_line(data = dplyr::filter(dat, period_type == 'Observed'),
-      #             aes(x = period,
-      #                 y = tot,
-      #                 group = 1
-      #             ),  colour = 'black',
-      #             show.legend = T) +
-      #   geom_line(data = dplyr::filter(dat, period_type == 'Projected'),
-      #             aes(x = period,
-      #                 y = tot,
-      #                 group = 2
-      #             ),
-      #             colour = 'blue',
-      #             linetype = 'dashed') +
-      #   theme_minimal() +
-      #   ylab('Total patients waiting') +
-      #   xlab(NULL) +
-      #   scale_x_date(breaks = "3 month", minor_breaks = "1 month", date_labels = "%b %y" ) +
-      #   labs(title = paste0 ('Observed and projected completed pathways: ', format(min(dat$period),'%b %Y'), '-', format(max(dat$period),'%b %Y')),
-      #        subtitle = paste0('Based on skew of ', cap_skew))
-      #
-      # p
+    }, res = 96)
+
+    ## Create waiting list split capacity plot(s)
+    output$wl_capacity_split <- renderPlot({
+      dat_cap_tot<- r$waiting_list |>
+        dplyr::summarise(p_var = sum(calculated_treatments, na.rm = T),
+                         .by = c(period, period_type, months_waited_id))
+
+      plot_output(data = dat_cap_tot,
+                  p_trust = r$chart_specification$trust,
+                  p_speciality = r$chart_specification$specialty,
+                  p_chart = "capacity by months waiting",
+                  p_scenario = r$chart_specification$scenario_type,
+                  p_cap_change = r$chart_specification$capacity_percent_change,
+                  p_cap_skew = r$chart_specification$capacity_skew,
+                  p_cap_change_type = r$chart_specification$capacity_change_type,
+                  p_target_date = r$chart_specification$target_date,
+                  p_target_performance = r$chart_specification$target_performance,
+                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = r$chart_specification$referrals_change_type,
+                  p_perc = F,
+                  p_facet = T)
+
     }, res = 96)
 
   })
