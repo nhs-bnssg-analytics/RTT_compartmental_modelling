@@ -26,71 +26,77 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "WL Size",
-        p("Second tab content."),
+        title = "Total waiting list size",
+        p(""),
          plotOutput(
            ns("wl_size"),
-           click = "plot_click"
+           click = "plot_click",
+           height = "600px"
          )
       ),
       nav_panel(
-        title = "WL 4mth Performance",
-        p("Second tab content."),
+        title = "Waiting list size by months waiting",
+        p(""),
+        plotOutput(
+          ns("wl_wait_per"),
+          click = NULL,
+          height = "600px"
+        )
+      ),
+      nav_panel(
+        title = "4 Month Performance",
+        p(""),
         plotOutput(
           ns("wl_performance"),
-          click = NULL
+          click = NULL,
+          height = "600px"
                 )
         ),
       nav_panel(
-        title = "patients waiting across periods",
-        p("Second tab content."),
-        plotOutput(
-          ns("wl_wait_per"),
-          click = NULL
-        )
-      ),
-      nav_panel(
-        title = "WL Referrals",
-        p("Second tab content."),
+        title = "Referrals",
+        p(""),
         plotOutput(
           ns("wl_referrals"),
-          click = NULL
+          click = NULL,
+          height = "600px"
         )
       ),
       nav_panel(
-        title = "WL Reneges Total",
-        p("Second tab content."),
+        title = "Net total reneges",
+        p(""),
         plotOutput(
           ns("wl_reneging_plot_total"),
-          click = NULL
+          click = NULL,
+          height = "600px"
         )
       ),
       nav_panel(
-        title = "WL Reneges Split",
-        p("Second tab content."),
+        title = "Number of reneges by month waiting",
+        p(""),
         plotOutput(
           ns("wl_reneging_plot_split"),
-          click = NULL
+          click = NULL,
+          height = "600px"
         )
       ),
-      nav_panel(title = "Four", p("Second tab content.")),
       nav_panel(
-        title = "WL Capacity",
-        p("Second tab content."),
+        title = "Total capacity",
+        p(""),
         plotOutput(
           ns("wl_capacity_tot"),
-          click = NULL
+          click = NULL,
+          height = "600px"
         )
       ),
       nav_panel(
-        title = "WL Capacity split",
-        p("Second tab content."),
+        title = "Capacity split by months waiting",
+        p(""),
         plotOutput(
           ns("wl_capacity_split"),
-          click = NULL
+          click = NULL,
+          height = "600px"
         )
-      ),
-      nav_panel(title = "Five", p("Second tab content."))
+      )
     )
   )
 }
