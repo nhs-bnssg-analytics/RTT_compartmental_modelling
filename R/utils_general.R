@@ -168,6 +168,7 @@ org_name_lkp <- function(names = NULL, type) {
 #' break. This function is focussed on performing analysis for a single
 #' selection within the tool, rather than analysing trusts/specialties as a
 #' batch process
+#' @noRd
 filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
   selected_trust_parents <- org_name_lkp(
     names = trust_parents,
