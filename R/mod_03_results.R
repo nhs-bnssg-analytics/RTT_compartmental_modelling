@@ -103,6 +103,7 @@ mod_03_results_ui <- function(id){
 
 #' 03_results Server Functions
 #' @importFrom DT renderDT formatRound datatable
+#' @importFrom rlang .data
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r){
@@ -120,8 +121,8 @@ mod_03_results_server <- function(id, r){
     ## Create waiting list size plot(s)
     output$wl_size <- renderPlot({
       dat_size<- r$waiting_list |>
-        dplyr::summarise(p_var = sum(incompletes, na.rm = T),
-                         .by = c(period, period_type))
+        dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
+                         .by = c("period", "period_type"))
 
       plot_output(data = dat_size,
                   p_trust = r$chart_specification$trust,
@@ -142,12 +143,12 @@ mod_03_results_server <- function(id, r){
     ## Create waiting 4 month performance plots here
     output$wl_performance <- renderPlot({
       dat_perf <- r$waiting_list |>
-          dplyr::mutate(target_flag = dplyr::if_else (months_waited_id >= 4, 1, 0)) |>
-          dplyr::summarise(tot_wait = sum(incompletes),
-                           .by = c(target_flag, period, period_type)) |>
-          dplyr::mutate(p_var = tot_wait / sum(tot_wait),
-                        .by = c(period, period_type)) |>
-          dplyr::filter(target_flag == 1)
+          dplyr::mutate(target_flag = dplyr::if_else (.data$months_waited_id >= 4, 1, 0)) |>
+          dplyr::summarise(tot_wait = sum(.data$incompletes),
+                           .by = c("target_flag", "period", "period_type")) |>
+          dplyr::mutate(p_var = .data$tot_wait / sum(.data$tot_wait),
+                        .by = c("period", "period_type")) |>
+          dplyr::filter(.data$target_flag == 1)
 
       plot_output(data = dat_perf,
                   p_trust = r$chart_specification$trust,
@@ -170,7 +171,7 @@ mod_03_results_server <- function(id, r){
     output$wl_wait_per <- renderPlot({
 
       dat_wl_bin <- r$waiting_list |>
-        dplyr::mutate(p_var = incompletes)
+        dplyr::mutate(p_var = .data$incompletes)
 
       plot_output(data = dat_wl_bin,
                   p_trust = r$chart_specification$trust,
@@ -195,9 +196,9 @@ mod_03_results_server <- function(id, r){
     output$wl_referrals <- renderPlot({
 
       dat_ref <- r$waiting_list |>
-        dplyr::filter(months_waited_id == 0) |>
-        dplyr::mutate(p_var  = sum(incompletes + calculated_treatments),
-                      .by = c(period, period_type))
+        dplyr::filter(.data$months_waited_id == 0) |>
+        dplyr::mutate(p_var  = sum(.data$incompletes + .data$calculated_treatments),
+                      .by = c("period", "period_type"))
 
       plot_output(data = dat_ref,
                   p_trust = r$chart_specification$trust,
@@ -220,8 +221,8 @@ mod_03_results_server <- function(id, r){
     output$wl_reneging_plot_total <- renderPlot({
 
       dat_ren <- r$waiting_list |>
-        dplyr::summarise(p_var = sum(reneges, na.rm = T),
-                         .by = c(period, period_type))
+        dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
+                         .by = c("period", "period_type"))
 
       plot_output(data = dat_ren,
                   p_trust = r$chart_specification$trust,
@@ -244,8 +245,8 @@ mod_03_results_server <- function(id, r){
     output$wl_reneging_plot_split <- renderPlot({
 
       dat_ren_split <- r$waiting_list |>
-        dplyr::summarise(p_var = sum(reneges, na.rm = T),
-                         .by = c(period, period_type, months_waited_id))
+        dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
+                         .by = c("period", "period_type", "months_waited_id"))
 
       plot_output(data = dat_ren_split,
                   p_trust = r$chart_specification$trust,
@@ -267,8 +268,8 @@ mod_03_results_server <- function(id, r){
     ## Create waiting list capacity plot(s)
     output$wl_capacity_tot <- renderPlot({
       dat_cap_tot<- r$waiting_list |>
-        dplyr::summarise(p_var = sum(calculated_treatments, na.rm = T),
-                         .by = c(period, period_type))
+        dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
+                         .by = c("period", "period_type"))
 
 
       plot_output(data = dat_cap_tot,
@@ -291,8 +292,8 @@ mod_03_results_server <- function(id, r){
     ## Create waiting list split capacity plot(s)
     output$wl_capacity_split <- renderPlot({
       dat_cap_tot<- r$waiting_list |>
-        dplyr::summarise(p_var = sum(calculated_treatments, na.rm = T),
-                         .by = c(period, period_type, months_waited_id))
+        dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
+                         .by = c("period", "period_type", "months_waited_id"))
 
       plot_output(data = dat_cap_tot,
                   p_trust = r$chart_specification$trust,

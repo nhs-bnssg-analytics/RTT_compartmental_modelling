@@ -22,6 +22,7 @@ Imports:
     NHSRtt (>= 0.2.3),
     purrr,
     rlang,
+    scales,
     shiny (>= 1.8.1.1),
     stats,
     tidyr,

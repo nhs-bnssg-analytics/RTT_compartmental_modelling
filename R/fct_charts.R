@@ -1,3 +1,4 @@
+#' Visualisation functions for module 3
 #' @description Generate a time series plot of observed and projected performance.
 #'
 #' This function creates a ggplot2 time series plot showing observed and projected
@@ -37,8 +38,10 @@
 #' @importFrom dplyr filter distinct rename left_join join_by
 #' @importFrom ggtext element_markdown
 #' @importFrom scales percent comma
+#' @importFrom rlang .data
 #' @import ggplot2
 #' @return A ggplot2 plot object of selected values
+#' @noRd
 
 plot_output <- function(data,
                         p_trust,
@@ -56,20 +59,20 @@ plot_output <- function(data,
                         p_facet = F,
                         p_target_line = F) {
   p <- ggplot2::ggplot() +
-    geom_line(
-      data = dplyr::filter(data, period_type == "Observed"),
+    geom_step(
+      data = dplyr::filter(data, .data$period_type == "Observed"),
       aes(
-        x = period,
-        y = p_var,
+        x = .data$period,
+        y = .data$p_var,
         group = 1
       ), colour = "black",
       show.legend = T
     ) +
-    geom_line(
-      data = dplyr::filter(data, period_type == "Projected"),
+    geom_step(
+      data = dplyr::filter(data, .data$period_type == "Projected"),
       aes(
-        x = period,
-        y = p_var,
+        x = .data$period,
+        y = .data$p_var,
         group = 2
       ),
       colour = "blue",
@@ -83,7 +86,7 @@ if (p_scenario == "Estimate performance (from capacity inputs)") {
     labs(
       title = paste0("<b>", p_trust, "</b> : ", p_speciality),
       subtitle = paste0(
-        "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>", p_chart, ": ", format(min(dat$period), "%b %Y"), "-", format(max(dat$period), "%b %Y"),
+        "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>", p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
         "<br>Performance based on a ", p_cap_change_type, " capacity change of ", p_cap_change, "% with a utilisation skew factor of ", p_cap_skew,
         "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "% </span>"
       ),
@@ -98,7 +101,7 @@ if (p_scenario == "Estimate performance (from capacity inputs)") {
     labs(
       title = paste0("<b>",p_trust, "</b> : ", p_speciality),
       subtitle = paste0(
-        "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>", p_chart, ": ", format(min(dat$period), "%b %Y"), "-", format(max(dat$period), "%b %Y"),
+        "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>", p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
         "<br>Optimised capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a target of ", p_target_performance, "% patients seen within 4 months by ", p_target_date,
         "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
       ),
@@ -114,7 +117,7 @@ if (p_scenario == "Estimate performance (from capacity inputs)") {
         labs(
           title = paste0("<b>",p_trust, "</b> : ", p_speciality),
           subtitle = paste0(
-            "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>", p_chart, ": ", format(min(dat$period), "%b %Y"), "-", format(max(dat$period), "%b %Y"),
+            "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>", p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
             "<br>Optimised capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a <span style='color:red'>**target**</span> of ", p_target_performance, "% patients seen within 4 months by ", format(p_target_date,"%b %Y") ,
             "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
           ),
