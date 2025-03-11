@@ -21,80 +21,120 @@ mod_03_results_ui <- function(id){
           card_body(
             DT::DTOutput(
               ns("scenario_projections")
-            )
+            ),
+            min_height = '80vh'
           )
         )
       ),
       nav_panel(
         title = "Total waiting list size",
         p(""),
-         plotOutput(
-           ns("wl_size"),
-           click = "plot_click",
-           height = "600px"
-         )
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_size"),
+              click = "plot_click",
+              height = "600px"
+            ),
+            min_height = '60vh'
+          )
+        )
       ),
       nav_panel(
         title = "Waiting list size by months waiting",
         p(""),
-        plotOutput(
+        card(
+          card_body(
+            plotOutput(
           ns("wl_wait_per"),
           click = NULL,
           height = "600px"
+        ),
+        min_height = '60vh')
         )
       ),
       nav_panel(
         title = "4 Month Performance",
         p(""),
-        plotOutput(
-          ns("wl_performance"),
-          click = NULL,
-          height = "600px"
-                )
-        ),
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_performance"),
+              click = NULL,
+              height = "600px"
+            ),
+            min_height = '60vh'
+          )
+        )
+      ),
       nav_panel(
         title = "Referrals",
         p(""),
-        plotOutput(
-          ns("wl_referrals"),
-          click = NULL,
-          height = "600px"
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_referrals"),
+              click = NULL,
+              height = "600px"
+            ),
+            min_height = '60vh'
+          )
         )
       ),
       nav_panel(
         title = "Net total reneges",
         p(""),
-        plotOutput(
-          ns("wl_reneging_plot_total"),
-          click = NULL,
-          height = "600px"
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_reneging_plot_total"),
+              click = NULL,
+              height = "600px"
+            ),
+            min_height = '60vh'
+          )
         )
       ),
       nav_panel(
         title = "Number of reneges by month waiting",
         p(""),
-        plotOutput(
-          ns("wl_reneging_plot_split"),
-          click = NULL,
-          height = "600px"
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_reneging_plot_split"),
+              click = NULL,
+              height = "600px"
+            ),
+            min_height = '60vh'
+          )
         )
       ),
       nav_panel(
         title = "Total capacity",
         p(""),
-        plotOutput(
-          ns("wl_capacity_tot"),
-          click = NULL,
-          height = "600px"
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_capacity_tot"),
+              click = NULL,
+              height = "600px"
+            ),
+            min_height = '60vh'
+          )
         )
       ),
       nav_panel(
         title = "Capacity split by months waiting",
         p(""),
-        plotOutput(
-          ns("wl_capacity_split"),
-          click = NULL,
-          height = "600px"
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_capacity_split"),
+              click = NULL,
+              height = "600px"
+            ),
+            min_height = '60vh'
+          )
         )
       )
     )
@@ -115,8 +155,20 @@ mod_03_results_server <- function(id, r){
 
       DT::datatable(
         r$waiting_list,
-        filter = "top"
-      )
+        filter = "top",
+        options = list(
+          pageLength = 50
+        )
+      ) |>
+        DT::formatRound(
+          columns = c(
+            "calculated_treatments",
+            "reneges",
+            "incompletes",
+            "unadjusted_referrals"
+          ),
+          digits = 1
+        )
     })
 
     ## Create waiting list size plot(s)

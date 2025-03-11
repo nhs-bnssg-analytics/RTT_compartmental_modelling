@@ -263,7 +263,7 @@ test_that("filters_displays works", {
     lapply(lbls, names) |>
       unlist() |>
       unique(),
-    c("selected", "display"),
+    c("selected_name", "selected_code", "display"),
     info = "all names of subgroups are expected"
   )
 
@@ -276,7 +276,7 @@ test_that("filters_displays works", {
   )
 
   expect_equal(
-    lbls$specialties$selected,
+    lbls$specialties$selected_code,
     specs,
     info = "selected specialties remain unchanged"
   )

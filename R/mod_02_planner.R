@@ -237,29 +237,13 @@ mod_02_planner_server <- function(id, r){
 
 # create period_lkp -------------------------------------------------------
 
-    # create period_lkp table from the first time period in the calibration data
-    # to the final time period in the projection period
-    observeEvent(
-      c(input$forecast_date), {
-        max_download_date <- NHSRtt::latest_rtt_date()
-        min_download_date <- lubridate::floor_date(
-          max_download_date,
-          unit = "months"
-        ) %m-% months(input$calibration_months)
 
-        r$period_lkp <- dplyr::tibble(
-          period = seq(
-            from = min_download_date,
-            to = forecast_dates()$end,
-            by = "months"
-          )
-        ) |>
-          mutate(
-            period_id = dplyr::row_number()
-          )
-      },
-      ignoreInit = TRUE
-    )
+    # observeEvent(
+    #   c(input$forecast_date), {
+    #
+    #   },
+    #   ignoreInit = TRUE
+    # )
 
 
 # area selection filtering based on other selections ----------------------
@@ -386,6 +370,19 @@ mod_02_planner_server <- function(id, r){
           unit = "months"
         ) %m-% months(input$calibration_months)
 
+        # create period_lkp table from the first time period in the calibration data
+        # to the final time period in the projection period
+        r$period_lkp <- dplyr::tibble(
+          period = seq(
+            from = min_download_date,
+            to = forecast_dates()$end,
+            by = "months"
+          )
+        ) |>
+          mutate(
+            period_id = dplyr::row_number()
+          )
+
         # create progress bar
         progress <- Progress$new(
           session,
@@ -406,13 +403,10 @@ mod_02_planner_server <- function(id, r){
             filter(.data$Treatment.Function.Name %in% input$specialty_codes) |>
             pull(.data$Treatment.Function.Code)
         )
-
+# browser()
         # pass some values to the charting module
-        r$chart_specification$trust <- selections_labels$trusts$display
-        r$chart_specification$specialty <- replace_fun(
-          selections_labels$specialties$display,
-          treatment_function_codes
-        )
+        r$chart_specification$trust <- selections_labels$trusts$selected_name
+        r$chart_specification$specialty <- selections_labels$specialties$selected_name
         r$chart_specification$observed_start <- min_download_date
         r$chart_specification$observed_end <- max_download_date
 
@@ -420,11 +414,11 @@ mod_02_planner_server <- function(id, r){
         r$all_data <- get_rtt_data_with_progress(
           date_start = min_download_date,
           date_end = max_download_date,
-          trust_parent_codes = selections_labels$trust_parents$selected,
-          trust_codes = selections_labels$trusts$selected,
-          commissioner_parent_codes = selections_labels$commissioner_parents$selected,
-          commissioner_org_codes = selections_labels$commissioners$selected,
-          specialty_codes = selections_labels$specialties$selected,
+          trust_parent_codes = selections_labels$trust_parents$selected_code,
+          trust_codes = selections_labels$trusts$selected_code,
+          commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
+          commissioner_org_codes = selections_labels$commissioners$selected_code,
+          specialty_codes = selections_labels$specialties$selected_code,
           progress = progress
         ) |>
           summarise(
@@ -1317,7 +1311,9 @@ mod_02_planner_server <- function(id, r){
               number_timesteps = forecast_months,
               method = input$optimised_capacity_growth_type,
               percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
-            )
+            ) |>
+            # make negative capacity = 0
+            (\(x) ifelse(x < 0, 0, x))()
 
           r$waiting_list <- NHSRtt::apply_params_to_projections(
             capacity_projections = projections_capacity,
