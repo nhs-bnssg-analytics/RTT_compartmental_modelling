@@ -52,13 +52,15 @@ calc_performance <- function(incompletes_data, target_bin) {
     ) |>
     summarise(
       value = sum(.data$value),
-      .by = c(
-        "period", "perf", current_groupings
+      .by = all_of(
+        c("period", "perf", current_groupings)
       )
     ) |>
     mutate(
       prop = .data$value / sum(.data$value),
-      .by = c("period", current_groupings)
+      .by = all_of(
+        c("period", current_groupings)
+      )
     ) |>
     filter(
       .data$perf == "Below"
@@ -232,6 +234,11 @@ filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
   )
   selected_specialties <- spec
 
+  spec <- replace_fun(
+      spec,
+      treatment_function_codes
+    )
+
   if (length(selected_trust_parents) > 1 |
       is.null(selected_trust_parents)) {
     display_trust_parents <- "Aggregated"
@@ -270,23 +277,28 @@ filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
   return(
     list(
       trust_parents = list(
-        selected = selected_trust_parents,
+        selected_name = trust_parents,
+        selected_code = selected_trust_parents,
         display = display_trust_parents
       ),
       trusts = list(
-        selected = selected_trusts,
+        selected_name = trusts,
+        selected_code = selected_trusts,
         display = display_trusts
       ),
       commissioner_parents = list(
-        selected = selected_commissioner_parents,
+        selected_name = comm_parents,
+        selected_code = selected_commissioner_parents,
         display = display_commissioner_parents
       ),
       commissioners = list(
-        selected = selected_commissioners,
+        selected_name = comms,
+        selected_code = selected_commissioners,
         display = display_commissioners
       ),
       specialties = list(
-        selected = selected_specialties,
+        selected_name = spec,
+        selected_code = selected_specialties,
         display = display_specialties
       )
     )

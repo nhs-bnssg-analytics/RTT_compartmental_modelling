@@ -1,6 +1,6 @@
-# RTTshiny (0.0.1.9000)
+# RTTshiny (0.0.2)
 
-* Minimum viable product created
+* Minimum viable product created and shared for testing
 * Optimisation capability
 * Future scenario capability
 * progress bars for downloading and optimising

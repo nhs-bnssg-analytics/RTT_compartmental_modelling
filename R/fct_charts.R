@@ -227,7 +227,7 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
       aes(
         x = factor(
           .data$months_waited_id,
-          levels = .data$months_waited_id
+          levels = params$months_waited_id
         ),
         y = .data$capacity_param
       )
