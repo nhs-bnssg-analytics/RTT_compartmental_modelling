@@ -748,9 +748,57 @@ mod_02_planner_server <- function(id, r){
     output$dynamic_interface <- renderUI({
       r$waiting_list <- dplyr::tibble()
 
+      skew_settings <- tagList(
+        layout_columns(
+          col_widths = c(3, 4),
+          span(
+            "Select stock to pivot on:",
+            tooltip(
+              shiny::icon("info-circle"),
+              "All skewing functions have a pivot point, which is a 'waiting stock' around which the skew occurs.",
+              placement = "right"
+            )
+          ),
+          sliderInput(
+            inputId = ns("pivot_bin"),
+            label = NULL,
+            min = 2,
+            max = 12,
+            value = 4
+          ),
+          fill = FALSE
+        ),
+        layout_columns(
+          col_widths = c(3, 4),
+          span(
+            "Choose skew method:",
+            tooltip(
+              shiny::icon("info-circle"),
+              shiny::HTML(
+                paste0(
+                  "Option 1: <strong>rotate</strong> the capacity utilisation around the pivot point. <br><br>",
+                  "Option 2: change the clock stop rates above the pivot point <strong>uniformly</strong>, and change the clock stop rates below the pivot point <strong>uniformly</strong> in the opposite direction."
+                )
+              ),
+              placement = "right"
+            )
+          ),
+          radioButtons(
+            inputId = ns("skew_method"),
+            label = NULL,
+            choices = c(
+              "Rotate" = "rotate",
+              "Uniform" = "uniform"
+            )
+          ),
+          fill = FALSE
+        )
+      )
+
       if (input$interface_choice == "select") {
         tagList()
       } else if (input$interface_choice == "performance_inputs") {
+
         # Numeric interface
         tagList(
           uiOutput(
@@ -836,11 +884,26 @@ mod_02_planner_server <- function(id, r){
             ),
             fill = FALSE
           ),
+          bslib::accordion(
+            open = FALSE,
+            bslib::accordion_panel(
+              title = "Advanced skew settings",
+              layout_columns(
+                col_widths = c(5, 5),
+                skew_settings,
+                plotOutput(
+                  ns("skew_visual"),
+                  click = "plot_click"
+                )
+              )
+            )
+          ),
           uiOutput(
             ns("optimise_capacity_ui")
           )
         )
       } else if (input$interface_choice == "capacity_inputs") {
+
         # Text interface
         tagList(
           layout_columns(
@@ -909,6 +972,20 @@ mod_02_planner_server <- function(id, r){
             ),
             fill = FALSE
           ),
+          bslib::accordion(
+            open = FALSE,
+            bslib::accordion_panel(
+              title = "Advanced skew settings",
+              layout_columns(
+                col_widths = c(5, 5),
+                skew_settings,
+                plotOutput(
+                  ns("skew_visual"),
+                  click = "plot_click"
+                )
+              )
+            )
+          ),
           uiOutput(
             ns("calculate_performance_ui")
           )
@@ -917,10 +994,35 @@ mod_02_planner_server <- function(id, r){
     })
 
 
+# change skew visual based on inputs --------------------------------------
+
+    observeEvent(
+      c(input$pivot_bin,
+        input$skew_method,
+        input$capacity_skew,
+        input$capacity_skew_range), {
+
+          if (input$interface_choice == "capacity_inputs") {
+            skew_values <- input$capacity_skew
+          } else if (input$interface_choice == "performance_inputs") {
+            skew_values <- input$capacity_skew_range
+          }
+
+          output$skew_visual <- renderPlot({
+            plot_skew(
+              params = reactive_values$params$params[[1]],
+              skew_values = skew_values,
+              pivot_bin = input$pivot_bin,
+              skew_method = input$skew_method
+            )
+          })
+        }
+    )
+
 # Forecast performance based on capacity inputs ---------------------------
 
     observeEvent(
-      c(input$calculate_performance) , {
+      c(input$calculate_performance), {
 
         if (input$calculate_performance == 1) {
           forecast_months <- lubridate::interval(
@@ -983,7 +1085,9 @@ mod_02_planner_server <- function(id, r){
               mutate(
                 capacity_param = NHSRtt::apply_parameter_skew(
                   .data$capacity_param,
-                  skew = input$capacity_skew
+                  skew = input$capacity_skew,
+                  skew_method = input$skew_method,
+                  pivot_bin = input$pivot_bin
                 )
               ),
             max_months_waited = 12
@@ -1117,7 +1221,9 @@ mod_02_planner_server <- function(id, r){
                   mutate(
                     capacity_param = NHSRtt::apply_parameter_skew(
                       params = .data$capacity_param,
-                      skew = y
+                      skew = y,
+                      skew_method = input$skew_method,
+                      pivot_bin = input$pivot_bin
                     )
                   )
               )
@@ -1197,7 +1303,7 @@ mod_02_planner_server <- function(id, r){
 
           projections_capacity <- r$all_data |>
             filter(
-              .data$type == "Complete"
+              .data$type == "Complete",
               # first period only used for the count of incompletes
               .data$period != min(.data$period)
             ) |>
