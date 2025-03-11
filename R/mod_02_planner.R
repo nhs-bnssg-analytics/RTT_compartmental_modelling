@@ -1197,7 +1197,7 @@ mod_02_planner_server <- function(id, r){
 
           projections_capacity <- r$all_data |>
             filter(
-              .data$type == "Complete"
+              .data$type == "Complete",
               # first period only used for the count of incompletes
               .data$period != min(.data$period)
             ) |>
