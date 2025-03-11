@@ -203,7 +203,7 @@ org_name_lkp <- function(names = NULL, type) {
 #' break. This function is focussed on performing analysis for a single
 #' selection within the tool, rather than analysing trusts/specialties as a
 #' batch process
-#'
+
 #' @param trust_parents character; vector of full names for trust parents
 #' @param trusts character; vector of full names for trusts
 #' @param comm_parents character; vector of full names for commissioner parents

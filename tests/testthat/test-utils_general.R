@@ -280,8 +280,4 @@ test_that("filters_displays works", {
     specs,
     info = "selected specialties remain unchanged"
   )
-
-
-
-
 })
