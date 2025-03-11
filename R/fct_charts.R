@@ -164,3 +164,89 @@ if (p_scenario == "Estimate performance (from capacity inputs)") {
 
   p
 }
+
+
+plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
+
+  original <- params |>
+    dplyr::select(
+      "months_waited_id",
+      "capacity_param"
+    ) |>
+    dplyr::mutate(
+      scenario = "Original"
+    )
+
+  if (length(skew_values) == 1) {
+    skew_values <- setNames(
+      skew_values,
+      nm = "Skewed"
+    )
+    col_palette <- c(
+      "Original" = "#1E88E5",
+      "Skewed" = "#FFC107"
+    )
+  } else if (length(skew_values) == 2) {
+    skew_values <- sort(skew_values)
+    skew_values <- setNames(
+      skew_values,
+      nm = c("Low skew", "High skew")
+    )
+    col_palette <- c(
+      "Original" = "#1E88E5",
+      "Low skew" = "#D81B60",
+      "High skew" = "#004D40"
+    )
+
+  } else {
+    stop("skew_values must have length 1 or 2")
+  }
+
+
+
+  skewed <- skew_values |>
+    purrr::imap(
+      \(x, idx) dplyr::tibble(
+        months_waited_id = params$months_waited_id,
+        capacity_param = NHSRtt::apply_parameter_skew(
+          params$capacity_param,
+          skew = x,
+          skew_method = skew_method,
+          pivot_bin = pivot_bin
+        ),
+        scenario = idx
+      )
+    ) |>
+    purrr::list_rbind()
+
+  p_skews <- dplyr::bind_rows(
+    original,
+    skewed
+  ) |>
+    ggplot(
+      aes(
+        x = factor(
+          .data$months_waited_id,
+          levels = .data$months_waited_id
+        ),
+        y = .data$capacity_param
+      )
+    ) +
+    geom_line(
+      aes(
+        group = .data$scenario,
+        colour = .data$scenario
+      )
+    ) +
+    theme_bw() +
+    scale_colour_manual(
+      name = "",
+      values = col_palette
+    ) +
+    labs(
+      x = "Stock (# mnths waited)",
+      y = "Clock stop rate"
+    )
+
+  return(p_skews)
+}
