@@ -21,8 +21,9 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
       "Uniform")
   )
 
+  first_val <- calculate_t1_value(rtt_table)
+
   if (method == "Uniform") {
-    first_val <- calculate_t1_value(rtt_table)
 
     fcast <- rep(
       first_val * (1 + (percent_change / 100)),
@@ -48,8 +49,6 @@ forecast_function <- function(rtt_table, number_timesteps = 13, method, percent_
     # first, calculate the value for the first time step as either a linear
     # extrapolation of the data provided (if significant) or a mean (if linear
     # model is not significant)
-
-    first_val <- calculate_t1_value(rtt_table)
 
     final_val <- first_val * (1 + (percent_change / 100))
 

@@ -75,6 +75,13 @@ mod_02_planner_ui <- function(id){
       label = "Show NHS providers only",
       value = TRUE,
     ),
+    sliderInput(
+      inputId = ns("calibration_months"),
+      label = "Select number of months to calibrate data on:",
+      min = 2,
+      max = 24,
+      value = 12
+    ),
     bslib::input_task_button(
       id = ns("dwnld_rtt_data"),
       label = "Download RTT data",
@@ -109,7 +116,14 @@ mod_02_planner_ui <- function(id){
           "Select type of referral change:",
           tooltip(
             shiny::icon("info-circle"),
-            "Mass measured in grams.",
+            shiny::HTML(
+              paste0(
+                "<strong>Uniform:</strong> ",
+                "The change in referral counts occurs in the first month and remains flat for the whole 'Forecast horizon' period.<br><br>",
+                "<strong>Linear:</strong> ",
+                "The first month of the 'Forecast horizon' period is estimated from the historic data, and then referral counts are changed linearly until the end of the 'Forecast horizon'."
+              )
+            ),
             placement = "right"
           )
         ),
@@ -133,7 +147,12 @@ mod_02_planner_ui <- function(id){
           "Select scenario type:",
           tooltip(
             shiny::icon("info-circle"),
-            "Mass measured in grams.",
+            shiny::HTML(
+              paste0(
+                "Option 1: see the impact of <strong>providing future capacity inputs</strong> on waiting lists and performance. <br><br>",
+                "Option 2: calculate the optimal capacity to achieve a <strong>provided performance input</strong>."
+              )
+            ),
             placement = "right"
           )
         ),
@@ -174,7 +193,7 @@ mod_02_planner_ui <- function(id){
 #' 02_planner Server Functions
 #'
 #' @importFrom shiny observeEvent renderUI dateInput tagList numericInput
-#'   eventReactive Progress sliderInput
+#'   eventReactive Progress sliderInput HTML
 #' @importFrom NHSRtt get_rtt_data latest_rtt_date convert_months_waited_to_id
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
@@ -195,6 +214,7 @@ mod_02_planner_server <- function(id, r){
     reactive_values$params <- NULL
     reactive_values$calibration_data <- NULL
     reactive_values$latest_performance <- NULL
+    reactive_values$default_target <- NULL
     reactive_values$referrals_uplift <- NULL
 
     r$chart_specification <- list(
@@ -217,7 +237,6 @@ mod_02_planner_server <- function(id, r){
 
 # create period_lkp -------------------------------------------------------
 
-    calibration_months <- 2
     # create period_lkp table from the first time period in the calibration data
     # to the final time period in the projection period
     observeEvent(
@@ -226,7 +245,7 @@ mod_02_planner_server <- function(id, r){
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        ) %m-% months(calibration_months)
+        ) %m-% months(input$calibration_months)
 
         r$period_lkp <- dplyr::tibble(
           period = seq(
@@ -365,19 +384,13 @@ mod_02_planner_server <- function(id, r){
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        ) %m-% months(calibration_months)
-
-        # pass some values to the charting module
-        r$chart_specification$trust <- input$trust_codes
-        r$chart_specification$specialty <- input$specialty_codes
-        r$chart_specification$observed_start <- min_download_date
-        r$chart_specification$observed_end <- max_download_date
+        ) %m-% months(input$calibration_months)
 
         # create progress bar
         progress <- Progress$new(
           session,
           min = 1,
-          max = calibration_months + 1
+          max = input$calibration_months + 1
         )
 
         on.exit(progress$close())
@@ -394,6 +407,16 @@ mod_02_planner_server <- function(id, r){
             pull(.data$Treatment.Function.Code)
         )
 
+        # pass some values to the charting module
+        r$chart_specification$trust <- selections_labels$trusts$display
+        r$chart_specification$specialty <- replace_fun(
+          selections_labels$specialties$display,
+          treatment_function_codes
+        )
+        r$chart_specification$observed_start <- min_download_date
+        r$chart_specification$observed_end <- max_download_date
+
+        # download and aggregate data
         r$all_data <- get_rtt_data_with_progress(
           date_start = min_download_date,
           date_end = max_download_date,
@@ -596,6 +619,11 @@ mod_02_planner_server <- function(id, r){
           ) |>
           pull(.data$text)
 
+        reactive_values$default_target <- min(
+          extract_percent(reactive_values$latest_performance) + 5,
+          100
+        )
+
       },
       ignoreInit = TRUE
     )
@@ -639,11 +667,19 @@ mod_02_planner_server <- function(id, r){
       min_date <- as.Date(input$forecast_date[[1]]) %m+% months(1)
       max_date <- as.Date(input$forecast_date[[2]])
 
+      if (dplyr::between(as.Date("2026-03-01"), min_date, max_date)) {
+        default_date <- as.Date("2026-03-01")
+      } else {
+        default_date <- max_date
+      }
+
       target_dates <- list(
         min = min_date,
-        max = max_date
+        max = max_date,
+        default = default_date
       )
     })
+
 
     output$target_achievement_date <- shiny::renderUI(
       layout_columns(
@@ -652,7 +688,7 @@ mod_02_planner_server <- function(id, r){
           "Select date to achieve target by:",
           tooltip(
             shiny::icon("info-circle"),
-            "Mass measured in grams.",
+            "Restricted to the 'Forecast horizon date range' this is the date that the optimiser will use to achieve the 'Target percentage' on",
             placement = "right"
           )
         ),
@@ -661,7 +697,7 @@ mod_02_planner_server <- function(id, r){
           label = NULL,
           min = target_dates()$min,
           max =  target_dates()$max,
-          value = target_dates()$max
+          value = target_dates()$default
         ),
         fill = FALSE
       )
@@ -732,7 +768,7 @@ mod_02_planner_server <- function(id, r){
               "Target percentage (between 0% and 100%):",
               tooltip(
                 shiny::icon("info-circle"),
-                "Mass measured in grams.",
+                "The proportion of people on the RTT waiting list that have been waiting for less than four months",
                 placement = "right"
               )
             ),
@@ -742,7 +778,7 @@ mod_02_planner_server <- function(id, r){
               label = NULL,
               min = 0,
               max = 100,
-              value = 70
+              value = reactive_values$default_target
             ),
             fill = FALSE
           ),
@@ -752,7 +788,14 @@ mod_02_planner_server <- function(id, r){
               "Select type of capacity change:",
               tooltip(
                 shiny::icon("info-circle"),
-                "Mass measured in grams.",
+                shiny::HTML(
+                  paste0(
+                    "<strong>Uniform:</strong> ",
+                    "Capacity change occurs in first month and remains flat for the whole 'Forecast horizon' period.<br><br>",
+                    "<strong>Linear:</strong> ",
+                    "The first month of the 'Forecast horizon' period is estimated from the historic data, and then capacity is changed linearly until the end of the 'Forecast horizon'."
+                  )
+                ),
                 placement = "right"
               )
             ),
@@ -772,7 +815,14 @@ mod_02_planner_server <- function(id, r){
               "Select range of capacity skews:",
               tooltip(
                 shiny::icon("info-circle"),
-                "Mass measured in grams.",
+                shiny::HTML(
+                  paste0(
+                    "A skew of 1 causes the profile of clock stop rates across the number of months waiting to be unchanged from the calibration period.<br><br>",
+                    "A skew of greater than 1 will increase the clock stop rate for the longer waiters, and decrease the clock stop rate for the shorter waiters.<br><br>",
+                    "A skew of less than 1 will decrease the clock stop rate for the longer waiters, and increase the clock stop rate for the shorter waiters.<br><br>",
+                    "All skew values leave the first stock (e.g., for individuals waiting less than 1 month) unchanged from the clock stop rate calculated from the calibration period."
+                  )
+                ),
                 placement = "right"
               )
             ),
@@ -811,7 +861,14 @@ mod_02_planner_server <- function(id, r){
               "Select type of capacity change:",
               tooltip(
                 shiny::icon("info-circle"),
-                "Mass measured in grams.",
+                shiny::HTML(
+                  paste0(
+                    "<strong>Uniform:</strong> ",
+                    "Capacity change occurs in first month and remains flat for the whole 'Forecast horizon' period.<br><br>",
+                    "<strong>Linear:</strong> ",
+                    "The first month of the 'Forecast horizon' period is estimated from the historic data, and then capacity is changed linearly until the end of the 'Forecast horizon'."
+                  )
+                ),
                 placement = "right"
               )
             ),
@@ -831,7 +888,14 @@ mod_02_planner_server <- function(id, r){
               "Enter capacity utilisation skew:",
               tooltip(
                 shiny::icon("info-circle"),
-                "Mass measured in grams.",
+                shiny::HTML(
+                  paste0(
+                    "A skew of 1 causes the profile of clock stop rates across the number of months waiting to be unchanged from the calibration period.<br><br>",
+                    "A skew of greater than 1 will increase the clock stop rate for the longer waiters, and decrease the clock stop rate for the shorter waiters.<br><br>",
+                    "A skew of less than 1 will decrease the clock stop rate for the longer waiting stocks, and increase the clock stop rate for the shorter waiters.<br><br>",
+                    "All skew values leave the first stock (e.g., for individuals waiting less than 1 month) unchanged from the clock stop rate relative to the calibration period."
+                  )
+                ),
                 placement = "right"
               )
             ),
@@ -866,7 +930,9 @@ mod_02_planner_server <- function(id, r){
 
           unadjusted_projections_referrals <- r$all_data |>
             filter(
-              .data$type == "Referrals"
+              .data$type == "Referrals",
+              # first period only used for the count of incompletes
+              .data$period != min(.data$period)
             ) |>
             forecast_function(
               number_timesteps = forecast_months - 1,
@@ -883,7 +949,9 @@ mod_02_planner_server <- function(id, r){
 
           projections_capacity <- r$all_data |>
             filter(
-              .data$type == "Complete"
+              .data$type == "Complete",
+              # first period only used for the count of incompletes
+              .data$period != min(.data$period)
             ) |>
             summarise(
               value = sum(.data$value),
@@ -974,7 +1042,8 @@ mod_02_planner_server <- function(id, r){
     observeEvent(
       c(input$optimise_capacity), {
 
-        if (input$optimise_capacity == 1) {
+        if (input$optimise_capacity >= 1) {
+
           skew <- dplyr::tibble(
             skew_param = seq(
               from = min(input$capacity_skew_range),
@@ -986,7 +1055,7 @@ mod_02_planner_server <- function(id, r){
           forecast_months_to_target <- lubridate::interval(
             as.Date(input$forecast_date[[1]]),
             as.Date(input$target_achievement_date)
-          ) %/% months(1)
+          ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
 
           projections_referrals <- r$all_data |>
             filter(
@@ -1002,15 +1071,21 @@ mod_02_planner_server <- function(id, r){
           }
 
           projections_referrals <- projections_referrals |>
+            filter(
+              # first period only used for the count of incompletes
+              .data$period != min(.data$period)
+            ) |>
             forecast_function(
-              number_timesteps = forecast_months_to_target - 1,
+              number_timesteps = forecast_months_to_target,
               method = input$referral_growth_type,
               percent_change = input$referral_growth
             )
 
           t1_capacity <- r$all_data |>
             filter(
-              .data$type == "Complete"
+              .data$type == "Complete",
+              # first period only used for the count of incompletes
+              .data$period != min(.data$period)
             ) |>
             summarise(
               value = sum(.data$value),
@@ -1079,7 +1154,7 @@ mod_02_planner_server <- function(id, r){
                     referrals_projections = projections_referrals,
                     incomplete_pathways = t0_incompletes,
                     renege_capacity_params = x,
-                    target = paste0(1 - (input$target_value / 100), "%"),
+                    target = paste0(100 - input$target_value, "%"),
                     target_bin = 4,
                     capacity_profile = cap_prof,
                     tolerance = 0.001,
@@ -1099,14 +1174,16 @@ mod_02_planner_server <- function(id, r){
           forecast_months <- lubridate::interval(
             as.Date(input$forecast_date[[1]]),
             as.Date(input$forecast_date[[2]])
-          ) %/% months(1)
+          ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
 
           unadjusted_projections_referrals <- r$all_data |>
             filter(
-              .data$type == "Referrals"
+              .data$type == "Referrals",
+              # first period only used for the count of incompletes
+              .data$period != min(.data$period)
             ) |>
             forecast_function(
-              number_timesteps = forecast_months - 1,
+              number_timesteps = forecast_months,
               method = input$referral_growth_type,
               percent_change = input$referral_growth
             )
@@ -1121,6 +1198,8 @@ mod_02_planner_server <- function(id, r){
           projections_capacity <- r$all_data |>
             filter(
               .data$type == "Complete"
+              # first period only used for the count of incompletes
+              .data$period != min(.data$period)
             ) |>
             summarise(
               value = sum(.data$value),
@@ -1129,7 +1208,7 @@ mod_02_planner_server <- function(id, r){
               )
             ) |>
             forecast_function(
-              number_timesteps = forecast_months - 1,
+              number_timesteps = forecast_months,
               method = input$optimised_capacity_growth_type,
               percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
             )

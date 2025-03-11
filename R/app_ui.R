@@ -42,7 +42,7 @@ app_ui <- function(request) {
     h1(
       paste0(
         "RTT planner (version ",
-        packageVersion("NHSRtt"),
+        packageVersion("RTTshiny"),
         ")"
       )
     ),

@@ -103,6 +103,7 @@ mod_03_results_ui <- function(id){
 
 #' 03_results Server Functions
 #' @importFrom DT renderDT formatRound datatable
+#' @importFrom dplyr group_by rename summarise
 #' @importFrom rlang .data
 #' @import ggplot2
 #' @noRd
@@ -143,12 +144,12 @@ mod_03_results_server <- function(id, r){
     ## Create waiting 4 month performance plots here
     output$wl_performance <- renderPlot({
       dat_perf <- r$waiting_list |>
-          dplyr::mutate(target_flag = dplyr::if_else (.data$months_waited_id >= 4, 1, 0)) |>
-          dplyr::summarise(tot_wait = sum(.data$incompletes),
-                           .by = c("target_flag", "period", "period_type")) |>
-          dplyr::mutate(p_var = .data$tot_wait / sum(.data$tot_wait),
-                        .by = c("period", "period_type")) |>
-          dplyr::filter(.data$target_flag == 1)
+        dplyr::rename(value = "incompletes") |>
+        dplyr::group_by(.data$period_type) |>
+        calc_performance(
+          target_bin = 4
+        ) |>
+        rename(p_var = "prop")
 
       plot_output(data = dat_perf,
                   p_trust = r$chart_specification$trust,

@@ -10,6 +10,8 @@
 #'   prop is the proportion of people that are on the waiting list in each
 #'   period that have waited for the time less that specified by the target_bin
 #' @importFrom rlang .data
+#' @importFrom dplyr across all_of group_by ungroup group_vars case_when mutate
+#'   filter
 #' @noRd
 calc_performance <- function(incompletes_data, target_bin) {
 
@@ -24,6 +26,14 @@ calc_performance <- function(incompletes_data, target_bin) {
     )
 
   if (nrow(check_counts) > 0) stop("duplicate counts per period and month waited")
+
+  current_groupings <- dplyr::group_vars(
+    incompletes_data
+  )
+
+  incompletes_data <- dplyr::ungroup(
+    incompletes_data
+  )
 
   # check target_bin within the range of bins available
   if (!(target_bin %in% incompletes_data[["months_waited_id"]]))
@@ -43,18 +53,29 @@ calc_performance <- function(incompletes_data, target_bin) {
     summarise(
       value = sum(.data$value),
       .by = c(
-        "period", "perf"
+        "period", "perf", current_groupings
       )
     ) |>
     mutate(
       prop = .data$value / sum(.data$value),
-      .by = "period"
+      .by = c("period", current_groupings)
     ) |>
     filter(
       .data$perf == "Below"
     ) |>
     select(
-      "period", "prop"
+      all_of(
+        c(
+          "period", "prop", current_groupings
+        )
+      )
+    ) |>
+    dplyr::group_by(
+      dplyr::across(
+        dplyr::all_of(
+          current_groupings
+        )
+      )
     )
 
   return(performance)
@@ -79,6 +100,20 @@ extract_pval <- function(lm_object, input_term) {
   return(p_val)
 
 }
+
+#' extracts the percentage value at the end of a string
+#' @noRd
+extract_percent <- function(text) {
+  match <- regmatches(text, regexpr("\\d+(\\.\\d+)?%$", text))
+  if (length(match) > 0 && match != "") {
+    return(
+      as.numeric(sub("%$", "", match))
+    )
+  } else {
+    return(numeric(0)) # Return empty numeric vector if no match
+  }
+}
+
 
 #' Replaces values in a string vector with corresponding values from a named
 #' vector
