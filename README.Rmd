@@ -19,16 +19,46 @@ knitr::opts_chunk$set(
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-The goal of RTTshiny is to ...
+The goal of RTTshiny is to provide an interface to a stock-and-flow model on NHS Referral to Treatment data, to allow planners to understand how changes in future clock stops can effect the waiting list size and knock on performance.
+
+## Run without installing
+
+If you have R installed on your machine, the following command may work to run the application without installing the package:
+
+``` r
+# install.packages("shiny")
+shiny::runGitHub("RTT_compartmental_modelling", "nhsengland")
+```
 
 ## Installation
 
-You can install the development version of RTTshiny from [GitHub](https://github.com/) with:
+You can install the development version of fptool from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("nhsengland/RTT_compartmental_modelling")
+devtools::install_github(
+  "nhsengland/RTT_compartmental_modelling",
+  dependencies = "Suggests"
+)
 ```
+
+## Usage
+
+To launch the Shiny app following installation:
+
+```{r}
+#| label: "usage"
+#| eval: false
+RTTshiny::run_app()
+```
+
+
+
+
+
+
+
+**THE FOLLOWING WILL BE  UPDATED IN THE NEAR FUTURE**
 
 # Model Card: {PROJECT NAME}
 
