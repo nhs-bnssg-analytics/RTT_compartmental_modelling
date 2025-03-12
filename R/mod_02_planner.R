@@ -216,6 +216,7 @@ mod_02_planner_server <- function(id, r){
     reactive_values$latest_performance <- NULL
     reactive_values$default_target <- NULL
     reactive_values$referrals_uplift <- NULL
+    reactive_values$optimise_status_card_visible <- NULL
 
     r$chart_specification <- list(
       trust = NULL,
@@ -231,7 +232,8 @@ mod_02_planner_server <- function(id, r){
       capacity_change_type = NULL,
       capacity_skew = NULL,
       target_date = NULL,
-      target_performance = NULL
+      target_performance = NULL,
+      optimise_status = NULL
     )
 
 
@@ -618,6 +620,8 @@ mod_02_planner_server <- function(id, r){
           100
         )
 
+        reactive_values$optimise_status_card_visible <- FALSE
+
       },
       ignoreInit = TRUE
     )
@@ -731,6 +735,32 @@ mod_02_planner_server <- function(id, r){
           label = "Calculate future performance",
           label_busy = "Forecasting...",
           type = "secondary"
+        )
+      }
+    })
+
+    output$optimisation_results_ui <- renderUI({
+
+      if (isTRUE(reactive_values$optimise_status_card_visible)) {
+        if (r$chart_specification$optimise_status == "waitlist_cleared") {
+          val <- "Waitlist cleared"
+          icn <- shiny::icon("circkle-xmark")
+          thm <- "red"
+        } else if (r$chart_specification$optimise_status == "converged") {
+          val <- "Optimisation successful"
+          icn <- shiny::icon("clipboard-check")
+          thm <- "green"
+        } else {
+          val <- r$chart_specification$optimise_status
+          icn <- shiny::icon("question")
+          thm <- "yellow"
+        }
+
+        bslib::value_box(
+          title = "Optimisation status",
+          value = val,
+          showcase = icn,
+          theme = thm
         )
       }
     })
@@ -894,6 +924,9 @@ mod_02_planner_server <- function(id, r){
           ),
           uiOutput(
             ns("optimise_capacity_ui")
+          ),
+          uiOutput(
+            ns("optimisation_results_ui")
           )
         )
       } else if (input$interface_choice == "capacity_inputs") {
@@ -1129,6 +1162,7 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$capacity_skew <- input$capacity_skew
           r$chart_specification$target_date <- NA
           r$chart_specification$target_performance <- NA
+          r$chart_specification$optimise_status <- NULL
         }
       },
       ignoreInit = TRUE
@@ -1267,7 +1301,16 @@ mod_02_planner_server <- function(id, r){
             ) |>
             filter(
               .data$uplift == min(.data$uplift)
+            ) |>
+            filter(
+              # if there are multiple records that have the same capacity
+              # uplift, select the record that has the smallest change from the
+              # calibrated period's capacity utilisation profile (eg, the one
+              # closest to 1)
+              abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
             )
+
+          r$chart_specification$optimise_status <- min_uplift$status
 
           # forecast future waiting list based on uplifted numbers
 
@@ -1373,6 +1416,8 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$capacity_skew <- min_uplift$skew_param[[1]]
           r$chart_specification$target_date <- input$target_achievement_date
           r$chart_specification$target_performance <- input$target_value
+
+          reactive_values$optimise_status_card_visible <- TRUE
 
         }
       }

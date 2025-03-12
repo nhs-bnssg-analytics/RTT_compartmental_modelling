@@ -1,3 +1,9 @@
+# RTTshiny (0.0.2.9000)
+
+## Enhancements
+
+* includes status of optimisation process
+
 # RTTshiny (0.0.2)
 
 * Minimum viable product created and shared for testing
