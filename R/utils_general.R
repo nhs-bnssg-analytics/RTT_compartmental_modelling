@@ -322,7 +322,7 @@ local_enframe <- function(named_vector, name, value_name) {
 }
 
 
-value_box_text <- function(x_val, y_title, y_val, y_val_type) {
+value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NULL) {
 
   y_val_type <- match.arg(
     y_val_type,
@@ -349,19 +349,47 @@ value_box_text <- function(x_val, y_title, y_val, y_val_type) {
     )
   }
 
-  out <- p(
-    HTML(
-      paste0(
-        "<strong>Month:</strong> ",
-        x_val,
-        "<br>",
-        "<strong>",
-        y_title,
-        ":</strong> ",
-        y_val
+  if (is.null(facet)) {
+    out <- p(
+      HTML(
+        paste0(
+          "<strong>Month:</strong> ",
+          x_val,
+          "<br>",
+          "<strong>",
+          y_title,
+          ":</strong> ",
+          y_val
+        )
       )
     )
-  )
+  } else {
+    if (facet < 12) {
+      months_waited <- paste0(
+        facet, "-", facet + 1, " months"
+      )
+    } else {
+      months_waited <- "12+ months"
+    }
+
+    out <- p(
+      HTML(
+        paste0(
+          "<strong>Month:</strong> ",
+          x_val,
+          "<br>",
+          "<strong>",
+          y_title,
+          ":</strong> ",
+          y_val,
+          "<br>",
+          "<strong>Months waited: </strong>",
+          months_waited
+        )
+      )
+    )
+  }
+
 
   return(out)
 }

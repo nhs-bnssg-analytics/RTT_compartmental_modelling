@@ -254,7 +254,9 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
 #' function to return the data behind where the user has clicked
 #' @param data the data underpinning the chart that has been clicked
 #' @param click_x the x location where the click occurred
-click_info <- function(data, click_x) {
+#' @param facet the months_waited_id that the data was selected from when the
+#'   plots are faceted
+click_info <- function(data, click_x, facet = NULL) {
   x_val <- as.Date(click_x)
 
   # Find nearest data point
@@ -266,6 +268,13 @@ click_info <- function(data, click_x) {
     dplyr::filter(
       x_val - .data$period == min(x_val - .data$period)
     )
+
+  if (!is.null(facet)) {
+    nearest_idx <- nearest_idx |>
+      filter(
+        .data$months_waited_id == facet
+      )
+  }
 
   return(nearest_idx)
 }
