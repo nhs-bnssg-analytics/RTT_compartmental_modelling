@@ -68,7 +68,7 @@ mod_02_planner_ui <- function(id){
       inputId = ns("specialty_codes"),
       label = "Select Specialties",
       choices = unname(treatment_function_codes),
-      multiple = FALSE
+      multiple = TRUE
     ),
     checkboxInput(
       inputId = ns("nhs_only"),
@@ -242,10 +242,6 @@ mod_02_planner_server <- function(id, r){
 
     observeEvent(
       c(input$region,
-        input$trust_parent_codes,
-        input$commissioner_parent_codes,
-        input$commissioner_org_codes,
-        input$trust_codes,
         input$nhs_only
       ), {
 
@@ -262,34 +258,6 @@ mod_02_planner_server <- function(id, r){
           data_table <- data_table |>
             dplyr::filter(
               .data$`NHS Region Name` %in% input$region
-            )
-        }
-
-        if (length(input$trust_parent_codes) > 0) {
-          data_table <- data_table |>
-            dplyr::filter(
-              .data$`Provider Parent Name` %in% input$trust_parent_codes
-            )
-        }
-
-        if (length(input$commissioner_parent_codes) > 0) {
-          data_table <- data_table |>
-            dplyr::filter(
-              .data$`Commissioner Parent Name` %in% input$commissioner_parent_codes
-            )
-        }
-
-        if (length(input$commissioner_org_codes) > 0) {
-          data_table <- data_table |>
-            dplyr::filter(
-              .data$`Commissioner Org Name` %in% input$commissioner_org_codes
-            )
-        }
-
-        if (length(input$trust_codes) > 0) {
-          data_table <- data_table |>
-            dplyr::filter(
-              .data$`Provider Org Name` %in% input$trust_codes
             )
         }
 
@@ -314,7 +282,6 @@ mod_02_planner_server <- function(id, r){
           unique(data_table[["Commissioner Parent Name"]])
         )
 
-        # if (is.null(current_commissioner_parent)) current_commissioner_parent <- "All"
         updateSelectizeInput(
           session,
           inputId = "commissioner_parent_codes",
@@ -328,7 +295,6 @@ mod_02_planner_server <- function(id, r){
           unique(data_table[["Commissioner Org Name"]])
         )
 
-        # if (is.null(current_commissioner_org)) current_commissioner_org <- "All"
         updateSelectizeInput(
           session,
           inputId = "commissioner_org_codes",
@@ -342,7 +308,6 @@ mod_02_planner_server <- function(id, r){
           unique(data_table[["Provider Org Name"]])
         )
 
-        # if (is.null(current_provider)) current_provider <- "All"
         updateSelectizeInput(
           session,
           inputId = "trust_codes",
