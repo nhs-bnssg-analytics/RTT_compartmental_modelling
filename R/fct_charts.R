@@ -250,3 +250,22 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
 
   return(p_skews)
 }
+
+#' function to return the data behind where the user has clicked
+#' @param data the data underpinning the chart that has been clicked
+#' @param click_x the x location where the click occurred
+click_info <- function(data, click_x) {
+  x_val <- as.Date(click_x)
+
+  # Find nearest data point
+  nearest_idx <- data |>
+    ungroup() |>
+    dplyr::filter(
+      x_val - .data$period > 0
+    ) |>
+    dplyr::filter(
+      x_val - .data$period == min(x_val - .data$period)
+    )
+
+  return(nearest_idx)
+}

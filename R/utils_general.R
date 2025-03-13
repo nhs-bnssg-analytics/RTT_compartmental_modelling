@@ -320,3 +320,48 @@ local_enframe <- function(named_vector, name, value_name) {
   return(df)
 
 }
+
+
+value_box_text <- function(x_val, y_title, y_val, y_val_type) {
+
+  y_val_type <- match.arg(
+    y_val_type,
+    c("number", "percent")
+  )
+
+  if (y_val_type == "number") {
+    y_val <- format(
+      round(
+        y_val,
+        1
+      ),
+      big.mark = ",",
+      scientific = FALSE
+    )
+  } else if (y_val_type == "percent") {
+    y_val <- paste0(
+      formatC(
+        100 * y_val,
+        format = "f",
+        digits = 1
+      ),
+      "%"
+    )
+  }
+
+  out <- p(
+    HTML(
+      paste0(
+        "<strong>Month:</strong> ",
+        x_val,
+        "<br>",
+        "<strong>",
+        y_title,
+        ":</strong> ",
+        y_val
+      )
+    )
+  )
+
+  return(out)
+}

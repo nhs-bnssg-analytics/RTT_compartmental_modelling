@@ -237,17 +237,6 @@ mod_02_planner_server <- function(id, r){
     )
 
 
-# create period_lkp -------------------------------------------------------
-
-
-    # observeEvent(
-    #   c(input$forecast_date), {
-    #
-    #   },
-    #   ignoreInit = TRUE
-    # )
-
-
 # area selection filtering based on other selections ----------------------
     data_table <- reactiveVal(org_lkp)
 
@@ -1031,18 +1020,26 @@ mod_02_planner_server <- function(id, r){
 
           if (input$interface_choice == "capacity_inputs") {
             skew_values <- input$capacity_skew
+            if (!is.null(skew_values)) {
+              # user can delete value before entering it again, which causes an error
+              continue <- TRUE
+            }
           } else if (input$interface_choice == "performance_inputs") {
             skew_values <- input$capacity_skew_range
+            continue <- TRUE
           }
 
-          output$skew_visual <- renderPlot({
-            plot_skew(
-              params = reactive_values$params$params[[1]],
-              skew_values = skew_values,
-              pivot_bin = input$pivot_bin,
-              skew_method = input$skew_method
-            )
-          })
+          if (continue <- TRUE) {
+            output$skew_visual <- renderPlot({
+              plot_skew(
+                params = reactive_values$params$params[[1]],
+                skew_values = skew_values,
+                pivot_bin = input$pivot_bin,
+                skew_method = input$skew_method
+              )
+            })
+          }
+
         }
     )
 

@@ -6,7 +6,7 @@
 #'
 #' @noRd
 #'
-#' @importFrom shiny NS tagList
+#' @importFrom shiny NS tagList clickOpts
 #' @importFrom DT DTOutput
 #' @importFrom bslib navset_tab nav_panel card card_body
 #' @importFrom dplyr if_else
@@ -33,8 +33,13 @@ mod_03_results_ui <- function(id){
           card_body(
             plotOutput(
               ns("wl_size"),
-              click = "plot_click",
+              click = shiny::clickOpts(
+                id = ns("wl_plot_click")
+              ),
               height = "600px"
+            ),
+            uiOutput(
+              ns("value_box_container_wl")
             ),
             min_height = '60vh'
           )
@@ -60,8 +65,13 @@ mod_03_results_ui <- function(id){
           card_body(
             plotOutput(
               ns("wl_performance"),
-              click = NULL,
+              click = shiny::clickOpts(
+                id = ns("performance_plot_click")
+              ),
               height = "600px"
+            ),
+            uiOutput(
+              ns("value_box_container_perf")
             ),
             min_height = '60vh'
           )
@@ -74,8 +84,13 @@ mod_03_results_ui <- function(id){
           card_body(
             plotOutput(
               ns("wl_referrals"),
-              click = NULL,
+              click = shiny::clickOpts(
+                id = ns("referrals_plot_click")
+              ),
               height = "600px"
+            ),
+            uiOutput(
+              ns("value_box_container_ref")
             ),
             min_height = '60vh'
           )
@@ -145,11 +160,139 @@ mod_03_results_ui <- function(id){
 #' @importFrom DT renderDT formatRound datatable
 #' @importFrom dplyr group_by rename summarise
 #' @importFrom rlang .data
+#' @importFrom bslib value_box
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
+
+    reactive_clicks <- reactiveValues()
+    reactive_clicks$wl_plot_click <- NULL
+    reactive_clicks$performance_plot_click <- NULL
+    reactive_clicks$referrals_plot_click <- NULL
+
+    reactive_datasets <- reactiveValues()
+
+    # waiting list size
+    reactive_datasets$dat_size <- NULL
+    reactive_datasets$dat_size_clicked <- NULL
+    # performance
+    reactive_datasets$dat_perf <- NULL
+    reactive_datasets$dat_perf_clicked <- NULL
+    # performance
+    reactive_datasets$dat_ref <- NULL
+    reactive_datasets$dat_ref_clicked <- NULL
+
+
+
+    # when WL plot is clicked -------------------------------------------------
+
+    observeEvent(
+      c(input$wl_plot_click), {
+        reactive_clicks$wl_plot_click <- TRUE
+
+        x_val <- as.Date(input$wl_plot_click$x)
+        reactive_datasets$dat_size_clicked <- click_info(
+          data = reactive_datasets$dat_size,
+          click_x = x_val
+        )
+
+      }
+    )
+    # Render the waiting list value box based on click data
+    output$value_box_container_wl <- renderUI({
+      # browser()
+      if (isTRUE(reactive_clicks$wl_plot_click)) {
+
+        bslib::value_box(
+          title = "Waiting list information",
+          value = value_box_text(
+            x_val = reactive_datasets$dat_size_clicked$period,
+            y_title = "Waiting list size",
+            y_val = reactive_datasets$dat_size_clicked$p_var,
+            y_val_type = "number"
+          ),
+          showcase = shiny::icon("chart-line"),
+          theme = "purple",
+          full_screen = TRUE,
+          fill = TRUE
+        )
+      }
+    })
+
+
+    # when performance plot is clicked ----------------------------------------
+
+    observeEvent(
+      c(input$performance_plot_click), {
+        reactive_clicks$performance_plot_click <- TRUE
+
+        x_val <- as.Date(input$performance_plot_click$x)
+        reactive_datasets$dat_perf_clicked <- click_info(
+          data = reactive_datasets$dat_perf,
+          click_x = x_val
+        )
+      }
+    )
+
+    # Render the performance value box based on click data
+    output$value_box_container_perf <- renderUI({
+
+      if (isTRUE(reactive_clicks$performance_plot_click)) {
+
+        bslib::value_box(
+          title = "Performance information",
+          value = value_box_text(
+            x_val = reactive_datasets$dat_perf_clicked$period,
+            y_title = "Performance",
+            y_val = reactive_datasets$dat_perf_clicked$p_var,
+            y_val_type = "percent"
+          ),
+          showcase = shiny::icon("chart-line"),
+          theme = "purple",
+          full_screen = TRUE,
+          fill = TRUE
+        )
+      }
+    })
+
+
+# When referrals plot is clicked ------------------------------------------
+    observeEvent(
+      c(input$referrals_plot_click), {
+        reactive_clicks$referrals_plot_click <- TRUE
+
+        x_val <- as.Date(input$referrals_plot_click$x)
+        reactive_datasets$dat_ref_clicked <- click_info(
+          data = reactive_datasets$dat_ref,
+          click_x = x_val
+        )
+      }
+    )
+
+    # Render the waiting list value box based on click data
+    output$value_box_container_ref <- renderUI({
+
+      if (isTRUE(reactive_clicks$referrals_plot_click)) {
+
+        bslib::value_box(
+          title = "Referral count information",
+          value = value_box_text(
+            x_val = reactive_datasets$dat_ref_clicked$period,
+            y_title = "Referrals",
+            y_val = reactive_datasets$dat_ref_clicked$p_var,
+            y_val_type = "number"
+          ),
+          showcase = shiny::icon("chart-line"),
+          theme = "purple",
+          full_screen = TRUE,
+          fill = TRUE
+        )
+      }
+    })
+
+
 
     output$scenario_projections <- DT::renderDT({
 
@@ -171,13 +314,16 @@ mod_03_results_server <- function(id, r){
         )
     })
 
+# creating plots ----------------------------------------------------------
+
+
     ## Create waiting list size plot(s)
     output$wl_size <- renderPlot({
-      dat_size<- r$waiting_list |>
+      reactive_datasets$dat_size <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
                          .by = c("period", "period_type"))
 
-      plot_output(data = dat_size,
+      plot_output(data = reactive_datasets$dat_size,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
                   p_chart = "waiting list size",
@@ -195,7 +341,8 @@ mod_03_results_server <- function(id, r){
 
     ## Create waiting 4 month performance plots here
     output$wl_performance <- renderPlot({
-      dat_perf <- r$waiting_list |>
+
+      reactive_datasets$dat_perf <- r$waiting_list |>
         dplyr::rename(value = "incompletes") |>
         dplyr::group_by(.data$period_type) |>
         calc_performance(
@@ -203,7 +350,8 @@ mod_03_results_server <- function(id, r){
         ) |>
         rename(p_var = "prop")
 
-      plot_output(data = dat_perf,
+
+      plot_output(data = reactive_datasets$dat_perf,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
                   p_chart = "4 month performance",
@@ -248,12 +396,12 @@ mod_03_results_server <- function(id, r){
     ## Create waiting list referrals plots
     output$wl_referrals <- renderPlot({
 
-      dat_ref <- r$waiting_list |>
+      reactive_datasets$dat_ref <- r$waiting_list |>
         dplyr::filter(.data$months_waited_id == 0) |>
         dplyr::mutate(p_var  = sum(.data$incompletes + .data$calculated_treatments),
                       .by = c("period", "period_type"))
 
-      plot_output(data = dat_ref,
+      plot_output(data = reactive_datasets$dat_ref,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
                   p_chart = "referrals",
