@@ -3,6 +3,7 @@
 ## Enhancements
 
 * includes status of optimisation process
+* makes clickable charts, returning information about where the user has clicked
 
 # RTTshiny (0.0.2)
 
