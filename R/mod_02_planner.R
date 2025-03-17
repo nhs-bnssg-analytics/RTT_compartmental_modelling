@@ -733,7 +733,7 @@ mod_02_planner_server <- function(id, r){
       if (isTRUE(reactive_values$optimise_status_card_visible)) {
         if (r$chart_specification$optimise_status == "waitlist_cleared") {
           val <- "Waitlist cleared"
-          icn <- shiny::icon("circkle-xmark")
+          icn <- shiny::icon("circle-xmark")
           thm <- "red"
         } else if (r$chart_specification$optimise_status == "converged") {
           val <- "Optimisation successful"
