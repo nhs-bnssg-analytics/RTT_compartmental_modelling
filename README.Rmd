@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![R-CMD-check](https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 The goal of RTTshiny is to provide an interface to a stock-and-flow model on NHS Referral to Treatment data, to allow planners to understand how changes in future clock stops can effect the waiting list size and knock on performance.
@@ -32,7 +33,7 @@ shiny::runGitHub("RTT_compartmental_modelling", "nhsengland")
 
 ## Installation
 
-You can install the development version of fptool from [GitHub](https://github.com/) with:
+You can install the development version of RTTshiny from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
@@ -53,10 +54,9 @@ RTTshiny::run_app()
 ```
 
 
+## Web pages
 
-
-
-
+See more information about the model on the [pkgdown website](https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/).
 
 **THE FOLLOWING WILL BE  UPDATED IN THE NEAR FUTURE**
 
