@@ -8,6 +8,7 @@
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/actions/workflows/R-CMD-check.yaml)
+[![codecov](https://codecov.io/gh/nhs-bnssg-analytics/RTT_compartmental_modelling/graph/badge.svg?token=O2KBKLVUOD)](https://codecov.io/gh/nhs-bnssg-analytics/RTT_compartmental_modelling)
 <!-- badges: end -->
 
 The goal of RTTshiny is to provide an interface to a stock-and-flow
