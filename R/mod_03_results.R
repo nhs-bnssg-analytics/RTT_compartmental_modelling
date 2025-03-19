@@ -714,8 +714,28 @@ mod_03_results_server <- function(id, r){
       DT::datatable(
         r$waiting_list,
         filter = "top",
+        extensions = "Buttons",
         options = list(
-          pageLength = 50
+          paging = TRUE,
+          pageLength = 50,
+          lengthMenu = c(25, 50, 100),
+          searching = TRUE,
+          ordering = TRUE,
+          autoWidth = TRUE,
+          dom = 'Bfrtip',
+          buttons = list(
+            list(
+              extend = 'copy',
+              title = NULL, # prevents the title of the app being included when copying the data
+              className = "dtButton",
+              text = "Copy table to clipboard"
+            ),
+            list(
+              extend = 'csv',
+              className = 'dtButton',
+              text = "Download table to csv"
+            )
+          )
         )
       ) |>
         DT::formatRound(
@@ -727,10 +747,8 @@ mod_03_results_server <- function(id, r){
           ),
           digits = 1
         )
-    })
-
-# creating plots ----------------------------------------------------------
-
+    },
+    server = FALSE)
   })
 }
 

@@ -1,0 +1,9 @@
+.dtButton {
+  background-color: rgb(102, 157, 211);
+  color: white;
+  border-color: rgb(0, 94, 184);
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 6px;
+  margin: 6px;
+}
