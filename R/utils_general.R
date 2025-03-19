@@ -211,8 +211,26 @@ org_name_lkp <- function(names = NULL, type) {
 #' @param comm_parents character; vector of full names for commissioner parents
 #' @param comms character; vector of full names for commissioners
 #' @param spec character; vector of full names for specialties
+#'
+#' @returns a nested list with five nests. The five nests are named
+#'   trust_parents, trusts, commissioner_parents, commissioners, and
+#'   specialties. Within each of these there are 3 items; selected_name,
+#'   selected_code and display.
+#'
+#'   selected_name can be a vector of length one or more, and will contain the
+#'   names based on the selected items in the UI. If no items are selected, then
+#'   this value will be NULL.
+#'
+#'   selected_code can be a vector of length one or more, and will contain the
+#'   equivalent codes based on the selected items in the UI. If no items are
+#'   selected, then this value will be NULL.
+#'
+#'   display is a vector of length one, and will contain the name that is
+#'   subsequently displayed in the chart titles. If multiple or no selections
+#'   are made, then this will take the value 'Aggregated'.
 #' @noRd
 filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
+
   selected_trust_parents <- org_name_lkp(
     names = trust_parents,
     type = "Provider Parent"
@@ -232,7 +250,9 @@ filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
     names = comms,
     type = "Commissioner Org"
   )
-  selected_specialties <- spec
+  selected_specialties <- specialty_lkp |>
+    filter(.data$Treatment.Function.Name %in% spec) |>
+    pull(.data$Treatment.Function.Code)
 
   spec <- replace_fun(
       spec,
@@ -243,36 +263,37 @@ filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
       is.null(selected_trust_parents)) {
     display_trust_parents <- "Aggregated"
   } else {
-    display_trust_parents <- selected_trust_parents
+    display_trust_parents <- trust_parents
   }
 
   if (length(selected_trusts) > 1 |
       is.null(selected_trusts)) {
     display_trusts <- "Aggregated"
   } else {
-    display_trusts <- selected_trusts
+    display_trusts <- trusts
   }
 
   if (length(selected_commissioner_parents) > 1 |
       is.null(selected_commissioner_parents)) {
     display_commissioner_parents <- "Aggregated"
   } else {
-    display_commissioner_parents <- selected_commissioner_parents
+    display_commissioner_parents <- comm_parents
   }
 
   if (length(selected_commissioners) > 1 |
       is.null(selected_commissioners)) {
     display_commissioners <- "Aggregated"
   } else {
-    display_commissioners <- selected_commissioners
+    display_commissioners <- comms
   }
 
   if (length(selected_specialties) > 1 |
-      is.null(selected_specialties)) {
+      length(selected_specialties) == 0) {
     display_specialties <- "Aggregated"
   } else {
-    display_specialties <- selected_specialties
+    display_specialties <- spec
   }
+
 
   return(
     list(

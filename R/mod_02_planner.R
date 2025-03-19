@@ -67,8 +67,9 @@ mod_02_planner_ui <- function(id){
     selectInput(
       inputId = ns("specialty_codes"),
       label = "Select Specialties",
+      selected = "Total",
       choices = unname(treatment_function_codes),
-      multiple = TRUE
+      multiple = FALSE
     ),
     checkboxInput(
       inputId = ns("nhs_only"),
@@ -355,14 +356,12 @@ mod_02_planner_server <- function(id, r){
           trusts = input$trust_codes,
           comm_parents = input$commissioner_parent_codes,
           comms = input$commissioner_org_codes,
-          spec = specialty_lkp |>
-            filter(.data$Treatment.Function.Name %in% input$specialty_codes) |>
-            pull(.data$Treatment.Function.Code)
+          spec = input$specialty_codes
         )
 # browser()
         # pass some values to the charting module
-        r$chart_specification$trust <- selections_labels$trusts$selected_name
-        r$chart_specification$specialty <- selections_labels$specialties$selected_name
+        r$chart_specification$trust <- selections_labels$trusts$display
+        r$chart_specification$specialty <- selections_labels$specialties$display
         r$chart_specification$observed_start <- min_download_date
         r$chart_specification$observed_end <- max_download_date
 

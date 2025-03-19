@@ -242,7 +242,7 @@ test_that("org_name_lkp works", {
 
 test_that("filters_displays works", {
 
-  specs <- c("C_100", "C_999")
+  specs <- c("General Surgery", "Total")
 
   lbls <- filters_displays(
     trust_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
@@ -276,7 +276,7 @@ test_that("filters_displays works", {
   )
 
   expect_equal(
-    lbls$specialties$selected_code,
+    lbls$specialties$selected_name,
     specs,
     info = "selected specialties remain unchanged"
   )
