@@ -721,7 +721,7 @@ mod_02_planner_server <- function(id, r){
 
 # dynamic UI based on the scenario choice ---------------------------------
 
-    # Generate the dynamic UI based on dropdown selection
+    # Advanced skew manipulation options
     output$dynamic_interface <- renderUI({
       r$waiting_list <- dplyr::tibble()
 
@@ -772,6 +772,7 @@ mod_02_planner_server <- function(id, r){
         )
       )
 
+      # Generate the dynamic UI based on dropdown selection
       if (input$interface_choice == "select") {
         tagList()
       } else if (input$interface_choice == "performance_inputs") {
@@ -828,9 +829,7 @@ mod_02_planner_server <- function(id, r){
               inputId = ns("optimised_capacity_growth_type"),
               label = NULL,
               choices = c("Uniform", "Linear"),
-              selected = "Linear"#,
-              # choiceNames = c("Uplift referrals uniformly", "Uplift referrals to change by a percentage (linearly) by the end of the time period"),
-              # choiceValues = c("uniform", "linear")
+              selected = "Linear"
             ),
             fill = FALSE
           ),
@@ -858,6 +857,30 @@ mod_02_planner_server <- function(id, r){
               min = 0.1,
               max = 3, #this is arbitrary
               step = 0.05
+            ),
+            fill = FALSE
+          ),
+          layout_columns(
+            col_widths = c(3, 4),
+            span(
+              "Align capacity and referrals after performance is achieved",
+              tooltip(
+                shiny::icon("info-circle"),
+                shiny::HTML(
+                  paste0(
+                    "If capacity and referrals are changing at different rates, extreme future scenarios can occur, ",
+                    "for example, waiting lists can clear if capacity is growing faster than referrals.<br><br>",
+                    "This setting adjusts the capacity change to 'track' referrals once the performance target has been achieved.<br><br>",
+                    "This has a stabilising impact on forecasts beyond the performance target date."
+                  )
+                ),
+                placement = "right"
+              )
+            ),
+            checkboxInput(
+              inputId = ns("capacity_track_referrals"),
+              label = NULL,
+              value = TRUE
             ),
             fill = FALSE
           ),
@@ -1310,12 +1333,43 @@ mod_02_planner_server <- function(id, r){
               .by = c(
                 "specialty", "trust", "type", "period", "period_id"
               )
-            ) |>
-            forecast_function(
-              number_timesteps = forecast_months,
-              method = input$optimised_capacity_growth_type,
-              percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
-            ) |>
+            )
+
+          if (isTRUE(input$capacity_track_referrals)) {
+            # here we track referrals with capacity following target achievement
+            projections_capacity_to_target <- projections_capacity |>
+              forecast_function(
+                number_timesteps = forecast_months_to_target,
+                method = input$optimised_capacity_growth_type,
+                percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
+              )
+
+            # calculate the change in referrals for each period
+            referrals_change_by_period <- unique(
+              round(
+                diff(projections_referrals),
+                8
+              )
+            )
+
+            # calculate post-target capacity
+            projections_capacity_post_target <- tail(projections_capacity_to_target, 1) +
+              (seq_len(forecast_months - forecast_months_to_target) * referrals_change_by_period)
+
+            projections_capacity <- c(
+              projections_capacity_to_target,
+              projections_capacity_post_target
+            )
+
+          } else {
+            projections_capacity <- projections_capacity |>
+              forecast_function(
+                number_timesteps = forecast_months,
+                method = input$optimised_capacity_growth_type,
+                percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
+              )
+          }
+          projections_capacity <- projections_capacity |>
             # make negative capacity = 0
             (\(x) ifelse(x < 0, 0, x))()
 
