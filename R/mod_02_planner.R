@@ -207,6 +207,9 @@ mod_02_planner_ui <- function(id){
 #' @noRd
 mod_02_planner_server <- function(id, r){
   moduleServer( id, function(input, output, session){
+
+# initial set up ----------------------------------------------------------
+
     ns <- session$ns
 
     reactive_values <- reactiveValues()
@@ -358,7 +361,7 @@ mod_02_planner_server <- function(id, r){
           comms = input$commissioner_org_codes,
           spec = input$specialty_codes
         )
-# browser()
+
         # pass some values to the charting module
         r$chart_specification$trust <- selections_labels$trusts$display
         r$chart_specification$specialty <- selections_labels$specialties$display
@@ -581,9 +584,9 @@ mod_02_planner_server <- function(id, r){
 
 # dynamic UI --------------------------------------------------------------
 
-    # data selectors
 
-    # create forecast horizon default dates
+# calculate and populate forecast dates -----------------------------------
+
     forecast_dates <- reactive({
       start_date <- NHSRtt::latest_rtt_date() + 1
       end_date <- lubridate::ceiling_date(
@@ -613,6 +616,9 @@ mod_02_planner_server <- function(id, r){
       )
     )
 
+# calculate possible target dates from forecast horizone dates ----------------
+
+
     # here, we force the target achievement date to fit into the forecast time period
     target_dates <- reactive({
       min_date <- as.Date(input$forecast_date[[1]]) %m+% months(1)
@@ -631,6 +637,8 @@ mod_02_planner_server <- function(id, r){
       )
     })
 
+
+# create the dynamic ui for target achievement date -----------------------
 
     output$target_achievement_date <- shiny::renderUI(
       layout_columns(
@@ -654,7 +662,10 @@ mod_02_planner_server <- function(id, r){
       )
     )
 
-    # the latest perforamnce value to be displayed
+
+# calculate the latest performance ui from the data -----------------------
+
+    # the latest performance value to be displayed
     output$latest_performance_ui <- shiny::renderUI({
       if (is.null(reactive_values$latest_performance)) {
         return(NULL)
@@ -666,10 +677,214 @@ mod_02_planner_server <- function(id, r){
           )
         )
       }
-
     })
 
-# make scenario buttons appear if the data has already been downloaded
+
+# create ui for multiple performance targets ------------------------------
+
+    # create ui based on whether single or multiple target option selected
+    # Initialize empty data frame
+
+    target_data <- reactiveVal(
+      dplyr::tibble(
+      "Target_date" = as.Date(
+        paste(lubridate::year(Sys.Date()) + 1, "03-01", sep = "-")
+      ),
+      "Target_percentage" = 70
+      )
+    )
+
+    # Add initial empty row
+    observe({
+      if (nrow(target_data()) == 0) {
+        add_target()
+      }
+    }, priority = 1000)
+
+    # Function to add a new target
+    add_target <- function() {
+      current_data <- target_data()
+      new_row <- dplyr::tibble(
+        "Target_date" = as.Date(
+          paste(lubridate::year(Sys.Date()) + 1, "03-01", sep = "-")
+        ),
+        "Target_percentage" = 70
+      )
+      target_data(rbind(current_data, new_row))
+    }
+
+    # Add target button
+    observeEvent(input$add_target, {
+      add_target()
+    })
+
+    # Remove selected target
+    observeEvent(input$remove_target, {
+      if (!is.null(input$target_table_rows_selected)) {
+        current_data <- target_data()
+        selected_rows <- input$target_table_rows_selected
+        if (length(selected_rows) > 0) {
+          target_data(current_data[-selected_rows, , drop = FALSE])
+          # Add a row if table becomes empty
+          if (nrow(target_data()) == 0) {
+            add_target()
+          }
+        }
+      }
+    })
+
+    # Render editable table
+    output$target_table <- renderDT({
+      DT::datatable(
+        target_data(),
+        class = "customDT",
+        editable = list(
+          target = "cell",
+          disable = list(columns = c())
+        ),
+        selection = "single",
+        caption = "Double-click cell to edit",
+        options = list(
+          ordering = FALSE,
+          pageLength = 10,
+          dom = 't', #show table only
+          autoWidth = TRUE,
+          columnDefs = list(
+            list(className = 'dt-center', targets = "_all")
+          )
+        ),
+        rownames = FALSE,
+        colnames = c(
+          "Target date" = "Target_date",
+          "Target percentage" = "Target_percentage"
+        )
+      )
+    })
+
+    # Handle cell edits
+    observeEvent(input$target_table_cell_edit, {
+      info <- input$target_table_cell_edit
+      row <- info$row
+      col <- info$col + 1  # Column indices start at 0 in JavaScript
+      value <- info$value
+
+      current_data <- target_data()
+
+      # Validation for Target date
+      if (colnames(current_data)[col] == "Target_date") {
+        tryCatch({
+          date_value <- as.Date(value)
+          if (is.na(date_value)) {
+            showNotification("Please enter a valid date (YYYY-MM-DD)", type = "error")
+            return()
+          } else if (!dplyr::between(date_value, target_dates()$min, target_dates()$max)) {
+            showNotification("Selected date must be at least one month after the start of the planning horizon", type = "error")
+            return()
+          }
+          current_data[row, col] <- date_value
+        }, error = function(e) {
+          showNotification("Unknown error", type = "error")
+          return()
+        })
+      }
+
+      # # 2nd Validation for Target date
+      # if (colnames(current_data)[col] == "Target_date") {
+      #   tryCatch({
+      #     date_value <- as.Date(value)
+      #
+      #     current_data[row, col] <- date_value
+      #   }, error = function(e) {
+      #     showNotification("Unknown", type = "error")
+      #     return()
+      #   })
+      # }
+
+      # Validation for Target percentage
+      if (colnames(current_data)[col] == "Target_percentage") {
+        tryCatch({
+          pct_value <- as.numeric(value)
+          if (is.na(pct_value) || pct_value < 0 || pct_value > 100) {
+            showNotification("Percentage must be between 0 and 100", type = "error")
+            return()
+          }
+          current_data[row, col] <- pct_value
+        }, error = function(e) {
+          showNotification("Percentage must be between 0 and 100", type = "error")
+          return()
+        })
+      }
+
+      target_data(current_data)
+    })
+
+    observeEvent(
+      c(input$target_type), {
+        if (input$target_type == "Single target") {
+          output$target_type_input_ui <- shiny::renderUI({
+            tagList(
+              uiOutput(
+                ns("target_achievement_date")
+              ),
+              uiOutput(
+                ns("latest_performance")
+              ),
+              layout_columns(
+                col_widths = c(3, 4),
+                span(
+                  "Target percentage (between 0% and 100%):",
+                  tooltip(
+                    shiny::icon("info-circle"),
+                    "The proportion of people on the RTT waiting list that have been waiting for less than four months",
+                    placement = "right"
+                  )
+                ),
+                numericInput(
+                  # INPUT (note, the package requires the 100% - x of this value, eg, 65% performance = a target_value of 35%)
+                  inputId = ns("target_value"),
+                  label = NULL,
+                  min = 0,
+                  max = 100,
+                  value = reactive_values$default_target
+                ),
+                fill = FALSE
+              )
+            )
+
+          })
+        } else if (input$target_type == "Multiple targets") {
+          output$target_type_input_ui <- shiny::renderUI({
+            card(
+              card_body(
+                layout_sidebar(
+                  sidebar = sidebar(
+                    actionButton(
+                      inputId = ns("add_target"),
+                      label = "Add target",
+                      class = "btn-primary"
+                    ),
+                    actionButton(
+                      inputId = ns("remove_target"),
+                      label = "Remove selected target",
+                      class = "btn-danger"
+                    )
+                  ),
+                  DTOutput(
+                    ns("target_table")
+                  )
+                )
+              ),
+              width = "50%"
+            )
+          })
+        }
+      }
+    )
+
+
+
+# make scenario buttons appear if the data has already been downloaded --------
+
     output$optimise_capacity_ui <- renderUI({
       if (isTRUE(reactive_values$data_downloaded)) {
         bslib::input_task_button(
@@ -779,34 +994,24 @@ mod_02_planner_server <- function(id, r){
 
         # Numeric interface
         tagList(
-          uiOutput(
-            ns("target_achievement_date")
-          ),
-          uiOutput(
-            ns("latest_performance")
+          layout_columns(
+            col_widths = c(3, 4),
+            span(
+              "Select target type:",
+            ),
+            radioButtons(
+              inputId = ns("target_type"),
+              label = NULL,
+              choices = c("Single target", "Multiple targets"),
+              selected = "Single target"
+            ),
+            fill = FALSE
           ),
           uiOutput(
             ns("latest_performance_ui")
           ),
-          layout_columns(
-            col_widths = c(3, 4),
-            span(
-              "Target percentage (between 0% and 100%):",
-              tooltip(
-                shiny::icon("info-circle"),
-                "The proportion of people on the RTT waiting list that have been waiting for less than four months",
-                placement = "right"
-              )
-            ),
-            numericInput(
-              # INPUT (note, the package requires the 100% - x of this value, eg, 65% performance = a target_value of 35%)
-              inputId = ns("target_value"),
-              label = NULL,
-              min = 0,
-              max = 100,
-              value = reactive_values$default_target
-            ),
-            fill = FALSE
+          uiOutput(
+            ns("target_type_input_ui")
           ),
           layout_columns(
             col_widths = c(3, 4),
