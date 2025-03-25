@@ -702,10 +702,8 @@ mod_02_planner_server <- function(id, r){
     add_target <- function() {
       current_data <- target_data()
       new_row <- dplyr::tibble(
-        "Target_date" = as.Date(
-          paste(lubridate::year(Sys.Date()) + 1, "03-01", sep = "-")
-        ),
-        "Target_percentage" = 70
+        "Target_date" = max(current_data[["Target_date"]]) %m+% months(3),
+        "Target_percentage" = max(current_data[["Target_percentage"]]) + 2
       )
       target_data(rbind(current_data, new_row))
     }
@@ -774,8 +772,16 @@ mod_02_planner_server <- function(id, r){
           if (is.na(date_value)) {
             showNotification("Please enter a valid date (YYYY-MM-DD)", type = "error")
             return()
-          } else if (!dplyr::between(date_value, target_dates()$min, target_dates()$max)) {
+          }
+          date_value <- lubridate::floor_date(
+            date_value,
+            unit = "months"
+          )
+          if (!dplyr::between(date_value, target_dates()$min, target_dates()$max)) {
             showNotification("Selected date must be at least one month after the start of the planning horizon", type = "error")
+            return()
+          } else if (date_value %in% current_data[["Target_date"]]) {
+            showNotification("Only one date per month allowed", type = "error")
             return()
           }
           current_data[row, col] <- date_value
@@ -784,18 +790,6 @@ mod_02_planner_server <- function(id, r){
           return()
         })
       }
-
-      # # 2nd Validation for Target date
-      # if (colnames(current_data)[col] == "Target_date") {
-      #   tryCatch({
-      #     date_value <- as.Date(value)
-      #
-      #     current_data[row, col] <- date_value
-      #   }, error = function(e) {
-      #     showNotification("Unknown", type = "error")
-      #     return()
-      #   })
-      # }
 
       # Validation for Target percentage
       if (colnames(current_data)[col] == "Target_percentage") {
@@ -1349,8 +1343,10 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$capacity_percent_change <- input$capacity_growth
           r$chart_specification$capacity_change_type <- input$capacity_growth_type
           r$chart_specification$capacity_skew <- input$capacity_skew
-          r$chart_specification$target_date <- NA
-          r$chart_specification$target_performance <- NA
+          r$chart_specification$target_data <- dplyr::tibble(
+            Target_date = as.Date(character()),
+            Target_performance = as.numeric()
+          )
           r$chart_specification$optimise_status <- NULL
         }
       },
@@ -1362,6 +1358,7 @@ mod_02_planner_server <- function(id, r){
 
     observeEvent(
       c(input$optimise_capacity), {
+        r$chart_specification$optimise_status <- NULL
 
         if (input$optimise_capacity >= 1) {
 
@@ -1385,20 +1382,41 @@ mod_02_planner_server <- function(id, r){
 
           # checks on target_data?
 
-          baseline_referrals <- r$all_data |>
+          unadjusted_baseline_referrals <- r$all_data |>
             filter(
               .data$type == "Referrals"
             )
 
           if (!is.null(reactive_values$referrals_uplift)) {
-            baseline_referrals <- baseline_referrals |>
+            baseline_referrals <- unadjusted_baseline_referrals |>
               mutate(
                 value = .data$value +
                   (.data$value * reactive_values$referrals_uplift)
               )
+          } else {
+            baseline_referrals <- unadjusted_baseline_referrals
           }
 
-          t1_capacity <- r$all_data |>
+
+          # referrals for planning horizon (based on uplifted numbers)
+
+          forecast_months <- lubridate::interval(
+            as.Date(input$forecast_date[[1]]),
+            as.Date(input$forecast_date[[2]])
+          ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
+
+          projections_referrals <- baseline_referrals |>
+            filter(
+              # first period only used for the count of incompletes
+              .data$period != min(.data$period)
+            ) |>
+            forecast_function(
+              number_timesteps = forecast_months,
+              method = input$referral_growth_type,
+              percent_change = input$referral_growth
+            )
+
+          projections_capacity <- r$all_data |>
             filter(
               .data$type == "Complete",
               # first period only used for the count of incompletes
@@ -1409,10 +1427,17 @@ mod_02_planner_server <- function(id, r){
               .by = c(
                 "specialty", "trust", "type", "period", "period_id"
               )
-            ) |>
+            )
+
+          # start list to store the future capacity values
+          projections_capacity_to_target <- list()
+          projections_capacity_to_target[[1]] <- projections_capacity |>
+            pull(.data$value)
+
+          t1_capacity <- projections_capacity |>
             calculate_t1_value()
 
-          t0_incompletes <- r$all_data |>
+          baseline_incompletes <- r$all_data |>
             filter(
               .data$type == "Incomplete",
               .data$period == max(.data$period)
@@ -1421,6 +1446,10 @@ mod_02_planner_server <- function(id, r){
               "months_waited_id",
               incompletes = "value"
             )
+
+          # note, baseline incompletes is used again when creating the final
+          # dataset at the end
+          t0_incompletes <- baseline_incompletes
 
           skewed_params <- reactive_values$params |>
             dplyr::cross_join(
@@ -1442,6 +1471,10 @@ mod_02_planner_server <- function(id, r){
               )
             )
 
+          # create empty list for optimal skew parameters
+
+
+
           if (input$optimised_capacity_growth_type == "Uniform") {
             cap_prof <- "flat"
           } else if (input$optimised_capacity_growth_type == "Linear") {
@@ -1459,27 +1492,38 @@ mod_02_planner_server <- function(id, r){
             detail = 'This may take a while...'
           )
 
+          interval_start_date <- input$forecast_date[[1]]
+          forecast_dates <- seq(
+            from = input$forecast_date[[1]],
+            to = input$forecast_date[[2]],
+            by = "months"
+          )
 
           for (i in seq_len(nrow(target_data()))) {
 
             i_target_data <- target_data() |>
               dplyr::slice(i)
 
+            # create dummy value to store capacity projections to
+            j <- i + 1
+
+            start_date_id <- match(
+              interval_start_date,
+              forecast_dates
+            )
+
+            end_date_id <- match(
+              i_target_data[["Target_date"]],
+              forecast_dates
+            )
+
             forecast_months_to_target <- lubridate::interval(
-              as.Date(input$forecast_date[[1]]),
+              as.Date(interval_start_date),
               as.Date(i_target_data[["Target_date"]])
             ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
 
-            projections_referrals <- baseline_referrals |>
-              filter(
-                # first period only used for the count of incompletes
-                .data$period != min(.data$period)
-              ) |>
-              forecast_function(
-                number_timesteps = forecast_months_to_target,
-                method = input$referral_growth_type,
-                percent_change = input$referral_growth
-              )
+            # subset referrals for this interval
+            interval_projected_referrals <- projections_referrals[start_date_id:end_date_id]
 
             # calculate optimised uplift
             min_uplift <- skewed_params |>
@@ -1492,7 +1536,7 @@ mod_02_planner_server <- function(id, r){
                     progress$set(value = y)
                     optimise_capacity(
                       t_1_capacity = t1_capacity,
-                      referrals_projections = projections_referrals,
+                      referrals_projections = interval_projected_referrals,
                       incomplete_pathways = t0_incompletes,
                       renege_capacity_params = x,
                       target = paste0(100 - i_target_data[["Target_percentage"]], "%"),
@@ -1517,55 +1561,67 @@ mod_02_planner_server <- function(id, r){
                 abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
               )
 
-            r$chart_specification$optimise_status <- min_uplift$status
+            # store the convergence status
+            r$chart_specification$optimise_status <- c(
+              r$chart_specification$optimise_status,
+              min_uplift$status
+            )
+            # browser()
 
-            # forecast future waiting list based on uplifted numbers
-
-            forecast_months <- lubridate::interval(
-              as.Date(input$forecast_date[[1]]),
-              as.Date(input$forecast_date[[2]])
-            ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
-
-            unadjusted_projections_referrals <- r$all_data |>
-              filter(
-                .data$type == "Referrals",
-                # first period only used for the count of incompletes
-                .data$period != min(.data$period)
+            # store capacity projections to target
+            projections_capacity_to_target[[j]] <- dplyr::tibble(
+              value = projections_capacity_to_target[[j - 1]]
+            ) |>
+              mutate(
+                period_id = dplyr::row_number()
               ) |>
               forecast_function(
-                number_timesteps = forecast_months,
-                method = input$referral_growth_type,
-                percent_change = input$referral_growth
+                number_timesteps = forecast_months_to_target,
+                method = input$optimised_capacity_growth_type,
+                percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
               )
 
-            if (!is.null(reactive_values$referrals_uplift)) {
-              projections_referrals <- unadjusted_projections_referrals +
-                (unadjusted_projections_referrals * reactive_values$referrals_uplift)
-            } else {
-              projections_referrals <- unadjusted_projections_referrals
-            }
+            # start date for next target period
+            interval_start_date <- i_target_data[["Target_date"]] %m+% months(1)
 
-            projections_capacity <- r$all_data |>
-              filter(
-                .data$type == "Complete",
-                # first period only used for the count of incompletes
-                .data$period != min(.data$period)
-              ) |>
-              summarise(
-                value = sum(.data$value),
-                .by = c(
-                  "specialty", "trust", "type", "period", "period_id"
-                )
+            # start capacity for next target
+            t1_capacity <- tail(projections_capacity_to_target[[j]], 1)
+
+            # start incompletes for next target
+            t0_incompletes <- apply_params_to_projections(
+              capacity_projections = projections_capacity_to_target[[j]],
+              referrals_projections = interval_projected_referrals,
+              incomplete_pathways = t0_incompletes,
+              renege_capacity_params = min_uplift$params[[1]],
+              max_months_waited = 12
+            ) |>
+              filter(.data$period_id == max(.data$period_id)) |>
+              select(
+                "months_waited_id",
+                "incompletes"
               )
+          }
+
+
+          # are there remaining periods between the final target and the end of
+          # the forecast period?
+
+          start_date_id <- match(
+            interval_start_date,
+            forecast_dates
+          )
+
+          end_date_id <- length(forecast_dates)
+
+          if (start_date_id != end_date_id) {
+            forecast_months_to_end <- lubridate::interval(
+              as.Date(interval_start_date),
+              tail(forecast_dates, 1)
+            ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
 
             if (isTRUE(input$capacity_track_referrals)) {
               # here we track referrals with capacity following target achievement
-              projections_capacity_to_target <- projections_capacity |>
-                forecast_function(
-                  number_timesteps = forecast_months_to_target,
-                  method = input$optimised_capacity_growth_type,
-                  percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
-                )
+
 
               # calculate the change in referrals for each period
               referrals_change_by_period <- unique(
@@ -1576,33 +1632,50 @@ mod_02_planner_server <- function(id, r){
               )
 
               # calculate post-target capacity
-              projections_capacity_post_target <- tail(projections_capacity_to_target, 1) +
-                (seq_len(forecast_months - forecast_months_to_target) * referrals_change_by_period)
+              projections_capacity_post_target <- tail(projections_capacity_to_target[[j]], 1) +
+                (seq_len(forecast_months_to_end) * referrals_change_by_period)
 
-              projections_capacity <- c(
-                projections_capacity_to_target,
-                projections_capacity_post_target
-              )
+
 
             } else {
-              projections_capacity <- projections_capacity |>
+
+              projections_capacity_post_target <- dplyr::tibble(
+                value = projections_capacity_to_target[[j]]
+              ) |>
+                mutate(
+                  period_id = dplyr::row_number()
+                ) |>
                 forecast_function(
-                  number_timesteps = forecast_months,
+                  number_timesteps = forecast_months_to_end,
                   method = input$optimised_capacity_growth_type,
                   percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
                 )
             }
+
+            projections_capacity_to_target[[j + 1]] <- projections_capacity_post_target
+            projections_capacity_to_target[[1]] <- NULL # removes the baseline period
+            projections_capacity <- unlist(projections_capacity_to_target)
             projections_capacity <- projections_capacity |>
               # make negative capacity = 0
               (\(x) ifelse(x < 0, 0, x))()
 
           }
 
+          unadjusted_projections_referrals <- unadjusted_baseline_referrals |>
+            filter(
+              # first period only used for the count of incompletes
+              .data$period != min(.data$period)
+            ) |>
+            forecast_function(
+              number_timesteps = forecast_months,
+              method = input$referral_growth_type,
+              percent_change = input$referral_growth
+            )
 
           r$waiting_list <- NHSRtt::apply_params_to_projections(
             capacity_projections = projections_capacity,
             referrals_projections = projections_referrals,
-            incomplete_pathways = t0_incompletes,
+            incomplete_pathways = baseline_incompletes,
             renege_capacity_params = min_uplift$params[[1]],
             max_months_waited = 12
           ) |>
@@ -1655,8 +1728,16 @@ mod_02_planner_server <- function(id, r){
           )
           r$chart_specification$capacity_change_type <- input$optimised_capacity_growth_type
           r$chart_specification$capacity_skew <- min_uplift$skew_param[[1]]
-          r$chart_specification$target_date <- input$target_achievement_date
-          r$chart_specification$target_performance <- input$target_value
+          r$chart_specification$target_data <- target_data()
+
+          if (any(r$chart_specification$optimise_status == "waitlist_cleared")) {
+            r$chart_specification$optimise_status <- "waitlist_cleared"
+          } else if (all(r$chart_specification$optimise_status == "converged")) {
+            r$chart_specification$optimise_status <- "converged"
+          } else {
+            r$chart_specification$optimise_status <- "unknown"
+          }
+
 
           reactive_values$optimise_status_card_visible <- TRUE
 
