@@ -107,7 +107,7 @@ plot_output <- function(data,
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
           p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
-          "<br>Optimised capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a target of ", txt$p_target_performance, " patients seen within 4 months by ", txt$p_target_date,
+          "<br>Optimised capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a target of ", txt, " of patients seen within 4 months",
           "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
         ),
         caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
@@ -126,7 +126,7 @@ plot_output <- function(data,
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
           p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
-          "<br>Optimised capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a <span style='color:red'>**target**</span> of ", txt$p_target_performance, " patients seen within 4 months by ", txt$p_target_date ,
+          "<br>Optimised capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a <span style='color:red'>**target**</span> of ", txt, " of patients seen within 4 months",
           "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
         ),
         caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
@@ -296,55 +296,32 @@ performance_text <- function(p_target_data) {
 
   p_target_data <- p_target_data |>
     mutate(
-      Target_date = format(.data$Target_date, "%b %Y")
+      Target_date = format(.data$Target_date, "%b %Y"),
+      final_text = paste0(Target_percentage, "% (", Target_date, ")")
     )
 
   if (nrow(p_target_data) == 1) {
-    p_target_performance <- paste0(p_target_data[["Target_percentage"]], "%")
-    p_target_date <- p_target_data[["Target_date"]]
+    p_out <- p_target_data[["final_text"]]
   } else if (nrow(p_target_data) == 2) {
-    p_target_performance <- paste0(
-      p_target_data[["Target_percentage"]],
-      "%",
-      collapse = " and "
-    )
-
-    p_target_date <- paste0(
-      p_target_data[["Target_date"]],
+    p_out <- paste0(
+      p_target_data[["final_text"]],
       collapse = " and "
     )
   } else {
-    p_target_performance <- paste0(
+    p_out <- paste0(
       paste0(
-        head(p_target_data[["Target_percentage"]], nrow(p_target_data) - 1),
-        "%, ",
-        collapse = ""
-      ),
-      " and ",
-      tail(p_target_data[["Target_percentage"]], 1),
-      "%"
-    )
-    p_target_performance <- gsub(", and", " and", p_target_performance)
-
-    p_target_date <- paste0(
-      paste0(
-        head(
-          p_target_data[["Target_date"]],
-          nrow(p_target_data) - 1
-        ),
+        head(p_target_data[["final_text"]], nrow(p_target_data) - 1),
         ", ",
         collapse = ""
       ),
-      " and ",
-      tail(p_target_data[["Target_date"]], 1)
-    )
-    p_target_date <- gsub(", and", " and", p_target_date)
+      "and ",
+      tail(p_target_data[["final_text"]], 1)
+    ) |>
+      (\(x) gsub(", and", " and", x))()
+
   }
 
-  txt <- list(
-    p_target_performance = p_target_performance,
-    p_target_date = p_target_date
-  )
+  txt <- p_out
 
   return(txt)
 }

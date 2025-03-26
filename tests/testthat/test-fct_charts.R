@@ -5,8 +5,24 @@ test_that("performance_text works", {
   )
 
 
-  performance_text(df)
+  expect_equal(
+    performance_text(df),
+    "60% (Mar 2022), 65% (Mar 2023) and 70% (Mar 2024)"
+  )
 
+  expect_equal(
+    df |>
+      head(2) |>
+      performance_text(),
+    "60% (Mar 2022) and 65% (Mar 2023)"
+  )
+
+  expect_equal(
+    df |>
+      head(1) |>
+      performance_text(),
+    "60% (Mar 2022)"
+  )
 })
 
 
