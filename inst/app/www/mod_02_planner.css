@@ -1,0 +1,11 @@
+.table.customDT.dataTable.no-footer th,
+.table.customDT.dataTable.no-footer td {
+  border: 1px solid grey; /* Sets a 1px black border */
+  padding: 8px; /* Optional: Adds some padding for better spacing */
+  background-color: transparent; /* Removes any background color */
+}
+
+.table.customDT.dataTable.no-footer thead th {
+  border: 1px solid grey; /* Ensures header cells also have borders */
+}
+

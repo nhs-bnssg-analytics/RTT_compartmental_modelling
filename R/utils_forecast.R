@@ -4,7 +4,7 @@
 #'   column
 #' @param number_timesteps integer; number of time steps to forecast
 #' @param method string; "Uniform" or "Linear"
-#' @param percent_change numeric vector; if method is "Linear" thepercent_change
+#' @param percent_change numeric vector; if method is "Linear" the percent_change
 #'   is the annual percentage change required relative to the extrapolated first
 #'   time step (where 1 is a 1% annual uplift by time step 13)
 #' @importFrom dplyr tibble mutate case_when summarise
