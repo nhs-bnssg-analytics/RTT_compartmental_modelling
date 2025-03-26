@@ -1608,18 +1608,10 @@ mod_02_planner_server <- function(id, r){
               )
           }
 
-
           # are there remaining periods between the final target and the end of
           # the forecast period?
 
-          start_date_id <- match(
-            interval_start_date,
-            forecast_dates
-          )
-
-          end_date_id <- length(forecast_dates)
-
-          if (start_date_id != end_date_id) {
+          if (interval_start_date <= utils::tail(forecast_dates, 1)) {
             forecast_months_to_end <- lubridate::interval(
               as.Date(interval_start_date),
               utils::tail(forecast_dates, 1)
@@ -1641,8 +1633,6 @@ mod_02_planner_server <- function(id, r){
               projections_capacity_post_target <- utils::tail(projections_capacity_to_target[[j]], 1) +
                 (seq_len(forecast_months_to_end) * referrals_change_by_period)
 
-
-
             } else {
 
               projections_capacity_post_target <- dplyr::tibble(
@@ -1659,14 +1649,18 @@ mod_02_planner_server <- function(id, r){
             }
 
             projections_capacity_to_target[[j + 1]] <- projections_capacity_post_target
-            projections_capacity_to_target[[1]] <- NULL # removes the baseline period
-            projections_capacity <- unlist(projections_capacity_to_target)
-            projections_capacity <- projections_capacity |>
-              # make negative capacity = 0
-              (\(x) ifelse(x < 0, 0, x))()
+
 
           }
 
+          projections_capacity_to_target[[1]] <- NULL # removes the baseline period
+          projections_capacity <- unlist(projections_capacity_to_target)
+          projections_capacity <- projections_capacity |>
+            # make negative capacity = 0
+            (\(x) ifelse(x < 0, 0, x))()
+
+          # calculate the unadjusted referrals for the projection period to
+          # provide with the data to the charting section
           unadjusted_projections_referrals <- unadjusted_baseline_referrals |>
             filter(
               # first period only used for the count of incompletes
