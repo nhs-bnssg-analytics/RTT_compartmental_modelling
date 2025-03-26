@@ -687,7 +687,7 @@ mod_02_planner_server <- function(id, r){
       "Target_date" = as.Date(
         paste(lubridate::year(Sys.Date()) + 1, "03-01", sep = "-")
       ),
-      "Target_percentage" = 70
+      "Target_percentage" = NA_real_
       )
     )
 
@@ -702,8 +702,8 @@ mod_02_planner_server <- function(id, r){
     add_target <- function() {
       current_data <- target_data()
       new_row <- dplyr::tibble(
-        "Target_date" = max(current_data[["Target_date"]]) %m+% months(3),
-        "Target_percentage" = max(current_data[["Target_percentage"]]) + 2
+        "Target_date" = NA,
+        "Target_percentage" = NA_real_
       )
       target_data(rbind(current_data, new_row))
     }
@@ -848,7 +848,13 @@ mod_02_planner_server <- function(id, r){
         } else if (input$target_type == "Multiple targets") {
           output$target_type_input_ui <- shiny::renderUI({
             card(
+              card_header(
+                class = "bg-dark",
+                "Enter 4 month performance targets into table"
+              ),
               card_body(
+                height = '300px',
+                fillable = TRUE,
                 layout_sidebar(
                   sidebar = sidebar(
                     actionButton(
