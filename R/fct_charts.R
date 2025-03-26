@@ -318,7 +318,7 @@ performance_text <- function(p_target_data) {
       paste0(
         head(p_target_data[["Target_percentage"]], nrow(p_target_data) - 1),
         "%, ",
-        , collapse = ""
+        collapse = ""
       ),
       " and ",
       tail(p_target_data[["Target_percentage"]], 1),
@@ -333,7 +333,7 @@ performance_text <- function(p_target_data) {
           nrow(p_target_data) - 1
         ),
         ", ",
-        , collapse = ""
+        collapse = ""
       ),
       " and ",
       tail(p_target_data[["Target_date"]], 1)
