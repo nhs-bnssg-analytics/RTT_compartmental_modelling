@@ -1490,7 +1490,7 @@ mod_02_planner_server <- function(id, r){
           progress <- Progress$new(
             session,
             min = 1,
-            max = nrow(skewed_params))
+            max = nrow(skewed_params) * nrow(target_data()))
           on.exit(progress$close())
 
           progress$set(
@@ -1504,6 +1504,21 @@ mod_02_planner_server <- function(id, r){
             to = input$forecast_date[[2]],
             by = "months"
           )
+
+          # set up table to add the projections onto
+          projection_calcs <- skewed_params |>
+            mutate(
+              # rowid is used for updating the progress bar
+              rowid = dplyr::row_number(),
+              capacity_projections = list(projections_capacity_to_target),
+              start_capacity_1 = t1_capacity
+            ) |>
+            dplyr::cross_join(
+              t0_incompletes
+            ) |>
+            tidyr::nest(
+              incompletes_1 = c("months_waited_id", "incompletes")
+            )
 
           for (i in seq_len(nrow(target_data()))) {
 
@@ -1531,20 +1546,36 @@ mod_02_planner_server <- function(id, r){
             # subset referrals for this interval
             interval_projected_referrals <- projections_referrals[start_date_id:end_date_id]
 
+            # set new column names
+            uplift_col <- paste("uplift", i, sep = "_")
+            status_col <- paste("status", i, sep = "_")
+            start_capacity_col <- paste("start_capacity", i, sep = "_")
+            incompletes_col <- paste("incompletes", i, sep = "_")
+
+            # col names for the next time period
+            start_capacity_tj_col <- paste("start_capacity", j, sep = "_")
+            incompletes_tj_col <- paste("incompletes", j, sep = "_")
+
             # calculate optimised uplift
-            min_uplift <- skewed_params |>
+            projection_calcs <- projection_calcs |>
               mutate(
-                rowid = dplyr::row_number(),
-                uplift = purrr::map2(
-                  .x = .data$params,
-                  .y = .data$rowid,
-                  \(x, y) {
-                    progress$set(value = y)
+                !!uplift_col := purrr::pmap(
+                  .l = list(
+                    par = params,
+                    cap = .data[[start_capacity_col]],
+                    incomp = .data[[incompletes_col]],
+                    prog = .data[["rowid"]]
+                  ),
+                  .f = \(par, cap, incomp, prog) {
+
+                    prog_val <- prog + ((i - 1) * nrow(projection_calcs))
+
+                    progress$set(value = prog_val)
                     optimise_capacity(
-                      t_1_capacity = t1_capacity,
+                      t_1_capacity = cap,
                       referrals_projections = interval_projected_referrals,
-                      incomplete_pathways = t0_incompletes,
-                      renege_capacity_params = x,
+                      incomplete_pathways = incomp,
+                      renege_capacity_params = par,
                       target = paste0(100 - i_target_data[["Target_percentage"]], "%"),
                       target_bin = 4,
                       capacity_profile = cap_prof,
@@ -1553,76 +1584,72 @@ mod_02_planner_server <- function(id, r){
                     )
                   }
                 ),
-                status = names(unlist(.data$uplift)),
-                uplift = as.numeric(.data$uplift)
-              ) |>
-              filter(
-                .data$uplift == min(.data$uplift)
-              ) |>
-              filter(
-                # if there are multiple records that have the same capacity
-                # uplift, select the record that has the smallest change from the
-                # calibrated period's capacity utilisation profile (eg, the one
-                # closest to 1)
-                abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
-              )
+                !!status_col := names(unlist(.data[[uplift_col]])),
+                !!uplift_col := as.numeric(.data[[uplift_col]]),
+                capacity_projections = purrr::map2(
+                  .x = capacity_projections,
+                  .y = .data[[uplift_col]],
+                  \(x, y) {
+                    cap_projections <- dplyr::tibble(
+                      value = x[[j - 1]]
+                    ) |>
+                      dplyr::mutate(
+                        period_id = dplyr::row_number()
+                      ) |>
+                      forecast_function(
+                        number_timesteps = forecast_months_to_target,
+                        method = input$optimised_capacity_growth_type,
+                        percent_change = (y - 1) * 100 # convert the uplift value into a percent
+                      )
 
-            # store the convergence status
-            r$chart_specification$optimise_status <- c(
-              r$chart_specification$optimise_status,
-              min_uplift$status
-            )
-            # browser()
+                    x[[j]] <- cap_projections
+                    x
+                  }
+                ),
+                # add start capacity for next time period
+                !!start_capacity_tj_col := purrr::map_dbl(
+                  capacity_projections,
+                  \(x) unlist(x) |>
+                    tail(1)
+                ),
+                # add incompletes for the start of the next time period
+                !!incompletes_tj_col := purrr::pmap(
+                  .l = list(
+                    cap_proj = capacity_projections,
+                    incomp = .data[[incompletes_col]],
+                    par = params
+                  ),
+                  .f = \(cap_proj, incomp, par) {
 
-            # store capacity projections to target
-            projections_capacity_to_target[[j]] <- dplyr::tibble(
-              value = projections_capacity_to_target[[j - 1]]
-            ) |>
-              mutate(
-                period_id = dplyr::row_number()
-              ) |>
-              forecast_function(
-                number_timesteps = forecast_months_to_target,
-                method = input$optimised_capacity_growth_type,
-                percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
+                    apply_params_to_projections(
+                      capacity_projections = cap_proj[[j]],
+                      referrals_projections = interval_projected_referrals,
+                      incomplete_pathways = incomp,
+                      renege_capacity_params = par,
+                      max_months_waited = 12
+                    ) |>
+                      filter(.data$period_id == max(.data$period_id)) |>
+                      select(
+                        "months_waited_id",
+                        "incompletes"
+                      )
+                  }
+                )
+
               )
 
             # start date for next target period
             interval_start_date <- i_target_data[["Target_date"]] %m+% months(1)
 
-            # start capacity for next target
-            t1_capacity <- tail(projections_capacity_to_target[[j]], 1)
-
-            # start incompletes for next target
-            t0_incompletes <- apply_params_to_projections(
-              capacity_projections = projections_capacity_to_target[[j]],
-              referrals_projections = interval_projected_referrals,
-              incomplete_pathways = t0_incompletes,
-              renege_capacity_params = min_uplift$params[[1]],
-              max_months_waited = 12
-            ) |>
-              filter(.data$period_id == max(.data$period_id)) |>
-              select(
-                "months_waited_id",
-                "incompletes"
-              )
           }
-
 
           # are there remaining periods between the final target and the end of
           # the forecast period?
 
-          start_date_id <- match(
-            interval_start_date,
-            forecast_dates
-          )
-
-          end_date_id <- length(forecast_dates)
-
-          if (start_date_id != end_date_id) {
+          if (interval_start_date <= utils::tail(forecast_dates, 1)) {
             forecast_months_to_end <- lubridate::interval(
               as.Date(interval_start_date),
-              tail(forecast_dates, 1)
+              utils::tail(forecast_dates, 1)
             ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
 
             if (isTRUE(input$capacity_track_referrals)) {
@@ -1638,35 +1665,100 @@ mod_02_planner_server <- function(id, r){
               )
 
               # calculate post-target capacity
-              projections_capacity_post_target <- tail(projections_capacity_to_target[[j]], 1) +
-                (seq_len(forecast_months_to_end) * referrals_change_by_period)
-
-
+              projection_calcs <- projection_calcs |>
+                mutate(
+                  capacity_projections = purrr::map(
+                    capacity_projections,
+                    \(x) {
+                      projections <- unlist(x) |>
+                        tail(1) |>
+                        (\(y) y + (seq_len(forecast_months_to_end) * referrals_change_by_period))()
+                      x[[j + 1]] <- projections
+                      x
+                    }
+                  )
+                )
 
             } else {
 
-              projections_capacity_post_target <- dplyr::tibble(
-                value = projections_capacity_to_target[[j]]
-              ) |>
+              # continue projecting the last capacity change required to meet
+              # the target onwards
+              projection_calcs <- projection_calcs |>
                 mutate(
-                  period_id = dplyr::row_number()
-                ) |>
-                forecast_function(
-                  number_timesteps = forecast_months_to_end,
-                  method = input$optimised_capacity_growth_type,
-                  percent_change = (min_uplift$uplift - 1) * 100 # convert the uplift value into a percent
+                  capacity_projections = purrr::map2(
+                    .x = capacity_projections,
+                    .y = .data[[uplift_col]],
+                    \(x, y) {
+
+                      projections <- dplyr::tibble(
+                        value = unlist(tail(x, 1))
+                      ) |>
+                        mutate(
+                          period_id = dplyr::row_number()
+                        ) |>
+                        forecast_function(
+                          number_timesteps = forecast_months_to_end,
+                          method = input$optimised_capacity_growth_type,
+                          percent_change = (y - 1) * 100 # convert the uplift value into a percent
+                        )
+                      x[[j + 1]] <- projections
+                      x
+                    }
+                  )
                 )
             }
-
-            projections_capacity_to_target[[j + 1]] <- projections_capacity_post_target
-            projections_capacity_to_target[[1]] <- NULL # removes the baseline period
-            projections_capacity <- unlist(projections_capacity_to_target)
-            projections_capacity <- projections_capacity |>
-              # make negative capacity = 0
-              (\(x) ifelse(x < 0, 0, x))()
-
           }
 
+          projection_calcs <- projection_calcs |>
+            mutate(
+              capacity_projections = purrr::map(
+                capacity_projections,
+                \(x) {
+                  x[[1]] <- NULL
+                  x <- unlist(x) |>
+                    # make negative capacity = 0
+                    (\(x) ifelse(x < 0, 0, x))()
+                }
+              ),
+              total_capacity = purrr::map_dbl(
+                capacity_projections,
+                sum
+              )
+            )
+
+          # filter for the optimal scenario according to the selection
+
+          projection_calcs <- projection_calcs |>
+            dplyr::filter(
+              .data$total_capacity == min(.data$total_capacity)
+            )
+
+          # filter(
+          #   .data$uplift == min(.data$uplift)
+          # ) |>
+          # filter(
+          #   # if there are multiple records that have the same capacity
+          #   # uplift, select the record that has the smallest change from the
+          #   # calibrated period's capacity utilisation profile (eg, the one
+          #   # closest to 1)
+          #   abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
+          # )
+
+          # store the convergence status
+          r$chart_specification$optimise_status <- projection_calcs |>
+            dplyr::select(
+              dplyr::starts_with("status")
+            ) |>
+            unlist() |>
+            unname()
+
+          # create capacity projections profile
+          projections_capacity <- projection_calcs |>
+            dplyr::pull(.data$capacity_projections) |>
+            unlist()
+
+          # calculate the unadjusted referrals for the projection period to
+          # provide with the data to the charting section
           unadjusted_projections_referrals <- unadjusted_baseline_referrals |>
             filter(
               # first period only used for the count of incompletes
@@ -1682,7 +1774,7 @@ mod_02_planner_server <- function(id, r){
             capacity_projections = projections_capacity,
             referrals_projections = projections_referrals,
             incomplete_pathways = baseline_incompletes,
-            renege_capacity_params = min_uplift$params[[1]],
+            renege_capacity_params = projection_calcs$params[[1]],
             max_months_waited = 12
           ) |>
             # add referrals onto data
@@ -1701,7 +1793,7 @@ mod_02_planner_server <- function(id, r){
             ) |>
             dplyr::mutate(
               period_id = .data$period_id + max(r$all_data$period_id),
-              capacity_skew = min_uplift$skew_param,
+              capacity_skew = projection_calcs$skew_param,
               period_type = "Projected"
             ) |>
             dplyr::bind_rows(
@@ -1723,17 +1815,19 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$referrals_percent_change <- input$referral_growth
           r$chart_specification$referrals_change_type <- input$referral_growth_type
           r$chart_specification$scenario_type <- "Estimate capacity (from performance targets)"
-          r$chart_specification$capacity_percent_change <- paste0(
-            format(
-              (min_uplift$uplift - 1) * 100,
-              format = "f",
-              digits = 2,
-              nsmall = 1
-            ),
-            "%"
-          )
+          # r$chart_specification$capacity_percent_change <- paste0(
+          #   format(
+          #     (projection_calcs$uplift - 1) * 100,
+          #     format = "f",
+          #     digits = 2,
+          #     nsmall = 1
+          #   ),
+          #   "%"
+          # )
+          r$chart_specification$capacity_percent_change <- "NEEDS TO BE REVIEWED FOR MULTIPLE CHANGES IN CAPACITY"
+
           r$chart_specification$capacity_change_type <- input$optimised_capacity_growth_type
-          r$chart_specification$capacity_skew <- min_uplift$skew_param[[1]]
+          r$chart_specification$capacity_skew <- projection_calcs$skew_param[[1]]
           r$chart_specification$target_data <- target_data()
 
           if (any(r$chart_specification$optimise_status == "waitlist_cleared")) {
