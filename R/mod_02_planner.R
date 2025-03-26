@@ -1591,7 +1591,7 @@ mod_02_planner_server <- function(id, r){
             interval_start_date <- i_target_data[["Target_date"]] %m+% months(1)
 
             # start capacity for next target
-            t1_capacity <- tail(projections_capacity_to_target[[j]], 1)
+            t1_capacity <- utils::tail(projections_capacity_to_target[[j]], 1)
 
             # start incompletes for next target
             t0_incompletes <- apply_params_to_projections(
@@ -1622,7 +1622,7 @@ mod_02_planner_server <- function(id, r){
           if (start_date_id != end_date_id) {
             forecast_months_to_end <- lubridate::interval(
               as.Date(interval_start_date),
-              tail(forecast_dates, 1)
+              utils::tail(forecast_dates, 1)
             ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
 
             if (isTRUE(input$capacity_track_referrals)) {
@@ -1638,7 +1638,7 @@ mod_02_planner_server <- function(id, r){
               )
 
               # calculate post-target capacity
-              projections_capacity_post_target <- tail(projections_capacity_to_target[[j]], 1) +
+              projections_capacity_post_target <- utils::tail(projections_capacity_to_target[[j]], 1) +
                 (seq_len(forecast_months_to_end) * referrals_change_by_period)
 
 

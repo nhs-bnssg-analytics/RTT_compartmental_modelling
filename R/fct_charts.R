@@ -167,7 +167,7 @@ plot_output <- function(data,
       geom_hline(
         data = p_target_data,
         aes(
-          yintercept = Target_percentage/100
+          yintercept = .data$Target_percentage / 100
         ),
         colour = 'red',
         linetype = 'dotted')
@@ -291,7 +291,7 @@ click_info <- function(data, click_x, facet = NULL) {
   return(nearest_idx)
 }
 
-
+#' @importFrom utils head tail
 performance_text <- function(p_target_data) {
 
   p_target_data <- p_target_data |>
