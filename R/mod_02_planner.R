@@ -1561,7 +1561,7 @@ mod_02_planner_server <- function(id, r){
               mutate(
                 !!uplift_col := purrr::pmap(
                   .l = list(
-                    par = params,
+                    par = .data[["params"]],
                     cap = .data[[start_capacity_col]],
                     incomp = .data[[incompletes_col]],
                     prog = .data[["rowid"]]
@@ -1587,7 +1587,7 @@ mod_02_planner_server <- function(id, r){
                 !!status_col := names(unlist(.data[[uplift_col]])),
                 !!uplift_col := as.numeric(.data[[uplift_col]]),
                 capacity_projections = purrr::map2(
-                  .x = capacity_projections,
+                  .x = .data[["capacity_projections"]],
                   .y = .data[[uplift_col]],
                   \(x, y) {
                     cap_projections <- dplyr::tibble(
@@ -1608,16 +1608,16 @@ mod_02_planner_server <- function(id, r){
                 ),
                 # add start capacity for next time period
                 !!start_capacity_tj_col := purrr::map_dbl(
-                  capacity_projections,
+                  .data$capacity_projections,
                   \(x) unlist(x) |>
                     tail(1)
                 ),
                 # add incompletes for the start of the next time period
                 !!incompletes_tj_col := purrr::pmap(
                   .l = list(
-                    cap_proj = capacity_projections,
+                    cap_proj = .data[["capacity_projections"]],
                     incomp = .data[[incompletes_col]],
-                    par = params
+                    par = .data[["params"]]
                   ),
                   .f = \(cap_proj, incomp, par) {
 
@@ -1668,7 +1668,7 @@ mod_02_planner_server <- function(id, r){
               projection_calcs <- projection_calcs |>
                 mutate(
                   capacity_projections = purrr::map(
-                    capacity_projections,
+                    .data[["capacity_projections"]],
                     \(x) {
                       projections <- unlist(x) |>
                         tail(1) |>
@@ -1686,7 +1686,7 @@ mod_02_planner_server <- function(id, r){
               projection_calcs <- projection_calcs |>
                 mutate(
                   capacity_projections = purrr::map2(
-                    .x = capacity_projections,
+                    .x = .data[["capacity_projections"]],
                     .y = .data[[uplift_col]],
                     \(x, y) {
 
@@ -1712,7 +1712,7 @@ mod_02_planner_server <- function(id, r){
           projection_calcs <- projection_calcs |>
             mutate(
               capacity_projections = purrr::map(
-                capacity_projections,
+                .data[["capacity_projections"]],
                 \(x) {
                   x[[1]] <- NULL
                   x <- unlist(x) |>
@@ -1721,7 +1721,7 @@ mod_02_planner_server <- function(id, r){
                 }
               ),
               total_capacity = purrr::map_dbl(
-                capacity_projections,
+                .data[["capacity_projections"]],
                 sum
               )
             )

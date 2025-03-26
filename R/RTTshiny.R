@@ -9,5 +9,6 @@ utils::globalVariables(c(
   "specialty",
   ".",
   "period_id",
-  "months_waited_id"
+  "months_waited_id",
+  ":="
 ))

@@ -297,7 +297,7 @@ performance_text <- function(p_target_data) {
   p_target_data <- p_target_data |>
     mutate(
       Target_date = format(.data$Target_date, "%b %Y"),
-      final_text = paste0(Target_percentage, "% (", Target_date, ")")
+      final_text = paste0(.data$Target_percentage, "% (", .data$Target_date, ")")
     )
 
   if (nrow(p_target_data) == 1) {
