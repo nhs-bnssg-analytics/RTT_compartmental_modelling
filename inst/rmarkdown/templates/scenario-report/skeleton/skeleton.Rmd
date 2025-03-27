@@ -1,0 +1,62 @@
+---
+title: "`r paste(params$trust, 'by', params$specialty)`"
+date: "`r paste('Created on', format(Sys.Date(), '%d %B %Y'))`"
+output: word_document
+params:
+  trust: NULL
+  specialty: NULL
+  waiting_list: NULL
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r}
+#| label: libraries
+#| message: false
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(flextable)
+```
+
+
+This report was built with version `r packageVersion("RTTshiny")` of the tool.
+
+## Introduction
+
+This report contains charts developed using models built on public data. 
+
+The following table...:
+
+```{r}
+#| label: data
+#| results: 'asis'
+#| ft.align: 'left'
+
+
+set_flextable_defaults(
+  font.size = 8,
+  background.color = "#EFEFEF"
+)
+
+
+params$waiting_list |> 
+  head(10) |> 
+  flextable::flextable() |>  
+  flextable::set_table_properties(layout = "autofit") |> 
+  flextable::set_caption(
+    caption = flextable::as_paragraph(
+      "\nTable showing....."
+    )
+  ) |> 
+  flextable::flextable_to_rmd()
+```
+
+
+
+
