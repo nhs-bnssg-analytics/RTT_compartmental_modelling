@@ -61,6 +61,10 @@ app_ui <- function(request) {
           title = "Results",
           mod_03_results_ui("03_results_1")
         ),
+        nav_panel(
+          title = "Downloads",
+          mod_04_downloads_ui("04_downloads_1")
+        ),
         nav_spacer(),
         nav_menu(
           title = "Links",
