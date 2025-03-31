@@ -87,7 +87,7 @@ mod_02_planner_ui <- function(id){
       id = ns("dwnld_rtt_data"),
       label = "Download RTT data",
       label_busy = "Downloading...",
-      type = "secondary"
+      type = "dark"
     )
   )
 
@@ -888,7 +888,7 @@ mod_02_planner_server <- function(id, r){
           id = ns("optimise_capacity"),
           label = "Run capacity optimisation",
           label_busy = "Forecasting...",
-          type = "secondary"
+          type = "dark"
         )
       }
     })
@@ -899,7 +899,7 @@ mod_02_planner_server <- function(id, r){
           id = ns("calculate_performance"),
           label = "Calculate future performance",
           label_busy = "Forecasting...",
-          type = "secondary"
+          type = "dark"
         )
       }
     })
