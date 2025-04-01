@@ -34,7 +34,7 @@ You can install the development version of RTTshiny from
 ``` r
 # install.packages("devtools")
 devtools::install_github(
-  "nhsengland/RTT_compartmental_modelling",
+  "nhsengland/RTT_compartmental_modelling@dev",
   dependencies = "Suggests"
 )
 ```
