@@ -7,7 +7,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList uiOutput radioButtons numericInput
-#'   dateRangeInput dateInput selectInput icon
+#'   dateRangeInput dateInput selectInput icon downloadLink
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   bs_theme page_fluid card_body layout_columns tooltip
 mod_02_planner_ui <- function(id){
@@ -88,7 +88,50 @@ mod_02_planner_ui <- function(id){
       label = "Download RTT data",
       label_busy = "Downloading...",
       type = "dark"
+    ),
+    card(
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          title = "Upload your own data...",
+          p("Your CSV file must contain these columns:"),
+          tags$ul(
+            tags$li(strong("period"), "- date; the first day of each month the data represent"),
+            tags$li(strong("type"), "- accepted values: Referrals, Incomplete, Complete"),
+            tags$li(strong("months_waited_id"), "- integers (0 to 12); the compartments waited
+                    ('0' is the number of people waiting 0-1 months, and '12' is the number of people waiting 12+ months)"),
+            tags$li(strong("value"), "- the counts for each compartment")
+          ),
+          p("More info can be found",
+            tooltip(
+              span(
+                "here.",
+                style = "text-decoration: underline; cursor: help;"
+              ),
+              p(strong("Referrals:"), "one record per period, with months_waited_id equal to 0."),
+              p(strong("Incomplete:"),  "a record for each compartment for each period,
+                and then for each compartment for the period prior to the first period
+                (e.g., the starting waiting list)."),
+              p(strong("Complete:"), "a record for each compartment for each period.")
+            )
+          ),
+          downloadLink(
+            outputId = ns("sample_file"),
+            label = "Download an example CSV file"
+          ),
+          hr(),
+          fileInput(
+            inputId = ns("fileInput"),
+            label = "Upload your CSV file",
+            accept = c("text/csv", ".csv"),
+            placeholder = "Only CSV files are accepted"
+          ),
+          textOutput("validationMessage"),
+          uiOutput("dataPreview")
+        )
+      )
     )
+
   )
 
 
@@ -177,17 +220,16 @@ mod_02_planner_ui <- function(id){
     min_height = 650
   )
 
-  tagList(
-    bslib::page_fluid(
-      theme = bslib::bs_theme(version = 5),
+  bslib::page_fillable(
+    theme = bslib::bs_theme(version = 5),
+    card(
       bslib::layout_sidebar(
         sidebar = filters_sidebar,
         scenario_card,
-        fill = FALSE,
-        fillable = FALSE
+        fill = TRUE,
+        fillable = TRUE
       )
     )
-
   )
 }
 
@@ -582,6 +624,88 @@ mod_02_planner_server <- function(id, r){
       ignoreInit = TRUE
     )
 
+
+# bring your own data -----------------------------------------------------
+
+
+# sample data -------------------------------------------------------------
+
+
+    # Provide sample CSV file for download
+    output$sample_file <- downloadHandler(
+      filename = function() {
+        "sample_data.csv"
+      },
+      content = function(file) {
+        # sample_data is an internal data object
+        write.csv(sample_data, file, row.names = FALSE)
+      }
+    )
+
+
+# uploaded data checks ----------------------------------------------------
+    # Reactive to store the imported data
+    importedData <- reactiveVal()
+
+    # Validate and read the uploaded file
+    observeEvent(input$fileInput, {
+      req(input$fileInput)
+
+      # Read the file
+      tryCatch({
+        df <- read_csv(input$fileInput$datapath)
+
+        # Check if required columns exist
+        requiredCols <- c("period_id", "type", "value", "months_waited_id")
+        missingCols <- setdiff(requiredCols, names(df))
+
+        if (length(missingCols) > 0) {
+          output$validationMessage <- renderText({
+            paste("Error: Missing required columns:", paste(missingCols, collapse = ", "))
+          })
+          return()
+        }
+
+        # Check if 'type' column has valid values
+        validTypes <- c("Referral", "Incomplete", "Complete")
+        invalidTypes <- setdiff(unique(df$type), validTypes)
+
+        if (length(invalidTypes) > 0) {
+          output$validationMessage <- renderText({
+            paste("Error: Invalid values in 'type' column:", paste(invalidTypes, collapse = ", "),
+                  ". Only 'Referral', 'Incomplete', and 'Complete' are allowed.")
+          })
+          return()
+        }
+
+        # If we got here, the data is valid
+        importedData(df)
+        output$validationMessage <- renderText({
+          "Success! Your data has been imported correctly."
+        })
+
+      }, error = function(e) {
+        output$validationMessage <- renderText({
+          paste("Error reading the file:", e$message)
+        })
+      })
+    })
+
+    # Show data preview when valid data is uploaded
+    output$dataPreview <- renderUI({
+      req(importedData())
+
+      card(
+        card_header("Data Preview"),
+        tableOutput("dataTable")
+      )
+    })
+
+    output$dataTable <- renderTable({
+      head(importedData(), 10)
+    })
+
+
 # calculate and populate forecast dates -----------------------------------
 
     forecast_dates <- reactive({
@@ -668,10 +792,7 @@ mod_02_planner_server <- function(id, r){
         return(NULL)
       } else {
         div(
-          p(
-            # class = "display-5 text-primary",
-            reactive_values$latest_performance
-          )
+          p(reactive_values$latest_performance)
         )
       }
     })

@@ -9,3 +9,14 @@
   border: 1px solid grey; /* Ensures header cells also have borders */
 }
 
+
+.tooltip-inner {
+  background: #FAE100;
+  color: black;
+  font-family: Arial;
+  text-align: left;
+  border-color: black;
+  border-style: solid;
+  border-width: thin;
+}
+
