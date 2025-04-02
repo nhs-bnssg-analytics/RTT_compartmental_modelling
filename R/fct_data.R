@@ -69,10 +69,17 @@ check_imported_data <- function(imported_data) {
   if (length(missing_cols) > 0) {
     msg <- paste("Error: Missing required columns:", paste(missing_cols, collapse = ", "))
     data_checked <- NULL
+
+    return(
+      list(
+        msg = msg,
+        imported_data_checked = data_checked
+      )
+    )
   }
 
   # Check if 'type' column has valid values
-  valid_types <- c("Referral", "Incomplete", "Complete")
+  valid_types <- c("Referrals", "Incomplete", "Complete")
   invalid_types <- setdiff(unique(imported_data$type), valid_types)
 
   if (length(invalid_types) > 0) {
@@ -81,6 +88,13 @@ check_imported_data <- function(imported_data) {
       paste(invalid_types, collapse = ", "),
       ". Only 'Referral', 'Incomplete', and 'Complete' are allowed.")
     data_checked <- NULL
+
+    return(
+      list(
+        msg = msg,
+        imported_data_checked = data_checked
+      )
+    )
   }
 
   # check all Referrals data have months_waited_id == 0
@@ -98,7 +112,7 @@ check_imported_data <- function(imported_data) {
     data_checked <- NULL
   }
 
-  # check incompletes have one extra period than completes
+  # check incompletes have same number of periods than completes
   incompletes_periods <- imported_data |>
     filter(.data$type == "Incomplete") |>
     dplyr::pull(.data$period) |>
@@ -114,20 +128,15 @@ check_imported_data <- function(imported_data) {
     completes_periods
   )
 
-  if (length(missing_periods) != 1) {
-    msg <- "Incomplete data must have one extra period than the complete data."
-    data_checked <- NULL
-  }
-
-  if (missing_periods != (min(completes_periods) %m-% months(1))) {
-    msg <- "Incomplete data must have period prior to the start of the complete data."
+  if (length(missing_periods) != 0) {
+    msg <- "Incomplete data must have same periods as complete data."
     data_checked <- NULL
   }
 
   # If we got here, the data is valid
   data_checked <- imported_data
   check_outputs <- list(
-    msg = msg,
+    msg = "Data successfully loaded!",
     imported_data_checked = data_checked
   )
 

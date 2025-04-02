@@ -109,10 +109,9 @@ mod_02_planner_ui <- function(id){
                 style = "text-decoration: underline; cursor: help;"
               ),
               p(strong("Referrals:"), "one record per period, with months_waited_id equal to 0."),
-              p(strong("Incomplete:"),  "a record for each compartment for each period,
-                and then for each compartment for the period prior to the first period
-                (e.g., the starting waiting list)."),
-              p(strong("Complete:"), "a record for each compartment for each period.")
+              p(strong("Incomplete:"),  "a record for each compartment for each period."),
+              p(strong("Complete:"), "a record for each compartment for each period."),
+              p("Note, only incompletes are used for the first period to provide the starting waiting list.")
             )
           ),
           hr(),
@@ -136,8 +135,7 @@ mod_02_planner_ui <- function(id){
             accept = c("text/csv", ".csv"),
             placeholder = "Only CSV files are accepted"
           ),
-          textOutput("validation_message"),
-          uiOutput("dataPreview")
+          textOutput(ns("validation_message"))
         )
       )
     )
@@ -699,32 +697,6 @@ mod_02_planner_server <- function(id, r){
           unit = "months"
         ) %m-% months(input$calibration_months)
 
-        periods <- seq(
-          from = min_download_date,
-          to = max_download_date,
-          by = "months"
-        )
-
-        compartments <- c(0, seq_len(12))
-
-        expected_data <- dplyr::bind_rows(
-          dplyr::tibble(
-            type = rep("Incomplete", (input$calibration_months + 1) * length(compartments)),
-            period = rep(periods, length(compartments)),
-            months_waited_id = rep(compartments, each = (input$calibration_months + 1))
-          ),
-          dplyr::tibble(
-            type = rep("Complete", input$calibration_months * length(compartments)),
-            period = rep(periods[periods != min(periods)], length(compartments)),
-            months_waited_id = rep(compartments, each = input$calibration_months)
-          ),
-          dplyr::tibble(
-            type = rep("Referrals", input$calibration_months * 1),
-            period = periods[periods != min(periods)],
-            months_waited_id = 0
-          )
-        )
-
         # create progress bar
         progress <- Progress$new(
           session,
@@ -771,14 +743,6 @@ mod_02_planner_server <- function(id, r){
             .data$type,
             .data$period,
             .data$months_waited_id
-          ) |>
-          inner_join(
-            expected_data,
-            by = join_by(
-              period,
-              months_waited_id,
-              type
-            )
           )
 
         write.csv(template_data, file, row.names = FALSE)
@@ -795,7 +759,10 @@ mod_02_planner_server <- function(id, r){
 
       imported_data <- read.csv(
         input$fileInput$datapath
-      )
+      ) |>
+        mutate(
+          period = as.Date(.data$period)
+        )
 
       # expected fields are "period", "type", "value", "months_waited_id" but
       # lots of other checks performed
@@ -808,24 +775,25 @@ mod_02_planner_server <- function(id, r){
       if (!is.null(check_data$imported_data_checked)) {
         imported_data <- check_data$imported_data_checked
       }
-
+# browser()
       # create period lookup, but append the imported data to the start of the
       # horizon period so the start point of the projections begin at the end of
       # the imported period
-      r$period_lkp <- dplyr::tibble(
-        period = imported_data |>
-          distinct(.data$period) |>
-          arrange(.data$period)
-      ) |>
+      r$period_lkp <- imported_data |>
+        # filter(.data$type == "Complete") |>
+        distinct(.data$period) |>
+        arrange(.data$period) |>
         bind_rows(
-          seq(
-            from = forecast_dates()$start,
-            to = forecast_dates()$end,
-            by = "months"
+          dplyr::tibble(
+            period = seq(
+              from = forecast_dates()$start,
+              to = forecast_dates()$end,
+              by = "months"
+            )
           )
-        )
+        ) |>
         mutate(
-          period_id = dplyr::row_number()
+          period_id = dplyr::row_number() - 1 # minus 1 because the first month in the imported data is the t0 incompletes
         )
 
         selections_labels <- filters_displays(
@@ -854,13 +822,10 @@ mod_02_planner_server <- function(id, r){
             .data$months_waited_id,
             .data$period
           ) |>
-          mutate(
-            period_id = dplyr::row_number(), # we need period_id for later steps
-            .by = c(
-              .data$trust,
-              .data$specialty,
-              .data$type,
-              .data$months_waited_id
+          left_join(
+            r$period_lkp,
+            by = join_by(
+              period
             )
           )
 
@@ -879,11 +844,15 @@ mod_02_planner_server <- function(id, r){
             unadjusted_referrals = "value"
           )
 
+        # there is no uplift to referrals when bringing own data
+        reactive_values$referrals_uplift <- 0
+
         # calculate the modelling parameters assuming referrals don't need to be
         # uplifted
         reactive_values$params <- calibrate_parameters(
           r$all_data,
           max_months_waited = 12,
+          referrals_uplift = NULL,
           redistribute_m0_reneges = FALSE
         )
 
@@ -893,6 +862,7 @@ mod_02_planner_server <- function(id, r){
           r$all_data,
           max_months_waited = 12,
           full_breakdown = TRUE,
+          referrals_uplift = NULL,
           redistribute_m0_reneges = FALSE
         ) |>
           select(
@@ -913,6 +883,7 @@ mod_02_planner_server <- function(id, r){
             )
           ) |>
           dplyr::mutate(
+            # we assume the referral inputs are the correct number if they aren't using the public data
             adjusted_referrals = .data$unadjusted_referrals +
               (.data$unadjusted_referrals * reactive_values$referrals_uplift),
             capacity_skew = 1,
@@ -950,20 +921,6 @@ mod_02_planner_server <- function(id, r){
 
         reactive_values$optimise_status_card_visible <- FALSE
 
-    })
-
-    # Show data preview when valid data is uploaded
-    output$dataPreview <- renderUI({
-      req(imported_data())
-
-      card(
-        card_header("Data Preview"),
-        tableOutput("dataTable")
-      )
-    })
-
-    output$dataTable <- renderTable({
-      head(imported_data(), 10)
     })
 
 

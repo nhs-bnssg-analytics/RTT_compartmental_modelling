@@ -86,26 +86,6 @@ period_lkp <- dplyr::tibble(
   )
 
 max_months <- 12
-periods <- period_lkp$period
-compartments <- c(0, seq_len(max_months))
-
-expected_data <- dplyr::bind_rows(
-  dplyr::tibble(
-    type = rep("Incomplete", length(periods) * length(compartments)),
-    period = rep(periods, length(compartments)),
-    months_waited_id = rep(compartments, each = length(periods))
-  ),
-  dplyr::tibble(
-    type = rep("Complete", (length(periods) - 1) * length(compartments)),
-    period = rep(periods[periods != min(periods)], length(compartments)),
-    months_waited_id = rep(compartments, each = (length(periods) - 1))
-  ),
-  dplyr::tibble(
-    type = rep("Referrals", (length(periods) - 1) * 1),
-    period = periods[periods != min(periods)],
-    months_waited_id = 0
-  )
-)
 
 sample_data <- purrr::map(
   .x = c("referral", "incomplete", "complete"),
@@ -152,14 +132,7 @@ sample_data <- purrr::map(
       "treatments",
       "period_id"
     )
-  ) |>
-  dplyr::inner_join(
-    expected_data,
-    by = join_by(
-      period, months_waited_id, type
-    )
   )
-
 
 usethis::use_data(
   org_lkp,
