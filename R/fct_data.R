@@ -55,3 +55,81 @@ get_rtt_data_with_progress <- function(
 
   return(monthly_rtt)
 }
+
+
+#' check the data imported into the app
+#' @return list with two items; a message describing the outputs of the check,
+#'   and the resulting data tibble (which will be NULL if the checks have
+#'   failed)
+check_imported_data <- function(imported_data) {
+  # Check if required columns exist
+  required_cols <- c("period", "type", "value", "months_waited_id")
+  missing_cols <- setdiff(required_cols, names(imported_data))
+
+  if (length(missing_cols) > 0) {
+    msg <- paste("Error: Missing required columns:", paste(missing_cols, collapse = ", "))
+    data_checked <- NULL
+  }
+
+  # Check if 'type' column has valid values
+  valid_types <- c("Referral", "Incomplete", "Complete")
+  invalid_types <- setdiff(unique(imported_data$type), valid_types)
+
+  if (length(invalid_types) > 0) {
+    msg <- paste(
+      "Error: Invalid values in 'type' column:",
+      paste(invalid_types, collapse = ", "),
+      ". Only 'Referral', 'Incomplete', and 'Complete' are allowed.")
+    data_checked <- NULL
+  }
+
+  # check all Referrals data have months_waited_id == 0
+  referral_months_waited <- imported_data |>
+    filter(.data$type == "Referral") |>
+    dplyr::pull(.data$months_waited_id) |>
+    unique()
+
+  check_referral_months <- setdiff(
+    referral_months_waited, 0
+  )
+
+  if (length(check_referral_months) > 0) {
+    msg <- "Referral records must have only months_waited_id equal to 0."
+    data_checked <- NULL
+  }
+
+  # check incompletes have one extra period than completes
+  incompletes_periods <- imported_data |>
+    filter(.data$type == "Incomplete") |>
+    dplyr::pull(.data$period) |>
+    unique()
+
+  completes_periods <- imported_data |>
+    filter(.data$type == "Complete") |>
+    dplyr::pull(.data$period) |>
+    unique()
+
+  missing_periods <- setdiff(
+    incompletes_periods,
+    completes_periods
+  )
+
+  if (length(missing_periods) != 1) {
+    msg <- "Incomplete data must have one extra period than the complete data."
+    data_checked <- NULL
+  }
+
+  if (missing_periods != (min(completes_periods) %m-% months(1))) {
+    msg <- "Incomplete data must have period prior to the start of the complete data."
+    data_checked <- NULL
+  }
+
+  # If we got here, the data is valid
+  data_checked <- imported_data
+  check_outputs <- list(
+    msg = msg,
+    imported_data_checked = data_checked
+  )
+
+  return(check_outputs)
+}

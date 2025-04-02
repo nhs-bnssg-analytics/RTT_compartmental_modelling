@@ -126,7 +126,7 @@ mod_02_planner_ui <- function(id){
             accept = c("text/csv", ".csv"),
             placeholder = "Only CSV files are accepted"
           ),
-          textOutput("validationMessage"),
+          textOutput("validation_message"),
           uiOutput("dataPreview")
         )
       )
@@ -241,7 +241,7 @@ mod_02_planner_ui <- function(id){
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
-#'   join_by bind_rows
+#'   join_by bind_rows setdiff
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
 #' @importFrom bslib tooltip
@@ -630,7 +630,6 @@ mod_02_planner_server <- function(id, r){
 
 # sample data -------------------------------------------------------------
 
-
     # Provide sample CSV file for download
     output$sample_file <- downloadHandler(
       filename = function() {
@@ -642,58 +641,174 @@ mod_02_planner_server <- function(id, r){
       }
     )
 
-
 # uploaded data checks ----------------------------------------------------
-    # Reactive to store the imported data
-    importedData <- reactiveVal()
 
     # Validate and read the uploaded file
     observeEvent(input$fileInput, {
       req(input$fileInput)
 
       # Read the file
-      tryCatch({
-        df <- read_csv(input$fileInput$datapath)
 
-        # Check if required columns exist
-        requiredCols <- c("period_id", "type", "value", "months_waited_id")
-        missingCols <- setdiff(requiredCols, names(df))
+      imported_data <- read.csv(
+        input$fileInput$datapath
+      )
 
-        if (length(missingCols) > 0) {
-          output$validationMessage <- renderText({
-            paste("Error: Missing required columns:", paste(missingCols, collapse = ", "))
-          })
-          return()
-        }
+      # expected fields are "period", "type", "value", "months_waited_id" but
+      # lots of other checks performed
+      check_data <- check_imported_data(imported_data)
 
-        # Check if 'type' column has valid values
-        validTypes <- c("Referral", "Incomplete", "Complete")
-        invalidTypes <- setdiff(unique(df$type), validTypes)
-
-        if (length(invalidTypes) > 0) {
-          output$validationMessage <- renderText({
-            paste("Error: Invalid values in 'type' column:", paste(invalidTypes, collapse = ", "),
-                  ". Only 'Referral', 'Incomplete', and 'Complete' are allowed.")
-          })
-          return()
-        }
-
-        # If we got here, the data is valid
-        importedData(df)
-        output$validationMessage <- renderText({
-          "Success! Your data has been imported correctly."
-        })
-
-      }, error = function(e) {
-        output$validationMessage <- renderText({
-          paste("Error reading the file:", e$message)
-        })
+      import_msg <- output$validation_message <- renderText({
+        check_data$msg
       })
+
+      if (!is.null(check_data$imported_data_checked)) {
+        imported_data <- check_data$imported_data_checked
+      }
+
+      # create period lookup, but append the imported data to the start of the
+      # horizon period so the start point of the projections begin at the end of
+      # the imported period
+      r$period_lkp <- dplyr::tibble(
+        period = imported_data |>
+          distinct(.data$period) |>
+          arrange(.data$period)
+      ) |>
+        bind_rows(
+          seq(
+            from = forecast_dates()$start,
+            to = forecast_dates()$end,
+            by = "months"
+          )
+        )
+        mutate(
+          period_id = dplyr::row_number()
+        )
+
+        selections_labels <- filters_displays(
+          trust_parents = input$trust_parent_codes,
+          trusts = input$trust_codes,
+          comm_parents = input$commissioner_parent_codes,
+          comms = input$commissioner_org_codes,
+          spec = input$specialty_codes
+        )
+
+        # pass some values to the charting module
+        r$chart_specification$trust <- selections_labels$trusts$display
+        r$chart_specification$specialty <- selections_labels$specialties$display
+        r$chart_specification$observed_start <- min(imported_data[["period"]])
+        r$chart_specification$observed_end <- max(imported_data[["period"]])
+
+        r$all_data <- imported_data |>
+          mutate(
+            trust = selections_labels$trusts$display,
+            specialty = selections_labels$specialties$display
+          ) |>
+          arrange(
+            .data$trust,
+            .data$specialty,
+            .data$type,
+            .data$months_waited_id,
+            .data$period
+          ) |>
+          mutate(
+            period_id = dplyr::row_number(), # we need period_id for later steps
+            .by = c(
+              .data$trust,
+              .data$specialty,
+              .data$type,
+              .data$months_waited_id
+            )
+          )
+
+        reactive_values$data_downloaded <- TRUE
+
+        # calculate "unadjusted" referrals (though referrals aren't being
+        # adjusted here but the value is being passed through to the 3rd module
+        # for transparency)
+        unadjusted_referrals <- r$all_data |>
+          filter(
+            .data$type == "Referrals"
+          ) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            unadjusted_referrals = "value"
+          )
+
+        # calculate the modelling parameters assuming referrals don't need to be
+        # uplifted
+        reactive_values$params <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12,
+          redistribute_m0_reneges = FALSE
+        )
+
+        # data frame of counts by period which get supplied to the 3rd module
+        # for charting
+        reactive_values$calibration_data <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12,
+          full_breakdown = TRUE,
+          redistribute_m0_reneges = FALSE
+        ) |>
+          select(
+            "params"
+          ) |>
+          tidyr::unnest(.data$params) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            calculated_treatments = "treatments",
+            "reneges",
+            incompletes = "waiting_same_node"
+          ) |>
+          left_join(
+            unadjusted_referrals,
+            by = join_by(
+              period_id, months_waited_id
+            )
+          ) |>
+          dplyr::mutate(
+            capacity_skew = 1,
+            period_type = "Observed"
+          )
+
+        reactive_values$latest_performance <- r$all_data |>
+          filter(
+            .data$type == "Incomplete",
+            .data$period == max(.data$period)
+          ) |>
+          calc_performance(
+            target_bin = 4
+          ) |>
+          mutate(
+            text = paste0(
+              "The performance at ",
+              format(.data$period, '%b %y'),
+              " was ",
+              format(
+                100 * .data$prop,
+                format = "f",
+                digits = 2,
+                nsmall = 1
+              ),
+              "%"
+            )
+          ) |>
+          pull(.data$text)
+
+        reactive_values$default_target <- min(
+          extract_percent(reactive_values$latest_performance) + 5,
+          100
+        )
+
+        reactive_values$optimise_status_card_visible <- FALSE
+
     })
 
     # Show data preview when valid data is uploaded
     output$dataPreview <- renderUI({
-      req(importedData())
+      req(imported_data())
 
       card(
         card_header("Data Preview"),
@@ -702,7 +817,7 @@ mod_02_planner_server <- function(id, r){
     })
 
     output$dataTable <- renderTable({
-      head(importedData(), 10)
+      head(imported_data(), 10)
     })
 
 
