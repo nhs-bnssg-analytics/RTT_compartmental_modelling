@@ -20,3 +20,6 @@
   border-width: thin;
 }
 
+.small-hyperlink {
+  font-size: 0.8rem;
+}

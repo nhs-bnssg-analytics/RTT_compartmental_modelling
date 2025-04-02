@@ -115,9 +115,19 @@ mod_02_planner_ui <- function(id){
               p(strong("Complete:"), "a record for each compartment for each period.")
             )
           ),
+          hr(),
+          layout_columns(
+            col_widths = c(8, 2, -2),
+            span("Download selections above as template"),
+            downloadButton(
+              outputId = ns("download_template"),
+              label = NULL
+            )
+          ),
           downloadLink(
             outputId = ns("sample_file"),
-            label = "Download an example CSV file"
+            label = "Download an example CSV file",
+            class = "small-hyperlink"
           ),
           hr(),
           fileInput(
@@ -241,7 +251,7 @@ mod_02_planner_ui <- function(id){
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
-#'   join_by bind_rows setdiff
+#'   join_by bind_rows setdiff inner_join
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
 #' @importFrom bslib tooltip
@@ -639,7 +649,139 @@ mod_02_planner_server <- function(id, r){
       },
       content = function(file) {
         # sample_data is an internal data object
-        write.csv(sample_data, file, row.names = FALSE)
+        final_month <- NHSRtt::latest_rtt_date()
+        sample_data_mnths <- unique(sample_data[["period"]]) |>
+          sort()
+        months_in_sample_data <- length(sample_data_mnths)
+        calculated_first_month <- final_month %m-% months(months_in_sample_data - 1)
+
+        mnth_lkp <- dplyr::tibble(
+          period = sample_data_mnths,
+          period_new = seq(
+            from = calculated_first_month,
+            to = final_month,
+            by = "months"
+          )
+        )
+
+        sample_data |>
+          left_join(
+            mnth_lkp,
+            by = join_by(
+              period
+            )
+          ) |>
+          dplyr::select(
+            period = "period_new",
+            "months_waited_id",
+            "type",
+            "value"
+          ) |>
+          write.csv(
+            file,
+            row.names = FALSE
+          )
+      }
+    )
+
+
+# template data -----------------------------------------------------------
+
+    output$download_template <- downloadHandler(
+      filename = function() {
+        "template_data.csv"
+      },
+      content = function(file) {
+        # sample_data is an internal data object
+        max_download_date <- NHSRtt::latest_rtt_date()
+        min_download_date <- lubridate::floor_date(
+          max_download_date,
+          unit = "months"
+        ) %m-% months(input$calibration_months)
+
+        periods <- seq(
+          from = min_download_date,
+          to = max_download_date,
+          by = "months"
+        )
+
+        compartments <- c(0, seq_len(12))
+
+        expected_data <- dplyr::bind_rows(
+          dplyr::tibble(
+            type = rep("Incomplete", (input$calibration_months + 1) * length(compartments)),
+            period = rep(periods, length(compartments)),
+            months_waited_id = rep(compartments, each = (input$calibration_months + 1))
+          ),
+          dplyr::tibble(
+            type = rep("Complete", input$calibration_months * length(compartments)),
+            period = rep(periods[periods != min(periods)], length(compartments)),
+            months_waited_id = rep(compartments, each = input$calibration_months)
+          ),
+          dplyr::tibble(
+            type = rep("Referrals", input$calibration_months * 1),
+            period = periods[periods != min(periods)],
+            months_waited_id = 0
+          )
+        )
+
+        # create progress bar
+        progress <- Progress$new(
+          session,
+          min = 1,
+          max = input$calibration_months + 1
+        )
+
+        on.exit(progress$close())
+        progress$set(message = 'Downloading public data from RTT statistics',
+                     detail = 'This will be included in template csv file')
+
+        selections_labels <- filters_displays(
+          trust_parents = input$trust_parent_codes,
+          trusts = input$trust_codes,
+          comm_parents = input$commissioner_parent_codes,
+          comms = input$commissioner_org_codes,
+          spec = input$specialty_codes
+        )
+
+        # download and aggregate data
+        template_data <- get_rtt_data_with_progress(
+          date_start = min_download_date,
+          date_end = max_download_date,
+          trust_parent_codes = selections_labels$trust_parents$selected_code,
+          trust_codes = selections_labels$trusts$selected_code,
+          commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
+          commissioner_org_codes = selections_labels$commissioners$selected_code,
+          specialty_codes = selections_labels$specialties$selected_code,
+          progress = progress
+        ) |>
+          mutate(
+            months_waited_id = NHSRtt::convert_months_waited_to_id(
+              .data$months_waited,
+              12 # this pools the data at 12+ months (this can be a user input in the future)
+            )
+          ) |>
+          summarise(
+            value = sum(.data$value),
+            .by = c(
+              "period", "months_waited_id", "type"
+            )
+          ) |>
+          arrange(
+            .data$type,
+            .data$period,
+            .data$months_waited_id
+          ) |>
+          inner_join(
+            expected_data,
+            by = join_by(
+              period,
+              months_waited_id,
+              type
+            )
+          )
+
+        write.csv(template_data, file, row.names = FALSE)
       }
     )
 
