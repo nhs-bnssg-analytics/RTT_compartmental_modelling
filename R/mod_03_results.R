@@ -452,7 +452,7 @@ mod_03_results_server <- function(id, r){
 
       reactive_datasets$dat_ref <- r$waiting_list |>
         dplyr::filter(.data$months_waited_id == 0) |>
-        dplyr::mutate(p_var  = sum(.data$incompletes + .data$calculated_treatments),
+        dplyr::mutate(p_var  = sum(.data$adjusted_referrals),
                       .by = c("period", "period_type")) |>
         extend_period_type_data()
 
@@ -744,7 +744,8 @@ mod_03_results_server <- function(id, r){
             "calculated_treatments",
             "reneges",
             "incompletes",
-            "unadjusted_referrals"
+            "unadjusted_referrals",
+            "adjusted_referrals"
           ),
           digits = 1
         )

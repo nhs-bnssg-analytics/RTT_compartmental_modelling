@@ -585,6 +585,8 @@ mod_02_planner_server <- function(id, r){
             )
           ) |>
           dplyr::mutate(
+            adjusted_referrals = .data$unadjusted_referrals +
+              (.data$unadjusted_referrals * reactive_values$referrals_uplift),
             capacity_skew = 1,
             period_type = "Observed"
           )
@@ -769,6 +771,8 @@ mod_02_planner_server <- function(id, r){
             )
           ) |>
           dplyr::mutate(
+            adjusted_referrals = .data$unadjusted_referrals +
+              (.data$unadjusted_referrals * reactive_values$referrals_uplift),
             capacity_skew = 1,
             period_type = "Observed"
           )
@@ -1476,11 +1480,12 @@ mod_02_planner_server <- function(id, r){
     observeEvent(
       c(input$calculate_performance), {
 
-        if (input$calculate_performance == 1) {
+        if (input$calculate_performance >= 1) {
+
           forecast_months <- lubridate::interval(
             as.Date(input$forecast_date[[1]]),
             as.Date(input$forecast_date[[2]])
-          ) %/% months(1)
+          ) %/% months(1) + 1
 
           unadjusted_projections_referrals <- r$all_data |>
             filter(
@@ -1489,7 +1494,7 @@ mod_02_planner_server <- function(id, r){
               .data$period != min(.data$period)
             ) |>
             forecast_function(
-              number_timesteps = forecast_months - 1,
+              number_timesteps = forecast_months,
               method = input$referral_growth_type,
               percent_change = input$referral_growth
             )
@@ -1514,7 +1519,7 @@ mod_02_planner_server <- function(id, r){
               )
             ) |>
             forecast_function(
-              number_timesteps = forecast_months - 1,
+              number_timesteps = forecast_months,
               method = input$capacity_growth_type,
               percent_change = input$capacity_growth
             )
@@ -1559,6 +1564,8 @@ mod_02_planner_server <- function(id, r){
               )
             ) |>
             mutate(
+              adjusted_referrals = .data$unadjusted_referrals +
+                (.data$unadjusted_referrals * reactive_values$referrals_uplift),
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = input$capacity_skew,
               period_type = "Projected"
@@ -2028,6 +2035,8 @@ mod_02_planner_server <- function(id, r){
               )
             ) |>
             dplyr::mutate(
+              adjusted_referrals = .data$unadjusted_referrals +
+                (.data$unadjusted_referrals * reactive_values$referrals_uplift),
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = projection_calcs$skew_param,
               period_type = "Projected"
