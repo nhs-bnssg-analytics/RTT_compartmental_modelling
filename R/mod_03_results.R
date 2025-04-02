@@ -269,7 +269,8 @@ mod_03_results_server <- function(id, r){
     output$wl_size <- renderPlot({
       reactive_datasets$dat_size <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
-                         .by = c("period", "period_type"))
+                         .by = c("period", "period_type")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_size,
                   p_trust = r$chart_specification$trust,
@@ -327,7 +328,8 @@ mod_03_results_server <- function(id, r){
     output$wl_wait_per <- renderPlot({
 
       reactive_datasets$dat_size_split <- r$waiting_list |>
-        dplyr::mutate(p_var = .data$incompletes)
+        dplyr::mutate(p_var = .data$incompletes) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_size_split,
                   p_trust = r$chart_specification$trust,
@@ -389,7 +391,9 @@ mod_03_results_server <- function(id, r){
         calc_performance(
           target_bin = 4
         ) |>
-        rename(p_var = "prop")
+        ungroup() |>
+        rename(p_var = "prop") |>
+        extend_period_type_data()
 
 
       plot_output(data = reactive_datasets$dat_perf,
@@ -449,7 +453,8 @@ mod_03_results_server <- function(id, r){
       reactive_datasets$dat_ref <- r$waiting_list |>
         dplyr::filter(.data$months_waited_id == 0) |>
         dplyr::mutate(p_var  = sum(.data$incompletes + .data$calculated_treatments),
-                      .by = c("period", "period_type"))
+                      .by = c("period", "period_type")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_ref,
                   p_trust = r$chart_specification$trust,
@@ -505,7 +510,8 @@ mod_03_results_server <- function(id, r){
 
       reactive_datasets$dat_ren <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                         .by = c("period", "period_type"))
+                         .by = c("period", "period_type")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_ren,
                   p_trust = r$chart_specification$trust,
@@ -564,7 +570,8 @@ mod_03_results_server <- function(id, r){
 
       reactive_datasets$dat_ren_split <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                         .by = c("period", "period_type", "months_waited_id"))
+                         .by = c("period", "period_type", "months_waited_id")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_ren_split,
                   p_trust = r$chart_specification$trust,
@@ -620,7 +627,8 @@ mod_03_results_server <- function(id, r){
     output$wl_capacity_tot <- renderPlot({
       reactive_datasets$dat_cap <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                         .by = c("period", "period_type"))
+                         .by = c("period", "period_type")) |>
+        extend_period_type_data()
 
 
       plot_output(data = reactive_datasets$dat_cap,
@@ -679,7 +687,8 @@ mod_03_results_server <- function(id, r){
     output$wl_capacity_split <- renderPlot({
       reactive_datasets$dat_cap_split<- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                         .by = c("period", "period_type", "months_waited_id"))
+                         .by = c("period", "period_type", "months_waited_id")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_cap_split,
                   p_trust = r$chart_specification$trust,
