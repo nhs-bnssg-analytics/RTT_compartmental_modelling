@@ -82,15 +82,15 @@ app_ui <- function(request) {
         nav_item(github_RTT_package),
         nav_item(github_analysis),
         nav_item(email)
-      )
-    ),
-    card_footer(
-      p(
-        HTML(
-          "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a>, or send feedback to
+      ),
+      footer = card_footer(
+        p(
+          HTML(
+            "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a>, or send feedback to
              <a href='mailto:sebastian.fox3@nhs.net?subject=RTT planning tool'>sebastian.fox3@nhs.net</a>"
-        ),
-        class = "text-center text-muted")
+          ),
+          class = "text-center text-muted")
+      )
     )
   )
 }

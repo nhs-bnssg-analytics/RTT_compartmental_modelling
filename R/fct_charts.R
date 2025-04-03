@@ -263,6 +263,31 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
   return(p_skews)
 }
 
+#' geom_step in the charts do not display the final observed or projected months
+#' well because the stepped line terminates at the start of the month. This
+#' function adds an artificial month onto the observed and projected
+#' period_types so they are displayed better on the visualisations
+#' @param plot_data tibble containing the columns period and period_type (which
+#'   contains values "Observed" and "Projected")
+#' @importFrom dplyr filter mutate bind_rows
+extend_period_type_data <- function(plot_data) {
+  additional_month <- plot_data |>
+    filter(
+      .data$period == max(.data$period),
+      .by = "period_type"
+    ) |>
+    mutate(
+      period = .data$period %m+% months(1)
+    )
+
+  plot_data <- plot_data |>
+    bind_rows(
+      additional_month
+    )
+
+  return(plot_data)
+}
+
 #' function to return the data behind where the user has clicked
 #' @param data the data underpinning the chart that has been clicked
 #' @param click_x the x location where the click occurred
@@ -280,6 +305,14 @@ click_info <- function(data, click_x, facet = NULL) {
     dplyr::filter(
       x_val - .data$period == min(x_val - .data$period)
     )
+
+  if (nrow(nearest_idx) > 1) {
+    # this will only occur for the first period after the observed data finishes
+    # because it is artificially extended so it is displayed better on the
+    # charts
+    nearest_idx <- nearest_idx |>
+      filter(.data$period_type == "Projected")
+  }
 
   if (!is.null(facet)) {
     nearest_idx <- nearest_idx |>

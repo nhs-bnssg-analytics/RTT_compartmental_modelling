@@ -10,5 +10,7 @@ utils::globalVariables(c(
   ".",
   "period_id",
   "months_waited_id",
-  ":="
+  ":=",
+  "period",
+  "type"
 ))

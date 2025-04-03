@@ -7,7 +7,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList uiOutput radioButtons numericInput
-#'   dateRangeInput dateInput selectInput icon
+#'   dateRangeInput dateInput selectInput icon downloadLink
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   bs_theme page_fluid card_body layout_columns tooltip
 mod_02_planner_ui <- function(id){
@@ -88,7 +88,58 @@ mod_02_planner_ui <- function(id){
       label = "Download RTT data",
       label_busy = "Downloading...",
       type = "dark"
+    ),
+    card(
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          title = "Upload your own data...",
+          p("Your CSV file must contain these columns:"),
+          tags$ul(
+            tags$li(strong("period"), "- date; the first day of each month the data represent"),
+            tags$li(strong("type"), "- accepted values: Referrals, Incomplete, Complete"),
+            tags$li(strong("months_waited_id"), "- integers (0 to 12); the compartments waited
+                    ('0' is the number of people waiting 0-1 months, and '12' is the number of people waiting 12+ months)"),
+            tags$li(strong("value"), "- the counts for each compartment")
+          ),
+          p("More info can be found",
+            tooltip(
+              span(
+                "here.",
+                style = "text-decoration: underline; cursor: help;"
+              ),
+              p(strong("Referrals:"), "one record per period, with months_waited_id equal to 0."),
+              p(strong("Incomplete:"),  "a record for each compartment for each period."),
+              p(strong("Complete:"), "a record for each compartment for each period."),
+              p("Note, only incompletes are used for the first period to provide the starting waiting list.")
+            )
+          ),
+          hr(),
+          layout_columns(
+            col_widths = c(8, 2, -2),
+            span("Download selections above as template"),
+            downloadButton(
+              outputId = ns("download_template"),
+              label = NULL
+            )
+          ),
+          downloadLink(
+            outputId = ns("sample_file"),
+            label = "Download an example CSV file",
+            class = "small-hyperlink"
+          ),
+          hr(),
+          fileInput(
+            inputId = ns("fileInput"),
+            label = "Upload your CSV file",
+            accept = c("text/csv", ".csv"),
+            placeholder = "Only CSV files are accepted"
+          ),
+          textOutput(ns("validation_message"))
+        )
+      )
     )
+
   )
 
 
@@ -177,17 +228,16 @@ mod_02_planner_ui <- function(id){
     min_height = 650
   )
 
-  tagList(
-    bslib::page_fluid(
-      theme = bslib::bs_theme(version = 5),
+  bslib::page_fillable(
+    theme = bslib::bs_theme(version = 5),
+    card(
       bslib::layout_sidebar(
         sidebar = filters_sidebar,
         scenario_card,
-        fill = FALSE,
-        fillable = FALSE
+        fill = TRUE,
+        fillable = TRUE
       )
     )
-
   )
 }
 
@@ -199,7 +249,7 @@ mod_02_planner_ui <- function(id){
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
-#'   join_by bind_rows
+#'   join_by bind_rows setdiff inner_join
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
 #' @importFrom bslib tooltip
@@ -543,6 +593,8 @@ mod_02_planner_server <- function(id, r){
             )
           ) |>
           dplyr::mutate(
+            adjusted_referrals = .data$unadjusted_referrals +
+              (.data$unadjusted_referrals * reactive_values$referrals_uplift),
             capacity_skew = 1,
             period_type = "Observed"
           )
@@ -581,6 +633,296 @@ mod_02_planner_server <- function(id, r){
       },
       ignoreInit = TRUE
     )
+
+
+# bring your own data -----------------------------------------------------
+
+
+# sample data -------------------------------------------------------------
+
+    # Provide sample CSV file for download
+    output$sample_file <- downloadHandler(
+      filename = function() {
+        "sample_data.csv"
+      },
+      content = function(file) {
+        # sample_data is an internal data object
+        final_month <- NHSRtt::latest_rtt_date()
+        sample_data_mnths <- unique(sample_data[["period"]]) |>
+          sort()
+        months_in_sample_data <- length(sample_data_mnths)
+        calculated_first_month <- final_month %m-% months(months_in_sample_data - 1)
+
+        mnth_lkp <- dplyr::tibble(
+          period = sample_data_mnths,
+          period_new = seq(
+            from = calculated_first_month,
+            to = final_month,
+            by = "months"
+          )
+        )
+
+        sample_data |>
+          left_join(
+            mnth_lkp,
+            by = join_by(
+              period
+            )
+          ) |>
+          dplyr::select(
+            period = "period_new",
+            "months_waited_id",
+            "type",
+            "value"
+          ) |>
+          utils::write.csv(
+            file,
+            row.names = FALSE
+          )
+      }
+    )
+
+
+# template data -----------------------------------------------------------
+
+    output$download_template <- downloadHandler(
+      filename = function() {
+        "template_data.csv"
+      },
+      content = function(file) {
+        # sample_data is an internal data object
+        max_download_date <- NHSRtt::latest_rtt_date()
+        min_download_date <- lubridate::floor_date(
+          max_download_date,
+          unit = "months"
+        ) %m-% months(input$calibration_months)
+
+        # create progress bar
+        progress <- Progress$new(
+          session,
+          min = 1,
+          max = input$calibration_months + 1
+        )
+
+        on.exit(progress$close())
+        progress$set(message = 'Downloading public data from RTT statistics',
+                     detail = 'This will be included in template csv file')
+
+        selections_labels <- filters_displays(
+          trust_parents = input$trust_parent_codes,
+          trusts = input$trust_codes,
+          comm_parents = input$commissioner_parent_codes,
+          comms = input$commissioner_org_codes,
+          spec = input$specialty_codes
+        )
+
+        # download and aggregate data
+        template_data <- get_rtt_data_with_progress(
+          date_start = min_download_date,
+          date_end = max_download_date,
+          trust_parent_codes = selections_labels$trust_parents$selected_code,
+          trust_codes = selections_labels$trusts$selected_code,
+          commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
+          commissioner_org_codes = selections_labels$commissioners$selected_code,
+          specialty_codes = selections_labels$specialties$selected_code,
+          progress = progress
+        ) |>
+          mutate(
+            months_waited_id = NHSRtt::convert_months_waited_to_id(
+              .data$months_waited,
+              12 # this pools the data at 12+ months (this can be a user input in the future)
+            )
+          ) |>
+          summarise(
+            value = sum(.data$value),
+            .by = c(
+              "period", "months_waited_id", "type"
+            )
+          ) |>
+          arrange(
+            .data$type,
+            .data$period,
+            .data$months_waited_id
+          )
+
+        utils::write.csv(template_data, file, row.names = FALSE)
+      }
+    )
+
+# uploaded data checks ----------------------------------------------------
+
+    # Validate and read the uploaded file
+    observeEvent(input$fileInput, {
+      req(input$fileInput)
+
+      # Read the file
+
+      imported_data <- utils::read.csv(
+        input$fileInput$datapath
+      ) |>
+        mutate(
+          period = as.Date(.data$period)
+        )
+
+      # expected fields are "period", "type", "value", "months_waited_id" but
+      # lots of other checks performed
+      check_data <- check_imported_data(imported_data)
+
+      import_msg <- output$validation_message <- renderText({
+        check_data$msg
+      })
+
+      if (!is.null(check_data$imported_data_checked)) {
+        imported_data <- check_data$imported_data_checked
+      }
+# browser()
+      # create period lookup, but append the imported data to the start of the
+      # horizon period so the start point of the projections begin at the end of
+      # the imported period
+      r$period_lkp <- imported_data |>
+        # filter(.data$type == "Complete") |>
+        distinct(.data$period) |>
+        arrange(.data$period) |>
+        bind_rows(
+          dplyr::tibble(
+            period = seq(
+              from = forecast_dates()$start,
+              to = forecast_dates()$end,
+              by = "months"
+            )
+          )
+        ) |>
+        mutate(
+          period_id = dplyr::row_number() - 1 # minus 1 because the first month in the imported data is the t0 incompletes
+        )
+
+        selections_labels <- filters_displays(
+          trust_parents = input$trust_parent_codes,
+          trusts = input$trust_codes,
+          comm_parents = input$commissioner_parent_codes,
+          comms = input$commissioner_org_codes,
+          spec = input$specialty_codes
+        )
+
+        # pass some values to the charting module
+        r$chart_specification$trust <- selections_labels$trusts$display
+        r$chart_specification$specialty <- selections_labels$specialties$display
+        r$chart_specification$observed_start <- min(imported_data[["period"]])
+        r$chart_specification$observed_end <- max(imported_data[["period"]])
+
+        r$all_data <- imported_data |>
+          mutate(
+            trust = selections_labels$trusts$display,
+            specialty = selections_labels$specialties$display
+          ) |>
+          arrange(
+            .data$trust,
+            .data$specialty,
+            .data$type,
+            .data$months_waited_id,
+            .data$period
+          ) |>
+          left_join(
+            r$period_lkp,
+            by = join_by(
+              period
+            )
+          )
+
+        reactive_values$data_downloaded <- TRUE
+
+        # calculate "unadjusted" referrals (though referrals aren't being
+        # adjusted here but the value is being passed through to the 3rd module
+        # for transparency)
+        unadjusted_referrals <- r$all_data |>
+          filter(
+            .data$type == "Referrals"
+          ) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            unadjusted_referrals = "value"
+          )
+
+        # there is no uplift to referrals when bringing own data
+        reactive_values$referrals_uplift <- 0
+
+        # calculate the modelling parameters assuming referrals don't need to be
+        # uplifted
+        reactive_values$params <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12,
+          referrals_uplift = NULL,
+          redistribute_m0_reneges = FALSE
+        )
+
+        # data frame of counts by period which get supplied to the 3rd module
+        # for charting
+        reactive_values$calibration_data <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12,
+          full_breakdown = TRUE,
+          referrals_uplift = NULL,
+          redistribute_m0_reneges = FALSE
+        ) |>
+          select(
+            "params"
+          ) |>
+          tidyr::unnest(.data$params) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            calculated_treatments = "treatments",
+            "reneges",
+            incompletes = "waiting_same_node"
+          ) |>
+          left_join(
+            unadjusted_referrals,
+            by = join_by(
+              period_id, months_waited_id
+            )
+          ) |>
+          dplyr::mutate(
+            # we assume the referral inputs are the correct number if they aren't using the public data
+            adjusted_referrals = .data$unadjusted_referrals +
+              (.data$unadjusted_referrals * reactive_values$referrals_uplift),
+            capacity_skew = 1,
+            period_type = "Observed"
+          )
+
+        reactive_values$latest_performance <- r$all_data |>
+          filter(
+            .data$type == "Incomplete",
+            .data$period == max(.data$period)
+          ) |>
+          calc_performance(
+            target_bin = 4
+          ) |>
+          mutate(
+            text = paste0(
+              "The performance at ",
+              format(.data$period, '%b %y'),
+              " was ",
+              format(
+                100 * .data$prop,
+                format = "f",
+                digits = 2,
+                nsmall = 1
+              ),
+              "%"
+            )
+          ) |>
+          pull(.data$text)
+
+        reactive_values$default_target <- min(
+          extract_percent(reactive_values$latest_performance) + 5,
+          100
+        )
+
+        reactive_values$optimise_status_card_visible <- FALSE
+
+    })
+
 
 # calculate and populate forecast dates -----------------------------------
 
@@ -668,10 +1010,7 @@ mod_02_planner_server <- function(id, r){
         return(NULL)
       } else {
         div(
-          p(
-            # class = "display-5 text-primary",
-            reactive_values$latest_performance
-          )
+          p(reactive_values$latest_performance)
         )
       }
     })
@@ -1240,11 +1579,12 @@ mod_02_planner_server <- function(id, r){
     observeEvent(
       c(input$calculate_performance), {
 
-        if (input$calculate_performance == 1) {
+        if (input$calculate_performance >= 1) {
+
           forecast_months <- lubridate::interval(
             as.Date(input$forecast_date[[1]]),
             as.Date(input$forecast_date[[2]])
-          ) %/% months(1)
+          ) %/% months(1) + 1
 
           unadjusted_projections_referrals <- r$all_data |>
             filter(
@@ -1253,7 +1593,7 @@ mod_02_planner_server <- function(id, r){
               .data$period != min(.data$period)
             ) |>
             forecast_function(
-              number_timesteps = forecast_months - 1,
+              number_timesteps = forecast_months,
               method = input$referral_growth_type,
               percent_change = input$referral_growth
             )
@@ -1278,7 +1618,7 @@ mod_02_planner_server <- function(id, r){
               )
             ) |>
             forecast_function(
-              number_timesteps = forecast_months - 1,
+              number_timesteps = forecast_months,
               method = input$capacity_growth_type,
               percent_change = input$capacity_growth
             )
@@ -1323,6 +1663,8 @@ mod_02_planner_server <- function(id, r){
               )
             ) |>
             mutate(
+              adjusted_referrals = .data$unadjusted_referrals +
+                (.data$unadjusted_referrals * reactive_values$referrals_uplift),
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = input$capacity_skew,
               period_type = "Projected"
@@ -1792,6 +2134,8 @@ mod_02_planner_server <- function(id, r){
               )
             ) |>
             dplyr::mutate(
+              adjusted_referrals = .data$unadjusted_referrals +
+                (.data$unadjusted_referrals * reactive_values$referrals_uplift),
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = projection_calcs$skew_param,
               period_type = "Projected"
