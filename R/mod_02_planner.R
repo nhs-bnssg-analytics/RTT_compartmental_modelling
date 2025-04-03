@@ -675,7 +675,7 @@ mod_02_planner_server <- function(id, r){
             "type",
             "value"
           ) |>
-          write.csv(
+          utils::write.csv(
             file,
             row.names = FALSE
           )
@@ -745,7 +745,7 @@ mod_02_planner_server <- function(id, r){
             .data$months_waited_id
           )
 
-        write.csv(template_data, file, row.names = FALSE)
+        utils::write.csv(template_data, file, row.names = FALSE)
       }
     )
 
@@ -757,7 +757,7 @@ mod_02_planner_server <- function(id, r){
 
       # Read the file
 
-      imported_data <- read.csv(
+      imported_data <- utils::read.csv(
         input$fileInput$datapath
       ) |>
         mutate(

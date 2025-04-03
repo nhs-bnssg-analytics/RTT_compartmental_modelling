@@ -267,12 +267,14 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
 #' well because the stepped line terminates at the start of the month. This
 #' function adds an artificial month onto the observed and projected
 #' period_types so they are displayed better on the visualisations
+#' @param plot_data tibble containing the columns period and period_type (which
+#'   contains values "Observed" and "Projected")
 #' @importFrom dplyr filter mutate bind_rows
 extend_period_type_data <- function(plot_data) {
   additional_month <- plot_data |>
     filter(
       .data$period == max(.data$period),
-      .by = period_type
+      .by = "period_type"
     ) |>
     mutate(
       period = .data$period %m+% months(1)

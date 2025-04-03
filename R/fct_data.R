@@ -58,6 +58,8 @@ get_rtt_data_with_progress <- function(
 
 
 #' check the data imported into the app
+#' @param imported_data a tibble with columns of period, type, value and
+#'   months_waited_id
 #' @return list with two items; a message describing the outputs of the check,
 #'   and the resulting data tibble (which will be NULL if the checks have
 #'   failed)
@@ -99,7 +101,7 @@ check_imported_data <- function(imported_data) {
 
   # check all Referrals data have months_waited_id == 0
   referral_months_waited <- imported_data |>
-    filter(.data$type == "Referral") |>
+    filter(.data$type == "Referrals") |>
     dplyr::pull(.data$months_waited_id) |>
     unique()
 
@@ -110,27 +112,36 @@ check_imported_data <- function(imported_data) {
   if (length(check_referral_months) > 0) {
     msg <- "Referral records must have only months_waited_id equal to 0."
     data_checked <- NULL
+
+    return(
+      list(
+        msg = msg,
+        imported_data_checked = data_checked
+      )
+    )
   }
 
   # check incompletes have same number of periods than completes
   incompletes_periods <- imported_data |>
     filter(.data$type == "Incomplete") |>
-    dplyr::pull(.data$period) |>
-    unique()
+    dplyr::distinct(.data$period, .data$months_waited_id) |>
+    dplyr::arrange(.data$period, .data$months_waited_id)
 
   completes_periods <- imported_data |>
     filter(.data$type == "Complete") |>
-    dplyr::pull(.data$period) |>
-    unique()
+    dplyr::distinct(.data$period, .data$months_waited_id) |>
+    dplyr::arrange(.data$period, .data$months_waited_id)
 
-  missing_periods <- setdiff(
-    incompletes_periods,
-    completes_periods
-  )
-
-  if (length(missing_periods) != 0) {
-    msg <- "Incomplete data must have same periods as complete data."
+  if (!identical(incompletes_periods, completes_periods)) {
+    msg <- "Incomplete data must have same combinations of periods and months_waited_ids as complete data."
     data_checked <- NULL
+
+    return(
+      list(
+        msg = msg,
+        imported_data_checked = data_checked
+      )
+    )
   }
 
   # If we got here, the data is valid

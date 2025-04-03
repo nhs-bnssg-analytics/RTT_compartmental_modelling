@@ -6,6 +6,10 @@
 \usage{
 check_imported_data(imported_data)
 }
+\arguments{
+\item{imported_data}{a tibble with columns of period, type, value and
+months_waited_id}
+}
 \value{
 list with two items; a message describing the outputs of the check,
   and the resulting data tibble (which will be NULL if the checks have
