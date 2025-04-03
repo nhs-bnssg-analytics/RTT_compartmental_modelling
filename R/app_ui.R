@@ -3,7 +3,7 @@
 #' @param request Internal parameter for `{shiny}`. DO NOT REMOVE.
 #' @import shiny
 #' @importFrom bslib navset_tab nav_panel nav_spacer nav_menu nav_item
-#'   page_fillable page_navbar
+#'   page_fillable page_navbar accordion accordion_panel layout_columns
 #' @importFrom utils packageVersion
 #' @noRd
 app_ui <- function(request) {
@@ -37,22 +37,39 @@ app_ui <- function(request) {
 
   theme_selection <- "litera"
 
+  acknowledgements <- HTML(
+    paste(
+      "The RTT Planner was a collaboration driven by the SW Decision Support Network",
+      "",
+      "Many thanks to the collaborators:",
+      "Sebastian Fox",
+      "Simon Wellesley-Miller",
+      "Richard Wood",
+      "Richard Blackwell",
+      "Claire Rudler",
+      "Nick Cooper",
+      "",
+      "And input from Devon, Dorset, Gloucestershire and BNSSG ICSs",
+      sep = "<br>"
+    )
+  )
+
+
   page_fillable(
     # Leave this function for adding external resources
     golem_add_external_resources(),
     theme = bs_theme(bootswatch = theme_selection),
     # Your application UI logic
 
-    h1(
-      paste0(
-        "RTT planner (version ",
-        packageVersion("RTTshiny"),
-        ")"
-      )
-    ),
-    p("A tool to help the NHS plan to reduce waiting times"),
     page_navbar(
-      title = "Hospital Waiting List Target Planner",
+      title = HTML(
+        paste0(
+        'RTT Planner ',
+        '<span style="font-size: 0.7rem;">(v',
+        packageVersion("RTTshiny"),
+        ') </span>,'
+        )
+      ),
       bg = "#0072CE",
       theme = bs_theme(bootswatch = theme_selection),
       nav_panel(
@@ -81,15 +98,28 @@ app_ui <- function(request) {
         nav_item(github_shiny),
         nav_item(github_RTT_package),
         nav_item(github_analysis),
-        nav_item(email)
+        nav_item(email),
+        align = "right"
       ),
       footer = card_footer(
-        p(
-          HTML(
-            "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a>, or send feedback to
+        layout_columns(
+          col_widths = c(10, 2),
+          p(
+            HTML(
+              "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a>, or send feedback to
              <a href='mailto:sebastian.fox3@nhs.net?subject=RTT planning tool'>sebastian.fox3@nhs.net</a>"
+            ),
+            class = "text-center text-muted"
           ),
-          class = "text-center text-muted")
+          accordion(
+            accordion_panel(
+              title = "Acknowledgements",
+              acknowledgements
+
+            ),
+            open = FALSE
+          )
+        )
       )
     )
   )

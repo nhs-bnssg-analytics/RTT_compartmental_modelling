@@ -16,6 +16,7 @@ mod_01_introduction_ui <- function(id){
       col_widths = c(12),
       card(
         card_body(
+          p("This is a tool to help the NHS plan to manage waiting times."),
           h3("About This Tool"),
           p("This planning tool helps healthcare planners to plan resources to meet hospital waiting list targets."),
 
