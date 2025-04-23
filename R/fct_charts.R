@@ -180,6 +180,10 @@ plot_output <- function(data,
 
 plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
 
+  if (is.null(params)) {
+    return(ggplot())
+  }
+
   original <- params |>
     dplyr::select(
       "months_waited_id",

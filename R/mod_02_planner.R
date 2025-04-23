@@ -7,7 +7,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList uiOutput radioButtons numericInput
-#'   dateRangeInput dateInput selectInput icon downloadLink
+#'   dateRangeInput dateInput selectInput icon downloadLink downloadButton hr br
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   bs_theme page_fluid card_body layout_columns tooltip
 mod_02_planner_ui <- function(id){
@@ -116,17 +116,16 @@ mod_02_planner_ui <- function(id){
           ),
           hr(),
           layout_columns(
-            col_widths = c(8, 2, -2),
-            span("Download selections above as template"),
+            col_widths = 12,
             downloadButton(
               outputId = ns("download_template"),
-              label = NULL
+              label = "Download selections above as template"
+            ),
+            downloadLink(
+              outputId = ns("sample_file"),
+              label = "Download an example CSV file",
+              class = "small-hyperlink"
             )
-          ),
-          downloadLink(
-            outputId = ns("sample_file"),
-            label = "Download an example CSV file",
-            class = "small-hyperlink"
           ),
           hr(),
           fileInput(
@@ -252,7 +251,7 @@ mod_02_planner_ui <- function(id){
 #'   join_by bind_rows setdiff inner_join
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
-#' @importFrom bslib tooltip
+#' @importFrom bslib tooltip value_box
 #' @importFrom rlang .data
 #' @noRd
 mod_02_planner_server <- function(id, r){
@@ -1009,9 +1008,14 @@ mod_02_planner_server <- function(id, r){
       if (is.null(reactive_values$latest_performance)) {
         return(NULL)
       } else {
-        div(
-          p(reactive_values$latest_performance)
+        # div(
+          # p(reactive_values$latest_performance)
+        value_box(
+          title = "Latest performance",
+          value = reactive_values$latest_performance,
+          showcase = shiny::icon("chart-line")
         )
+        # )
       }
     })
 
@@ -1432,6 +1436,7 @@ mod_02_planner_server <- function(id, r){
           ),
           bslib::accordion(
             open = FALSE,
+            id = "skew",
             bslib::accordion_panel(
               title = "Advanced skew settings",
               layout_columns(
@@ -1521,6 +1526,7 @@ mod_02_planner_server <- function(id, r){
           ),
           bslib::accordion(
             open = FALSE,
+            id = "skew",
             bslib::accordion_panel(
               title = "Advanced skew settings",
               layout_columns(

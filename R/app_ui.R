@@ -49,7 +49,7 @@ app_ui <- function(request) {
       "Claire Rudler",
       "Nick Cooper",
       "",
-      "And input from Devon, Dorset, Gloucestershire and BNSSG ICSs",
+      "And input from Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW",
       sep = "<br>"
     )
   )
@@ -92,6 +92,16 @@ app_ui <- function(request) {
         value = "tab_download",
         mod_04_downloads_ui("04_downloads_1")
       ),
+      nav_panel(
+        title = "Definitions",
+        value = "tab_definitions",
+        mod_05_definitions_ui("05_definitions_1")
+      ),
+      nav_panel(
+        title = "How tos",
+        value = "tab_how_tos",
+        mod_06_how_tos_ui("06_how_tos_1")
+      ),
       nav_spacer(),
       nav_menu(
         title = "Links",
@@ -106,8 +116,12 @@ app_ui <- function(request) {
           col_widths = c(10, 2),
           p(
             HTML(
+              paste0(
               "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a>, or send feedback to
-             <a href='mailto:sebastian.fox3@nhs.net?subject=RTT planning tool'>sebastian.fox3@nhs.net</a>"
+             <a href='mailto:sebastian.fox3@nhs.net?subject=RTT planning tool (version ",
+              packageVersion("RTTshiny"),
+              ")'>sebastian.fox3@nhs.net</a>"
+              )
             ),
             class = "text-center text-muted"
           ),

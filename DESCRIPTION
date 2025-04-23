@@ -29,7 +29,6 @@ Imports:
     tidyr,
     utils
 Suggests: 
-    flextable,
     spelling,
     testthat (>= 3.0.0)
 Remotes:

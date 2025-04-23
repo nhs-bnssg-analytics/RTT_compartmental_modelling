@@ -710,47 +710,91 @@ mod_03_results_server <- function(id, r){
 
 # DT table ----------------------------------------------------------------
 
-    output$scenario_projections <- DT::renderDT({
 
-      DT::datatable(
-        r$waiting_list,
-        filter = "top",
-        extensions = "Buttons",
-        options = list(
-          paging = TRUE,
-          pageLength = 50,
-          lengthMenu = c(25, 50, 100),
-          searching = TRUE,
-          ordering = TRUE,
-          autoWidth = TRUE,
-          dom = 'Bfrtip',
-          buttons = list(
-            list(
-              extend = 'copy',
-              title = NULL, # prevents the title of the app being included when copying the data
-              className = "dtButton",
-              text = "Copy table to clipboard"
-            ),
-            list(
-              extend = 'csv',
-              className = 'dtButton',
-              text = "Download table to csv"
+      output$scenario_projections <- DT::renderDT({
+
+        new_col_names <- c(
+          "Period ID" = "period_id",
+          "Months waited (lower)" = "months_waited_id",
+          "Calculated treatment capacity" = "calculated_treatments",
+          Reneges = "reneges",
+          "Waiting list size (at end of month)" = "incompletes",
+          "Unadjusted referrals" = "unadjusted_referrals",
+          "Adjusted referrals" = "adjusted_referrals",
+          "Capacity skew" = "capacity_skew",
+          "Measure type" = "period_type",
+          "Month start date" = "period"
+        )
+
+        if (is.null(r$waiting_list)) {
+          dplyr::tibble(
+            period_id = NA,
+            months_waited_id = NA,
+            calculated_treatments = NA,
+            reneges = NA,
+            incompletes = NA,
+            unadjusted_referrals = NA,
+            adjusted_referrals = NA,
+            capacity_skew = NA,
+            period_type = NA,
+            period = NA
+          ) |>
+            DT::datatable(
+              colnames = new_col_names,
+              rownames = FALSE,
+              caption = "Please return to the Scenario tab to create some modelled data",
+              options = list(
+                dom = 't', # 't' means show only the table, no other elements
+                paging = FALSE, # Disable pagination
+                searching = FALSE, # Disable search box
+                info = FALSE # Remove "Showing X of Y entries" text
+              )
             )
-          )
-        )
-      ) |>
-        DT::formatRound(
-          columns = c(
-            "calculated_treatments",
-            "reneges",
-            "incompletes",
-            "unadjusted_referrals",
-            "adjusted_referrals"
-          ),
-          digits = 1
-        )
-    },
-    server = FALSE)
+        } else {
+
+
+          DT::datatable(
+            r$waiting_list,
+            filter = "top",
+            extensions = "Buttons",
+            options = list(
+              paging = TRUE,
+              pageLength = 50,
+              lengthMenu = c(25, 50, 100),
+              searching = TRUE,
+              ordering = TRUE,
+              autoWidth = TRUE,
+              dom = 'Bfrtip',
+              buttons = list(
+                list(
+                  extend = 'copy',
+                  title = NULL, # prevents the title of the app being included when copying the data
+                  className = "dtButton",
+                  text = "Copy table to clipboard"
+                ),
+                list(
+                  extend = 'csv',
+                  className = 'dtButton',
+                  text = "Download table to csv"
+                )
+              )
+            ),
+            colnames = new_col_names,
+            rownames = FALSE
+          ) |>
+            DT::formatRound(
+              columns = c(
+                "Calculated treatment capacity",
+                "Reneges",
+                "Waiting list size (at end of month)",
+                "Unadjusted referrals",
+                "Adjusted referrals"
+              ),
+              digits = 1
+            )
+        }
+      },
+      server = FALSE)
   })
 }
 

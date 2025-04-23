@@ -24,6 +24,14 @@ mod_01_introduction_ui <- function(id){
           of waiting lists and associated performance based on future projections of referrals, to help the user
           make informed decisions to improve patient care delivery and achieve NHS performance targets."),
 
+          p(
+            HTML(
+              paste0(
+                "See the latest features <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/blob/main/NEWS.md'>here</a>"
+                )
+            )
+          ),
+
           hr(),
 
           h3("How to Use This Tool"),
