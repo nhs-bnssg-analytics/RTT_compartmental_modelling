@@ -13,11 +13,17 @@ params:
   target_data: NULL
   referrals_percent_change: NULL
   referrals_change_type: NULL
+  chart_specification: NULL
 ---
 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+
+source(file = paste0(here::here(),'/R/fct_charts.R'))
+
+
+
 ```
 
 
@@ -52,13 +58,19 @@ capacity_change <- if_else(params$scenario == 'params$scenario',
                            'Derived from model', 
                            paste0(params$cap_change,'%'))
 
+capacity_skew <- if_else(params$scenario == 'params$scenario', 
+                           'Derived from model', 
+                           paste0(params$cap_skew))
+
 Feature <- c('Scenario', 
              'Change in referrals', 
-             'Capacity change')
+             'Capacity change',
+             'Capacity skew')
 Value <- c(params$scenario, 
            paste0(params$referrals_change_type, ': ', params$referrals_percent_change, '%'),
-           capacity_change)
-
+           capacity_change,
+           capacity_skew)
+Target <- 
 
 param_tab <- data.frame(Feature, Value)
 
@@ -104,59 +116,255 @@ params$waiting_list |>
 ```
 
 
-## plot referrals 
+## Referrals
+
+This chart shows the historic and projected referrals for the model run.
 
 ```{r}
-#| label: referral_plot
+#| label: referrals_plot
 #| results: 'asis'
-#| ft.align: 'left'
-
+#| fig-height: 8
+#| fig-width: 12
+      
       ref_dat <- params$waiting_list |>
-        dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
-                         .by = c("period", "period_type"))
+        dplyr::filter(.data$months_waited_id == 0) |>
+        dplyr::mutate(p_var  = sum(.data$incompletes + .data$calculated_treatments),
+                      .by = c("period", "period_type"))
 
-      # plot_output(data = ref_dat,
-      #             p_trust = r$chart_specification$trust,
-      #             p_speciality = r$chart_specification$specialty,
-      #             p_chart = "waiting list size",
-      #             p_scenario = r$chart_specification$scenario_type,
-      #             p_cap_change = r$chart_specification$capacity_percent_change,
-      #             p_cap_skew = r$chart_specification$capacity_skew,
-      #             p_cap_change_type = r$chart_specification$capacity_change_type,
-      #             p_target_data = r$chart_specification$target_data,
-      #             p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-      #             p_referrals_change_type = r$chart_specification$referrals_change_type,
-      #             p_perc = F)
-
-head(ref_dat) |>
-    flextable::flextable()
+      plot_output(data = ref_dat,
+                  p_trust = params$chart_specification$trust,
+                  p_speciality = params$chart_specification$specialty,
+                  p_chart = "referrals",
+                  p_scenario = params$chart_specification$scenario_type,
+                  p_cap_change = params$chart_specification$capacity_percent_change,
+                  p_cap_skew = params$chart_specification$capacity_skew,
+                  p_cap_change_type = params$chart_specification$capacity_change_type,
+                  p_target_data = params$chart_specification$target_data,
+                  p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = params$chart_specification$referrals_change_type,
+                  p_perc = F)
 
 ```
 
 
-scenario
-  `r params$scenario`
-  
-cap change  
-  `r params$cap_change`
-  
-cap skew  
-  `r params$cap_skew`
-  
-cap change type  
-  `r params$cap_change_type`
-  
-target date 
-  `r params$target_data$Target_date` 
-  
-target perfromance 
-  `r params$target_data$Target_performance`   
+## Overall Capacity
 
-referrals change
-  `r params$referrals_percent_change`
+This plot show the historic and projected capacity for the model run
 
-referrals change type  
-  `r params$referrals_change_type`
+```{r}
+#| label: capacity_plot
+#| results: 'asis'
+#| fig-height: 8
+#| fig-width: 12
+
+      cap_dat <-  params$waiting_list |>
+        dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
+                         .by = c("period", "period_type"))
+
+
+      plot_output(data = cap_dat,
+                  p_trust = params$chart_specification$trust,
+                  p_speciality = params$chart_specification$specialty,
+                  p_chart = "total capacity",
+                  p_scenario = params$chart_specification$scenario_type,
+                  p_cap_change = params$chart_specification$capacity_percent_change,
+                  p_cap_skew = params$chart_specification$capacity_skew,
+                  p_cap_change_type = params$chart_specification$capacity_change_type,
+                  p_target_data = params$chart_specification$target_data,
+                  p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = params$chart_specification$referrals_change_type,
+                  p_perc = F,
+                  p_facet = F)
+
+```
+
+
+## Capacity split by wait length
+
+This plot show the historic and projected capacity for the model run
+
+```{r}
+#| label: capacity_plot_split
+#| results: 'asis'
+#| fig-height: 8
+#| fig-width: 12
+
+      cap_dat_split <- params$waiting_list |>
+        dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
+                         .by = c("period", "period_type", "months_waited_id"))
+
+      plot_output(data = cap_dat_split,
+                  p_trust = params$chart_specification$trust,
+                  p_speciality = params$chart_specification$specialty,
+                  p_chart = "capacity by months waiting",
+                  p_scenario = params$chart_specification$scenario_type,
+                  p_cap_change = params$chart_specification$capacity_percent_change,
+                  p_cap_skew = params$chart_specification$capacity_skew,
+                  p_cap_change_type = params$chart_specification$capacity_change_type,
+                  p_target_data = params$chart_specification$target_data,
+                  p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = params$chart_specification$referrals_change_type,
+                  p_perc = F,
+                  p_facet = T)
+
+```
+
+
+## Total reneges
+
+This plot show the historic and projected reneges for the model run
+
+```{r}
+#| label: renege_plot
+#| results: 'asis'
+#| fig-height: 8
+#| fig-width: 12
+
+      renege_dat <- params$waiting_list |>
+        dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
+                         .by = c("period", "period_type"))
+
+      plot_output(data = renege_dat,
+                  p_trust = params$chart_specification$trust,
+                  p_speciality = params$chart_specification$specialty,
+                  p_chart = "total net reneges",
+                  p_scenario = params$chart_specification$scenario_type,
+                  p_cap_change = params$chart_specification$capacity_percent_change,
+                  p_cap_skew = params$chart_specification$capacity_skew,
+                  p_cap_change_type = params$chart_specification$capacity_change_type,
+                  p_target_data = params$chart_specification$target_data,
+                  p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = params$chart_specification$referrals_change_type,
+                  p_perc = F)
+
+```
+
+
+## Reneges split by waits
+
+This plot show the historic and projected reneges for the model run
+
+```{r}
+#| label: renege_plot_split
+#| results: 'asis'
+#| fig-height: 8
+#| fig-width: 12
+
+      ren_dat_split <- params$waiting_list |>
+        dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
+                         .by = c("period", "period_type", "months_waited_id"))
+
+      plot_output(data = ren_dat_split,
+                  p_trust = params$chart_specification$trust,
+                  p_speciality = params$chart_specification$specialty,
+                  p_chart = "net reneges by months waiting",
+                  p_scenario = params$chart_specification$scenario_type,
+                  p_cap_change = params$chart_specification$capacity_percent_change,
+                  p_cap_skew = params$chart_specification$capacity_skew,
+                  p_cap_change_type = params$chart_specification$capacity_change_type,
+                  p_target_data = params$chart_specification$target_data,
+                  p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = params$chart_specification$referrals_change_type,
+                  p_perc = F,
+                  p_facet = T)
+
+```
+
+## Total waiting list size
+
+This plot show the historic and projected total waiting list size for the model run
+
+```{r}
+#| label: total_waits
+#| results: 'asis'
+#| fig-height: 8
+#| fig-width: 12
+
+      wl_size_dat <- params$waiting_list |>
+        dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
+                         .by = c("period", "period_type"))
+
+      plot_output(data = wl_size_dat,
+                  p_trust = params$chart_specification$trust,
+                  p_speciality = params$chart_specification$specialty,
+                  p_chart = "waiting list size",
+                  p_scenario = params$chart_specification$scenario_type,
+                  p_cap_change = params$chart_specification$capacity_percent_change,
+                  p_cap_skew = params$chart_specification$capacity_skew,
+                  p_cap_change_type = params$chart_specification$capacity_change_type,
+                  p_target_data = params$chart_specification$target_data,
+                  p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = params$chart_specification$referrals_change_type,
+                  p_perc = F)
+
+
+```
+
+
+## Total waiting list by period
+
+This plot show the historic and projected total waiting list size for the model run
+
+```{r}
+#| label: wl_plot_split
+#| results: 'asis'
+#| fig-height: 8
+#| fig-width: 12
+
+      wl_size_split <- params$waiting_list |>
+        dplyr::mutate(p_var = .data$incompletes)
+
+      plot_output(data = wl_size_split,
+                  p_trust = params$chart_specification$trust,
+                  p_speciality = params$chart_specification$specialty,
+                  p_chart = "numbers waiting by period",
+                  p_scenario = params$chart_specification$scenario_type,
+                  p_cap_change = params$chart_specification$capacity_percent_change,
+                  p_cap_skew = params$chart_specification$capacity_skew,
+                  p_cap_change_type = params$chart_specification$capacity_change_type,
+                  p_target_data = params$chart_specification$target_data,
+                  p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = params$chart_specification$referrals_change_type,
+                  p_perc = F,
+                  p_facet = T)
+      
+```
+
+
+## Waiting list 4 month performance
+
+This plot show the historic and projected 4 month waiting list performance for the model run
+
+```{r}
+#| label: wl_performance
+#| results: 'asis'
+#| fig-height: 8
+#| fig-width: 12
+# 
+#       wl_perf_dat <- params$waiting_list |>
+#         dplyr::rename(value = "incompletes") |>
+#         dplyr::group_by(.data$period_type) |>
+#         calc_performance(
+#           target_bin = 4
+#         ) |>
+#         rename(p_var = "prop")
+# 
+# 
+#       plot_output(data = wl_perf_dat,
+#                   p_trust = params$chart_specification$trust,
+#                   p_speciality = params$chart_specification$specialty,
+#                   p_chart = "4 month performance",
+#                   p_scenario = params$chart_specification$scenario_type,
+#                   p_cap_change = params$chart_specification$capacity_percent_change,
+#                   p_cap_skew = params$chart_specification$capacity_skew,
+#                   p_cap_change_type = params$chart_specification$capacity_change_type,
+#                   p_target_data = params$chart_specification$target_data,
+#                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+#                   p_referrals_change_type = params$chart_specification$referrals_change_type,
+#                   p_perc = T,
+#                   p_target_line = T)
+      
+```
 
 
 

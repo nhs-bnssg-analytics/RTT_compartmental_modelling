@@ -64,7 +64,8 @@ mod_04_downloads_server <- function(id, r){
           cap_change_type = r$chart_specification$capacity_change_type,
           target_data = r$chart_specification$target_data,
           referrals_percent_change = r$chart_specification$referrals_percent_change,
-          referrals_change_type = r$chart_specification$referrals_change_type
+          referrals_change_type = r$chart_specification$referrals_change_type,
+          chart_specification = r$chart_specification
         )
         rmarkdown::render(
           tempReport,
