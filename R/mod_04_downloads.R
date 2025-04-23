@@ -57,7 +57,14 @@ mod_04_downloads_server <- function(id, r){
         params <- list(
           waiting_list = r$waiting_list,
           trust = r$chart_specification$trust,
-          specialty = r$chart_specification$specialty
+          specialty = r$chart_specification$specialty,
+          scenario = r$chart_specification$scenario_type,
+          cap_change = r$chart_specification$capacity_percent_change,
+          cap_skew = r$chart_specification$capacity_skew,
+          cap_change_type = r$chart_specification$capacity_change_type,
+          target_data = r$chart_specification$target_data,
+          referrals_percent_change = r$chart_specification$referrals_percent_change,
+          referrals_change_type = r$chart_specification$referrals_change_type
         )
         rmarkdown::render(
           tempReport,

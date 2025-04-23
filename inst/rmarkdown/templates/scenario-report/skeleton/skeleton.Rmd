@@ -1,11 +1,18 @@
 ---
-title: "`r paste(params$trust, 'by', params$specialty)`"
+title: "`r paste(params$trust, '<br>', params$specialty)`"
 date: "`r paste('Created on', format(Sys.Date(), '%d %B %Y'))`"
 output: word_document
 params:
   trust: NULL
   specialty: NULL
   waiting_list: NULL
+  scenario: NULL
+  cap_change: NULL
+  cap_skew: NULL
+  cap_change_type: NULL
+  target_data: NULL
+  referrals_percent_change: NULL
+  referrals_change_type: NULL
 ---
 
 
@@ -17,6 +24,7 @@ knitr::opts_chunk$set(echo = FALSE)
 ```{r}
 #| label: libraries
 #| message: false
+#| warning: false
 
 library(ggplot2)
 library(dplyr)
@@ -25,11 +33,49 @@ library(flextable)
 ```
 
 
-This report was built with version `r packageVersion("RTTshiny")` of the tool.
+# `r paste0(params$trust,': ', params$specialty)`
 
 ## Introduction
 
 This report contains charts developed using models built on public data. 
+
+## Model parameters
+
+The following report has been developed using the following scenario and parameters.
+
+```{r}
+#| label: param_table
+#| results: 'asis'
+#| ft.align: 'left'
+
+capacity_change <- if_else(params$scenario == 'params$scenario', 
+                           'Derived from model', 
+                           paste0(params$cap_change,'%'))
+
+Feature <- c('Scenario', 
+             'Change in referrals', 
+             'Capacity change')
+Value <- c(params$scenario, 
+           paste0(params$referrals_change_type, ': ', params$referrals_percent_change, '%'),
+           capacity_change)
+
+
+param_tab <- data.frame(Feature, Value)
+
+param_tab |> 
+  flextable::flextable() |>  
+  flextable::set_table_properties(layout = "autofit") |> 
+  flextable::flextable_to_rmd()
+
+
+```
+
+
+|---------------------|:---------------------------------------------------------------------------|
+| Scenario            |`r params$scenario`                                                         |
+| Change in referrals |   `r params$referrals_change_type`   `r params$referrals_percent_change` % |
+
+
 
 The following table...:
 
@@ -58,5 +104,60 @@ params$waiting_list |>
 ```
 
 
+## plot referrals 
+
+```{r}
+#| label: referral_plot
+#| results: 'asis'
+#| ft.align: 'left'
+
+      ref_dat <- params$waiting_list |>
+        dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
+                         .by = c("period", "period_type"))
+
+      # plot_output(data = ref_dat,
+      #             p_trust = r$chart_specification$trust,
+      #             p_speciality = r$chart_specification$specialty,
+      #             p_chart = "waiting list size",
+      #             p_scenario = r$chart_specification$scenario_type,
+      #             p_cap_change = r$chart_specification$capacity_percent_change,
+      #             p_cap_skew = r$chart_specification$capacity_skew,
+      #             p_cap_change_type = r$chart_specification$capacity_change_type,
+      #             p_target_data = r$chart_specification$target_data,
+      #             p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+      #             p_referrals_change_type = r$chart_specification$referrals_change_type,
+      #             p_perc = F)
+
+head(ref_dat) |>
+    flextable::flextable()
+
+```
 
 
+scenario
+  `r params$scenario`
+  
+cap change  
+  `r params$cap_change`
+  
+cap skew  
+  `r params$cap_skew`
+  
+cap change type  
+  `r params$cap_change_type`
+  
+target date 
+  `r params$target_data$Target_date` 
+  
+target perfromance 
+  `r params$target_data$Target_performance`   
+
+referrals change
+  `r params$referrals_percent_change`
+
+referrals change type  
+  `r params$referrals_change_type`
+
+
+
+This report was built with version `r packageVersion("RTTshiny")` of the tool.

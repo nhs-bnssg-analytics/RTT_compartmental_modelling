@@ -16,73 +16,6 @@ mod_03_results_ui <- function(id){
   tagList(
     navset_tab(
       nav_panel(
-        title = "Table",
-        card(
-          card_body(
-            DT::DTOutput(
-              ns("scenario_projections")
-            ),
-            min_height = '80vh'
-          )
-        )
-      ),
-      nav_panel(
-        title = "Total waiting list size",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-              ns("wl_size"),
-              click = shiny::clickOpts(
-                id = ns("wl_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_wl")
-            ),
-            min_height = '60vh'
-          )
-        )
-      ),
-      nav_panel(
-        title = "Waiting list size by months waiting",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-          ns("wl_wait_per"),
-          click = shiny::clickOpts(
-            id = ns("wl_split_plot_click")
-          ),
-          height = "600px"
-        ),
-        uiOutput(
-          ns("value_box_container_wl_split")
-        ),
-        min_height = '60vh')
-        )
-      ),
-      nav_panel(
-        title = "4 Month Performance",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-              ns("wl_performance"),
-              click = shiny::clickOpts(
-                id = ns("performance_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_perf")
-            ),
-            min_height = '60vh'
-          )
-        )
-      ),
-      nav_panel(
         title = "Referrals",
         p(""),
         card(
@@ -96,6 +29,44 @@ mod_03_results_ui <- function(id){
             ),
             uiOutput(
               ns("value_box_container_ref")
+            ),
+            min_height = '60vh'
+          )
+        )
+      ),
+      nav_panel(
+        title = "Total capacity",
+        p(""),
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_capacity_tot"),
+              click = shiny::clickOpts(
+                id = ns("capacity_plot_click")
+              ),
+              height = "600px"
+            ),
+            uiOutput(
+              ns("value_box_container_cap")
+            ),
+            min_height = '60vh'
+          )
+        )
+      ),
+      nav_panel(
+        title = "Capacity split by months waiting",
+        p(""),
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_capacity_split"),
+              click = shiny::clickOpts(
+                id = ns("capacity_split_plot_click")
+              ),
+              height = "600px"
+            ),
+            uiOutput(
+              ns("value_box_container_cap_split")
             ),
             min_height = '60vh'
           )
@@ -140,40 +111,69 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Total capacity",
+        title = "Total waiting list size",
         p(""),
         card(
           card_body(
             plotOutput(
-              ns("wl_capacity_tot"),
+              ns("wl_size"),
               click = shiny::clickOpts(
-                id = ns("capacity_plot_click")
+                id = ns("wl_plot_click")
               ),
               height = "600px"
             ),
             uiOutput(
-              ns("value_box_container_cap")
+              ns("value_box_container_wl")
             ),
             min_height = '60vh'
           )
         )
       ),
       nav_panel(
-        title = "Capacity split by months waiting",
+        title = "Waiting list size by months waiting",
         p(""),
         card(
           card_body(
             plotOutput(
-              ns("wl_capacity_split"),
+              ns("wl_wait_per"),
               click = shiny::clickOpts(
-                id = ns("capacity_split_plot_click")
+                id = ns("wl_split_plot_click")
               ),
               height = "600px"
             ),
             uiOutput(
-              ns("value_box_container_cap_split")
+              ns("value_box_container_wl_split")
+            ),
+            min_height = '60vh')
+        )
+      ),
+      nav_panel(
+        title = "4 Month Performance",
+        p(""),
+        card(
+          card_body(
+            plotOutput(
+              ns("wl_performance"),
+              click = shiny::clickOpts(
+                id = ns("performance_plot_click")
+              ),
+              height = "600px"
+            ),
+            uiOutput(
+              ns("value_box_container_perf")
             ),
             min_height = '60vh'
+          )
+        )
+      ),
+      nav_panel(
+        title = "Table",
+        card(
+          card_body(
+            DT::DTOutput(
+              ns("scenario_projections")
+            ),
+            min_height = '80vh'
           )
         )
       )
