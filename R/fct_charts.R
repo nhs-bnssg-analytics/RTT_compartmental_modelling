@@ -248,7 +248,7 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
         y = .data$capacity_param
       )
     ) +
-    geom_line(
+    geom_step(
       aes(
         group = .data$scenario,
         colour = .data$scenario

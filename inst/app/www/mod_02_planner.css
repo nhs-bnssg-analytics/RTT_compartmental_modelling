@@ -60,3 +60,8 @@
   color: purple;
   transform: rotate(0deg);
 }*/
+
+.model_button {
+  font-size: 1.2em;
+  background: #003087;
+}

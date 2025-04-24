@@ -67,7 +67,7 @@ app_ui <- function(request) {
         'RTT Planner ',
         '<span style="font-size: 0.7rem;">(v',
         packageVersion("RTTshiny"),
-        ') </span>,'
+        ') </span>'
         )
       ),
       bg = "#0072CE",
@@ -117,7 +117,7 @@ app_ui <- function(request) {
           p(
             HTML(
               paste0(
-              "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a>, or send feedback to
+              "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a> or send feedback to
              <a href='mailto:sebastian.fox3@nhs.net?subject=RTT planning tool (version ",
               packageVersion("RTTshiny"),
               ")'>sebastian.fox3@nhs.net</a>"

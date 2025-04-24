@@ -17,7 +17,7 @@ mod_01_introduction_ui <- function(id){
       card(
         card_body(
           p("This is a tool to help the NHS plan to manage waiting times."),
-          h3("About This Tool"),
+          h3("About this tool"),
           p("This planning tool helps healthcare planners to plan resources to meet hospital waiting list targets."),
 
           p("By calibrating on historical waiting list, referral and clock stop data, this tool provides forecasts
@@ -27,14 +27,14 @@ mod_01_introduction_ui <- function(id){
           p(
             HTML(
               paste0(
-                "See the latest features <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/blob/main/NEWS.md'>here</a>"
+                "See the latest features <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/blob/main/NEWS.md'>here</a>."
                 )
             )
           ),
 
           hr(),
 
-          h3("How to Use This Tool"),
+          h3("How to use this tool"),
           p("Navigate through the following sections using the tabs at the top of each page:"),
 
           layout_column_wrap(
@@ -94,7 +94,7 @@ mod_01_introduction_ui <- function(id){
 
           hr(),
 
-          h3("Future Developments"),
+          h3("Future developments"),
           p("We are continuously improving this tool to better serve healthcare professionals.
           The following enhancements are currently in development:"),
 

@@ -251,7 +251,7 @@ mod_02_planner_ui <- function(id){
 #'   join_by bind_rows setdiff inner_join
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
-#' @importFrom bslib tooltip value_box
+#' @importFrom bslib tooltip value_box value_box_theme
 #' @importFrom rlang .data
 #' @noRd
 mod_02_planner_server <- function(id, r){
@@ -1008,14 +1008,17 @@ mod_02_planner_server <- function(id, r){
       if (is.null(reactive_values$latest_performance)) {
         return(NULL)
       } else {
-        # div(
-          # p(reactive_values$latest_performance)
-        value_box(
-          title = "Latest performance",
-          value = reactive_values$latest_performance,
-          showcase = shiny::icon("chart-line")
+        layout_column_wrap(
+          width = 1/2,
+          value_box(
+            title = "Latest performance",
+            value = reactive_values$latest_performance,
+            showcase = shiny::icon("chart-line"),
+            theme = value_box_theme(bg = "#FFB81C", fg = "#231f20"),
+            class = "border"
+          )
         )
-        # )
+
       }
     })
 
@@ -1231,7 +1234,9 @@ mod_02_planner_server <- function(id, r){
           id = ns("optimise_capacity"),
           label = "Run capacity optimisation",
           label_busy = "Forecasting...",
-          type = "dark"
+          type = "dark",
+          class = "model_button",
+          icon = shiny::icon("calculator")
         )
       }
     })
@@ -1242,7 +1247,9 @@ mod_02_planner_server <- function(id, r){
           id = ns("calculate_performance"),
           label = "Calculate future performance",
           label_busy = "Forecasting...",
-          type = "dark"
+          type = "dark",
+          class = "model_button",
+          icon = shiny::icon("calculator")
         )
       }
     })
