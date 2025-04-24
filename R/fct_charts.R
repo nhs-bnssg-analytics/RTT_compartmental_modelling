@@ -377,30 +377,107 @@ linear_tooltip <- function() {
           y = value)
     ) +
     geom_line() +
+    geom_vline(
+      xintercept = 5.5,
+      linetype = "dashed"
+    ) +
+    geom_text(
+      data = dplyr::tibble(
+        period = 6,
+        value = Inf,
+        label = "Forecast"
+      ),
+      aes(
+        label = label
+      ),
+      hjust = 0,
+      vjust = 1.2
+    ) +
     theme_linedraw() +
     theme(
       axis.text = element_blank(),
       axis.title = element_blank(),
       axis.ticks = element_blank(),
-      panel.grid = element_blank()
-    )
+      panel.grid = element_blank(),
+      panel.background = element_rect(
+        fill = "#FAE100",
+        colour= "#FAE100"
+      ),
+      plot.background = element_rect(
+        fill = "#FAE100",
+        colour= "#FAE100"
+      )
+    ) +
+    ylim(0, 8)
 }
 
 uniform_tooltip <- function() {
   dplyr::tibble(
     period = 1:10,
-    value = rep(3, 10)
+    value = c(rep(1, 5), rep(4, 5))
   ) |>
     ggplot(
       aes(x = period,
           y = value)
     ) +
     geom_line() +
+    geom_vline(
+      xintercept = 5.5,
+      linetype = "dashed"
+    ) +
+    geom_text(
+      data = dplyr::tibble(
+        period = 6,
+        value = Inf,
+        label = "Forecast"
+      ),
+      aes(
+        label = label
+      ),
+      hjust = 0,
+      vjust = 1.2
+    ) +
     theme_linedraw() +
     theme(
       axis.text = element_blank(),
       axis.title = element_blank(),
       axis.ticks = element_blank(),
-      panel.grid = element_blank()
+      panel.grid = element_blank(),
+      panel.background = element_rect(
+        fill = "#FAE100",
+        colour= "#FAE100"
+      ),
+      plot.background = element_rect(
+        fill = "#FAE100",
+        colour= "#FAE100"
+      )
+    ) +
+    ylim(0, 8)
+}
+
+
+linear_uniform_tooltip <- function(uniform_id, linear_id) {
+
+  div(
+    shiny::HTML(
+      paste0(
+        "<strong>Uniform:</strong> ",
+        "Treatment capacity/referral change occurs in first month and remains flat for the whole 'Forecast horizon' period.<br><br>"
+      )
+    ),
+    plotOutput(
+      outputId = uniform_id,
+      height = "75px"
+    ),
+    shiny::HTML(
+      paste0(
+        "<strong>Linear:</strong> ",
+        "The first month of the 'Forecast horizon' period is estimated from the historic data, and then treatment capacity/referral is changed linearly until the end of the 'Forecast horizon'."
+      )
+    ),
+    plotOutput(
+      outputId = linear_id,
+      height = "75px"
     )
+  )
 }

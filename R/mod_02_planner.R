@@ -167,13 +167,9 @@ mod_02_planner_ui <- function(id){
           "Select type of referral change:",
           tooltip(
             shiny::icon("info-circle"),
-            shiny::HTML(
-              paste0(
-                "<strong>Uniform:</strong> ",
-                "The change in referral counts occurs in the first month and remains flat for the whole 'Forecast horizon' period.<br><br>",
-                "<strong>Linear:</strong> ",
-                "The first month of the 'Forecast horizon' period is estimated from the historic data, and then referral counts are changed linearly until the end of the 'Forecast horizon'."
-              )
+            linear_uniform_tooltip(
+              uniform_id = ns("tooltip_uniform"),
+              linear_id = ns("tooltip_linear")
             ),
             placement = "right"
           )
@@ -257,7 +253,7 @@ mod_02_planner_ui <- function(id){
 mod_02_planner_server <- function(id, r){
   moduleServer( id, function(input, output, session){
 
-# initial set up ----------------------------------------------------------
+    # initial set up ----------------------------------------------------------
 
     ns <- session$ns
 
@@ -290,7 +286,17 @@ mod_02_planner_server <- function(id, r){
     )
 
 
-# area selection filtering based on other selections ----------------------
+    # tooltip plots -----------------------------------------------------------
+
+    output$tooltip_linear <- renderPlot({
+      linear_tooltip()
+    })
+
+    output$tooltip_uniform <- renderPlot({
+      uniform_tooltip()
+    })
+
+    # area selection filtering based on other selections ----------------------
     data_table <- reactiveVal(org_lkp)
 
     observeEvent(
@@ -369,7 +375,7 @@ mod_02_planner_server <- function(id, r){
         )
       })
 
-# download data button ----------------------------------------------------
+    # download data button ----------------------------------------------------
     observeEvent(
       input$dwnld_rtt_data, {
 
@@ -634,10 +640,10 @@ mod_02_planner_server <- function(id, r){
     )
 
 
-# bring your own data -----------------------------------------------------
+    # bring your own data -----------------------------------------------------
 
 
-# sample data -------------------------------------------------------------
+    # sample data -------------------------------------------------------------
 
     # Provide sample CSV file for download
     output$sample_file <- downloadHandler(
@@ -682,7 +688,7 @@ mod_02_planner_server <- function(id, r){
     )
 
 
-# template data -----------------------------------------------------------
+    # template data -----------------------------------------------------------
 
     output$download_template <- downloadHandler(
       filename = function() {
@@ -748,7 +754,7 @@ mod_02_planner_server <- function(id, r){
       }
     )
 
-# uploaded data checks ----------------------------------------------------
+    # uploaded data checks ----------------------------------------------------
 
     # Validate and read the uploaded file
     observeEvent(input$fileInput, {
@@ -774,7 +780,7 @@ mod_02_planner_server <- function(id, r){
       if (!is.null(check_data$imported_data_checked)) {
         imported_data <- check_data$imported_data_checked
       }
-# browser()
+      # browser()
       # create period lookup, but append the imported data to the start of the
       # horizon period so the start point of the projections begin at the end of
       # the imported period
@@ -795,135 +801,135 @@ mod_02_planner_server <- function(id, r){
           period_id = dplyr::row_number() - 1 # minus 1 because the first month in the imported data is the t0 incompletes
         )
 
-        selections_labels <- filters_displays(
-          trust_parents = input$trust_parent_codes,
-          trusts = input$trust_codes,
-          comm_parents = input$commissioner_parent_codes,
-          comms = input$commissioner_org_codes,
-          spec = input$specialty_codes
-        )
+      selections_labels <- filters_displays(
+        trust_parents = input$trust_parent_codes,
+        trusts = input$trust_codes,
+        comm_parents = input$commissioner_parent_codes,
+        comms = input$commissioner_org_codes,
+        spec = input$specialty_codes
+      )
 
-        # pass some values to the charting module
-        r$chart_specification$trust <- selections_labels$trusts$display
-        r$chart_specification$specialty <- selections_labels$specialties$display
-        r$chart_specification$observed_start <- min(imported_data[["period"]])
-        r$chart_specification$observed_end <- max(imported_data[["period"]])
+      # pass some values to the charting module
+      r$chart_specification$trust <- selections_labels$trusts$display
+      r$chart_specification$specialty <- selections_labels$specialties$display
+      r$chart_specification$observed_start <- min(imported_data[["period"]])
+      r$chart_specification$observed_end <- max(imported_data[["period"]])
 
-        r$all_data <- imported_data |>
-          mutate(
-            trust = selections_labels$trusts$display,
-            specialty = selections_labels$specialties$display
-          ) |>
-          arrange(
-            .data$trust,
-            .data$specialty,
-            .data$type,
-            .data$months_waited_id,
-            .data$period
-          ) |>
-          left_join(
-            r$period_lkp,
-            by = join_by(
-              period
-            )
-          )
-
-        reactive_values$data_downloaded <- TRUE
-
-        # calculate "unadjusted" referrals (though referrals aren't being
-        # adjusted here but the value is being passed through to the 3rd module
-        # for transparency)
-        unadjusted_referrals <- r$all_data |>
-          filter(
-            .data$type == "Referrals"
-          ) |>
-          dplyr::select(
-            "period_id",
-            "months_waited_id",
-            unadjusted_referrals = "value"
-          )
-
-        # there is no uplift to referrals when bringing own data
-        reactive_values$referrals_uplift <- 0
-
-        # calculate the modelling parameters assuming referrals don't need to be
-        # uplifted
-        reactive_values$params <- calibrate_parameters(
-          r$all_data,
-          max_months_waited = 12,
-          referrals_uplift = NULL,
-          redistribute_m0_reneges = FALSE
-        )
-
-        # data frame of counts by period which get supplied to the 3rd module
-        # for charting
-        reactive_values$calibration_data <- calibrate_parameters(
-          r$all_data,
-          max_months_waited = 12,
-          full_breakdown = TRUE,
-          referrals_uplift = NULL,
-          redistribute_m0_reneges = FALSE
+      r$all_data <- imported_data |>
+        mutate(
+          trust = selections_labels$trusts$display,
+          specialty = selections_labels$specialties$display
         ) |>
-          select(
-            "params"
-          ) |>
-          tidyr::unnest(.data$params) |>
-          dplyr::select(
-            "period_id",
-            "months_waited_id",
-            calculated_treatments = "treatments",
-            "reneges",
-            incompletes = "waiting_same_node"
-          ) |>
-          left_join(
-            unadjusted_referrals,
-            by = join_by(
-              period_id, months_waited_id
-            )
-          ) |>
-          dplyr::mutate(
-            # we assume the referral inputs are the correct number if they aren't using the public data
-            adjusted_referrals = .data$unadjusted_referrals +
-              (.data$unadjusted_referrals * reactive_values$referrals_uplift),
-            capacity_skew = 1,
-            period_type = "Observed"
+        arrange(
+          .data$trust,
+          .data$specialty,
+          .data$type,
+          .data$months_waited_id,
+          .data$period
+        ) |>
+        left_join(
+          r$period_lkp,
+          by = join_by(
+            period
           )
-
-        reactive_values$latest_performance <- r$all_data |>
-          filter(
-            .data$type == "Incomplete",
-            .data$period == max(.data$period)
-          ) |>
-          calc_performance(
-            target_bin = 4
-          ) |>
-          mutate(
-            text = paste0(
-              "The performance at ",
-              format(.data$period, '%b %y'),
-              " was ",
-              format(
-                100 * .data$prop,
-                format = "f",
-                digits = 2,
-                nsmall = 1
-              ),
-              "%"
-            )
-          ) |>
-          pull(.data$text)
-
-        reactive_values$default_target <- min(
-          extract_percent(reactive_values$latest_performance) + 5,
-          100
         )
 
-        reactive_values$optimise_status_card_visible <- FALSE
+      reactive_values$data_downloaded <- TRUE
+
+      # calculate "unadjusted" referrals (though referrals aren't being
+      # adjusted here but the value is being passed through to the 3rd module
+      # for transparency)
+      unadjusted_referrals <- r$all_data |>
+        filter(
+          .data$type == "Referrals"
+        ) |>
+        dplyr::select(
+          "period_id",
+          "months_waited_id",
+          unadjusted_referrals = "value"
+        )
+
+      # there is no uplift to referrals when bringing own data
+      reactive_values$referrals_uplift <- 0
+
+      # calculate the modelling parameters assuming referrals don't need to be
+      # uplifted
+      reactive_values$params <- calibrate_parameters(
+        r$all_data,
+        max_months_waited = 12,
+        referrals_uplift = NULL,
+        redistribute_m0_reneges = FALSE
+      )
+
+      # data frame of counts by period which get supplied to the 3rd module
+      # for charting
+      reactive_values$calibration_data <- calibrate_parameters(
+        r$all_data,
+        max_months_waited = 12,
+        full_breakdown = TRUE,
+        referrals_uplift = NULL,
+        redistribute_m0_reneges = FALSE
+      ) |>
+        select(
+          "params"
+        ) |>
+        tidyr::unnest(.data$params) |>
+        dplyr::select(
+          "period_id",
+          "months_waited_id",
+          calculated_treatments = "treatments",
+          "reneges",
+          incompletes = "waiting_same_node"
+        ) |>
+        left_join(
+          unadjusted_referrals,
+          by = join_by(
+            period_id, months_waited_id
+          )
+        ) |>
+        dplyr::mutate(
+          # we assume the referral inputs are the correct number if they aren't using the public data
+          adjusted_referrals = .data$unadjusted_referrals +
+            (.data$unadjusted_referrals * reactive_values$referrals_uplift),
+          capacity_skew = 1,
+          period_type = "Observed"
+        )
+
+      reactive_values$latest_performance <- r$all_data |>
+        filter(
+          .data$type == "Incomplete",
+          .data$period == max(.data$period)
+        ) |>
+        calc_performance(
+          target_bin = 4
+        ) |>
+        mutate(
+          text = paste0(
+            "The performance at ",
+            format(.data$period, '%b %y'),
+            " was ",
+            format(
+              100 * .data$prop,
+              format = "f",
+              digits = 2,
+              nsmall = 1
+            ),
+            "%"
+          )
+        ) |>
+        pull(.data$text)
+
+      reactive_values$default_target <- min(
+        extract_percent(reactive_values$latest_performance) + 5,
+        100
+      )
+
+      reactive_values$optimise_status_card_visible <- FALSE
 
     })
 
 
-# calculate and populate forecast dates -----------------------------------
+    # calculate and populate forecast dates -----------------------------------
 
     forecast_dates <- reactive({
       start_date <- NHSRtt::latest_rtt_date() + 1
@@ -954,7 +960,7 @@ mod_02_planner_server <- function(id, r){
       )
     )
 
-# calculate possible target dates from forecast horizone dates ----------------
+    # calculate possible target dates from forecast horizone dates ----------------
 
 
     # here, we force the target achievement date to fit into the forecast time period
@@ -976,7 +982,7 @@ mod_02_planner_server <- function(id, r){
     })
 
 
-# create the dynamic ui for target achievement date -----------------------
+    # create the dynamic ui for target achievement date -----------------------
 
     output$target_achievement_date <- shiny::renderUI(
       layout_columns(
@@ -1001,7 +1007,7 @@ mod_02_planner_server <- function(id, r){
     )
 
 
-# calculate the latest performance ui from the data -----------------------
+    # calculate the latest performance ui from the data -----------------------
 
     # the latest performance value to be displayed
     output$latest_performance_ui <- shiny::renderUI({
@@ -1024,17 +1030,17 @@ mod_02_planner_server <- function(id, r){
     })
 
 
-# create ui for multiple performance targets ------------------------------
+    # create ui for multiple performance targets ------------------------------
 
     # create ui based on whether single or multiple target option selected
     # Initialize empty data frame
 
     target_data <- reactiveVal(
       dplyr::tibble(
-      "Target_date" = as.Date(
-        paste(lubridate::year(Sys.Date()) + 1, "03-01", sep = "-")
-      ),
-      "Target_percentage" = NA_real_
+        "Target_date" = as.Date(
+          paste(lubridate::year(Sys.Date()) + 1, "03-01", sep = "-")
+        ),
+        "Target_percentage" = NA_real_
       )
     )
 
@@ -1156,7 +1162,7 @@ mod_02_planner_server <- function(id, r){
       target_data(current_data)
     })
 
-# dynamic ui based on single or multiple targets --------------------------
+    # dynamic ui based on single or multiple targets --------------------------
 
     observeEvent(
       c(input$target_type), {
@@ -1227,7 +1233,7 @@ mod_02_planner_server <- function(id, r){
       }
     )
 
-# make scenario buttons appear if the data has already been downloaded --------
+    # make scenario buttons appear if the data has already been downloaded --------
 
     output$optimise_capacity_ui <- renderUI({
       if (isTRUE(reactive_values$data_downloaded)) {
@@ -1256,7 +1262,7 @@ mod_02_planner_server <- function(id, r){
     })
 
 
-# dynamic ui card based on result of optimisation -------------------------
+    # dynamic ui card based on result of optimisation -------------------------
 
     output$optimisation_results_ui <- renderUI({
 
@@ -1285,7 +1291,7 @@ mod_02_planner_server <- function(id, r){
     })
 
 
-# dynamic ui for advanced skew manipulation -------------------------------
+    # dynamic ui for advanced skew manipulation -------------------------------
 
     # Advanced skew manipulation options
     output$dynamic_interface <- renderUI({
@@ -1338,7 +1344,7 @@ mod_02_planner_server <- function(id, r){
         )
       )
 
-# dynamic UI based on the scenario choice ---------------------------------
+      # dynamic UI based on the scenario choice ---------------------------------
 
       # Generate the dynamic UI based on dropdown selection
       if (input$interface_choice == "select") {
@@ -1372,13 +1378,9 @@ mod_02_planner_server <- function(id, r){
               "Select type of capacity change:",
               tooltip(
                 shiny::icon("info-circle"),
-                shiny::HTML(
-                  paste0(
-                    "<strong>Uniform:</strong> ",
-                    "Capacity change occurs in first month and remains flat for the whole 'Forecast horizon' period.<br><br>",
-                    "<strong>Linear:</strong> ",
-                    "The first month of the 'Forecast horizon' period is estimated from the historic data, and then capacity is changed linearly until the end of the 'Forecast horizon'."
-                  )
+                linear_uniform_tooltip(
+                  uniform_id = ns("tooltip_uniform"),
+                  linear_id = ns("tooltip_linear")
                 ),
                 placement = "right"
               )
@@ -1486,13 +1488,9 @@ mod_02_planner_server <- function(id, r){
               "Select type of capacity change:",
               tooltip(
                 shiny::icon("info-circle"),
-                shiny::HTML(
-                  paste0(
-                    "<strong>Uniform:</strong> ",
-                    "Capacity change occurs in first month and remains flat for the whole 'Forecast horizon' period.<br><br>",
-                    "<strong>Linear:</strong> ",
-                    "The first month of the 'Forecast horizon' period is estimated from the historic data, and then capacity is changed linearly until the end of the 'Forecast horizon'."
-                  )
+                linear_uniform_tooltip(
+                  uniform_id = ns("tooltip_uniform"),
+                  linear_id = ns("tooltip_linear")
                 ),
                 placement = "right"
               )
@@ -1555,7 +1553,7 @@ mod_02_planner_server <- function(id, r){
     })
 
 
-# change skew visual based on inputs --------------------------------------
+    # change skew visual based on inputs --------------------------------------
 
     observeEvent(
       c(input$pivot_bin,
@@ -1588,7 +1586,7 @@ mod_02_planner_server <- function(id, r){
         }
     )
 
-# Forecast performance based on capacity inputs ---------------------------
+    # Forecast performance based on capacity inputs ---------------------------
 
     observeEvent(
       c(input$calculate_performance), {
@@ -1716,7 +1714,7 @@ mod_02_planner_server <- function(id, r){
     )
 
 
-# optimising capacity based on performance inputs -------------------------
+    # optimising capacity based on performance inputs -------------------------
 
     observeEvent(
       c(input$optimise_capacity), {
@@ -2173,15 +2171,6 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$referrals_percent_change <- input$referral_growth
           r$chart_specification$referrals_change_type <- input$referral_growth_type
           r$chart_specification$scenario_type <- "Estimate capacity (from performance targets)"
-          # r$chart_specification$capacity_percent_change <- paste0(
-          #   format(
-          #     (projection_calcs$uplift - 1) * 100,
-          #     format = "f",
-          #     digits = 2,
-          #     nsmall = 1
-          #   ),
-          #   "%"
-          # )
           r$chart_specification$capacity_percent_change <- "NEEDS TO BE REVIEWED FOR MULTIPLE CHANGES IN CAPACITY"
 
           r$chart_specification$capacity_change_type <- input$optimised_capacity_growth_type
@@ -2205,5 +2194,3 @@ mod_02_planner_server <- function(id, r){
 
   })
 }
-
-
