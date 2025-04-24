@@ -70,7 +70,6 @@ Value <- c(params$scenario,
            paste0(params$referrals_change_type, ': ', params$referrals_percent_change, '%'),
            capacity_change,
            capacity_skew)
-Target <- 
 
 param_tab <- data.frame(Feature, Value)
 
@@ -80,39 +79,6 @@ param_tab |>
   flextable::flextable_to_rmd()
 
 
-```
-
-
-|---------------------|:---------------------------------------------------------------------------|
-| Scenario            |`r params$scenario`                                                         |
-| Change in referrals |   `r params$referrals_change_type`   `r params$referrals_percent_change` % |
-
-
-
-The following table...:
-
-```{r}
-#| label: data
-#| results: 'asis'
-#| ft.align: 'left'
-
-
-set_flextable_defaults(
-  font.size = 8,
-  background.color = "#EFEFEF"
-)
-
-
-params$waiting_list |> 
-  head(10) |> 
-  flextable::flextable() |>  
-  flextable::set_table_properties(layout = "autofit") |> 
-  flextable::set_caption(
-    caption = flextable::as_paragraph(
-      "\nTable showing....."
-    )
-  ) |> 
-  flextable::flextable_to_rmd()
 ```
 
 
