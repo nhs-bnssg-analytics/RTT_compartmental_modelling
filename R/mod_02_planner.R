@@ -1012,10 +1012,11 @@ mod_02_planner_server <- function(id, r){
           width = 1/2,
           value_box(
             title = "Latest performance",
-            value = reactive_values$latest_performance,
+            value = h5(reactive_values$latest_performance),
             showcase = shiny::icon("chart-line"),
             theme = value_box_theme(bg = "#FFB81C", fg = "#231f20"),
-            class = "border"
+            class = "border",
+            id = "latest_performance"
           )
         )
 
