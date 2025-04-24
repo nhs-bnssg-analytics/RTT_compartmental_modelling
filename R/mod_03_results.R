@@ -64,7 +64,7 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "4 Month Performance",
+        title = "18 week performance",
         p(""),
         card(
           card_body(
@@ -140,7 +140,7 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Total capacity",
+        title = "Total treatment capacity",
         p(""),
         card(
           card_body(
@@ -159,7 +159,7 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Capacity split by months waiting",
+        title = "Treatment capacity split by months waiting",
         p(""),
         card(
           card_body(
@@ -222,10 +222,10 @@ mod_03_results_server <- function(id, r){
     # reneges
     reactive_datasets$dat_ren_split <- NULL
     reactive_datasets$dat_ren_split_clicked <- NULL
-    # capacity
+    # treatment capacity
     reactive_datasets$dat_cap <- NULL
     reactive_datasets$dat_cap_clicked <- NULL
-    # capacity
+    # treatment capacity
     reactive_datasets$dat_cap_split <- NULL
     reactive_datasets$dat_cap_split_clicked <- NULL
 
@@ -382,7 +382,7 @@ mod_03_results_server <- function(id, r){
       }
     })
 
-    ## Create waiting 4 month performance plots here
+    ## Create waiting 18 week performance plots here
     output$wl_performance <- renderPlot({
 
       reactive_datasets$dat_perf <- r$waiting_list |>
@@ -399,7 +399,7 @@ mod_03_results_server <- function(id, r){
       plot_output(data = reactive_datasets$dat_perf,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
-                  p_chart = "4 month performance",
+                  p_chart = "18 week performance",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
                   p_cap_skew = r$chart_specification$capacity_skew,
@@ -589,7 +589,7 @@ mod_03_results_server <- function(id, r){
 
     }, res = 96)
 
-    # When capacity plot is clicked ------------------------------------------
+    # When treatment capacity plot is clicked ------------------------------------------
     observeEvent(
       c(input$capacity_plot_click), {
         reactive_clicks$capacity_plot_click <- TRUE
@@ -608,10 +608,10 @@ mod_03_results_server <- function(id, r){
       if (isTRUE(reactive_clicks$capacity_plot_click)) {
 
         bslib::value_box(
-          title = "Clock stop count information",
+          title = "Treatment capacity count information",
           value = value_box_text(
             x_val = reactive_datasets$dat_cap_clicked$period,
-            y_title = "Clock stops",
+            y_title = "Treatment capacity",
             y_val = reactive_datasets$dat_cap_clicked$p_var,
             y_val_type = "number"
           ),
@@ -623,7 +623,7 @@ mod_03_results_server <- function(id, r){
       }
     })
 
-    ## Create waiting list capacity plot(s)
+    ## Create waiting list treatment capacity plot(s)
     output$wl_capacity_tot <- renderPlot({
       reactive_datasets$dat_cap <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
@@ -634,7 +634,7 @@ mod_03_results_server <- function(id, r){
       plot_output(data = reactive_datasets$dat_cap,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
-                  p_chart = "total capacity",
+                  p_chart = "total treatment capacity",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
                   p_cap_skew = r$chart_specification$capacity_skew,
@@ -647,7 +647,7 @@ mod_03_results_server <- function(id, r){
 
     }, res = 96)
 
-    # When capacity plot is clicked ------------------------------------------
+    # When treatment capacity plot is clicked ------------------------------------------
     observeEvent(
       c(input$capacity_split_plot_click), {
         reactive_clicks$capacity_split_plot_click <- TRUE
@@ -667,10 +667,10 @@ mod_03_results_server <- function(id, r){
       if (isTRUE(reactive_clicks$capacity_split_plot_click)) {
 
         bslib::value_box(
-          title = "Clock stop count information",
+          title = "Treatment capacity count information",
           value = value_box_text(
             x_val = reactive_datasets$dat_cap_split_clicked$period,
-            y_title = "Clock stops",
+            y_title = "Treatment capacity",
             y_val = reactive_datasets$dat_cap_split_clicked$p_var,
             y_val_type = "number",
             facet = reactive_datasets$dat_cap_split_clicked$months_waited_id
@@ -683,7 +683,7 @@ mod_03_results_server <- function(id, r){
       }
     })
 
-    ## Create waiting list split capacity plot(s)
+    ## Create waiting list split treatment capacity plot(s)
     output$wl_capacity_split <- renderPlot({
       reactive_datasets$dat_cap_split<- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
@@ -693,7 +693,7 @@ mod_03_results_server <- function(id, r){
       plot_output(data = reactive_datasets$dat_cap_split,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
-                  p_chart = "capacity by months waiting",
+                  p_chart = "treatment capacity by months waiting",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
                   p_cap_skew = r$chart_specification$capacity_skew,
@@ -721,7 +721,7 @@ mod_03_results_server <- function(id, r){
           "Waiting list size (at end of month)" = "incompletes",
           "Unadjusted referrals" = "unadjusted_referrals",
           "Adjusted referrals" = "adjusted_referrals",
-          "Capacity skew" = "capacity_skew",
+          "Treatment capacity skew" = "capacity_skew",
           "Measure type" = "period_type",
           "Month start date" = "period"
         )

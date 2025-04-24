@@ -18,9 +18,9 @@ mod_01_introduction_ui <- function(id){
         card_body(
           p("This is a tool to help the NHS plan to manage waiting times."),
           h3("About this tool"),
-          p("This planning tool helps healthcare planners to plan resources to meet hospital waiting list targets."),
+          p("This tool helps healthcare planners to plan resources to meet hospital waiting list targets."),
 
-          p("By calibrating on historical waiting list, referral and clock stop data, this tool provides forecasts
+          p("By calibrating on historical waiting list, referral and treatment data, this tool provides forecasts
           of waiting lists and associated performance based on future projections of referrals, to help the user
           make informed decisions to improve patient care delivery and achieve NHS performance targets."),
 
@@ -59,22 +59,22 @@ mod_01_introduction_ui <- function(id){
               ),
               card_body(
                 p("Enter the forecast period and referrals projection information."),
-                p("Select the scenario type 'Enter performance (from capacity inputs)'"),
-                p("Provide the capacity information (along with skew settings)."),
+                p("Select the scenario type 'Enter performance (from treatment capacity inputs)'"),
+                p("Provide the treatment capacity information (along with skew settings)."),
                 p("Hit 'Calculate future performance'.")
               )
             ),
 
             card(
               card_header(
-                h4("2b. Optimise capacity (Scenario planner)"),
+                h4("2b. Optimise treatment capacity (Scenario planner)"),
                 class = "intro-card"
               ),
               card_body(
                 p("Enter the forecast period and referrals projection information."),
-                p("Select the scenario type 'Enter capacity (from performance inputs)'"),
+                p("Select the scenario type 'Enter treatment capacity (from performance inputs)'"),
                 p("Provide the performance information (along with skew settings)."),
-                p("Hit 'Run capacity optimisation'.")
+                p("Hit 'Optimise treatment capacity'.")
               )
             ),
 
@@ -85,9 +85,9 @@ mod_01_introduction_ui <- function(id){
               ),
               card_body(
                 p("View charts on Results tab"),
-                p("Download report on Downloads tab."),
-                p("Adjust scenario by clicking 'Use results as planning inputs'."),
-                p("Re-run steps 2a or 2b.")
+                p("Download report on Downloads tab.")#,
+                # p("Adjust scenario by clicking 'Use results as planning inputs'."),
+                # p("Re-run steps 2a or 2b.")
               )
             )
           ),
@@ -99,10 +99,9 @@ mod_01_introduction_ui <- function(id){
           The following enhancements are currently in development:"),
 
           tags$ul(
-            tags$li(tags$strong("Translate 'clock-stops' to activity:"), " Apply national analaysis of pathways data to provide an estimate of the numbers and types of activity per clock-stop."),
-            tags$li(tags$strong("Reporting:"), " Download a Word document with the information created within the tool."),
+            tags$li(tags$strong("Translate treatment capacity to activity:"), " Apply national analaysis of pathways data to provide an estimate of the numbers and types of activity per treatment."),
             tags$li(tags$strong("Post-optimisation adjustments:"), " Feed the projection data back into the scenario section to make minor, more custom adjustments."),
-            tags$li(tags$strong("Data inputs:"), " Once data are downloaded, present visualisations of the inputs."),
+            tags$li(tags$strong("Data inputs:"), " Provide visualisations of the downloaded data one the data are downloaded."),
             tags$li(tags$strong("Other:"), HTML(" View the issues backlog <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>here</a>."))
           ),
 

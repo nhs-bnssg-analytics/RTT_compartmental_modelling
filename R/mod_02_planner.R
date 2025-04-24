@@ -196,8 +196,8 @@ mod_02_planner_ui <- function(id){
             shiny::icon("info-circle"),
             shiny::HTML(
               paste0(
-                "Option 1: see the impact of <strong>providing future capacity inputs</strong> on waiting lists and performance. <br><br>",
-                "Option 2: calculate the optimal capacity to achieve a <strong>provided performance input</strong>."
+                "Option 1: see the impact of <strong>providing future treatment capacity inputs</strong> on waiting lists and performance. <br><br>",
+                "Option 2: calculate the optimal treatment capacity to achieve a <strong>provided performance input</strong>."
               )
             ),
             placement = "right"
@@ -208,8 +208,8 @@ mod_02_planner_ui <- function(id){
           label = NULL,
           choices = c(
             "Select..." = "select",
-            "Estimate performance (from capacity inputs)" = "capacity_inputs",
-            "Estimate capacity (from performance targets)" = "performance_inputs"
+            "Estimate performance (from treatment capacity inputs)" = "capacity_inputs",
+            "Estimate treatment capacity (from performance targets)" = "performance_inputs"
           ),
           multiple = FALSE
         ),
@@ -763,11 +763,18 @@ mod_02_planner_server <- function(id, r){
       # Read the file
 
       imported_data <- utils::read.csv(
-        input$fileInput$datapath
-      ) |>
-        mutate(
-          period = as.Date(.data$period)
+        input$fileInput$datapath,
+        colClasses = c(
+          period = "Date"
         )
+      ) #|>
+        # mutate(
+        #   period = case_when(
+        #     grepl("-", .data$period) ~ as.Date(.data$period),
+        #     grepl("/", .data$period) ~ as.Date(.data$period, format = "%d/%m/%Y"),
+        #     .default = NA
+        #   )
+        # )
 
       # expected fields are "period", "type", "value", "months_waited_id" but
       # lots of other checks performed
@@ -1203,7 +1210,7 @@ mod_02_planner_server <- function(id, r){
             card(
               card_header(
                 class = "bg-dark",
-                "Enter 4 month performance targets into table"
+                "Enter 18 week performance targets into table"
               ),
               card_body(
                 height = '300px',
@@ -1239,7 +1246,7 @@ mod_02_planner_server <- function(id, r){
       if (isTRUE(reactive_values$data_downloaded)) {
         bslib::input_task_button(
           id = ns("optimise_capacity"),
-          label = "Run capacity optimisation",
+          label = "Optimise treatment capacity",
           label_busy = "Forecasting...",
           type = "dark",
           class = "model_button",
@@ -1301,10 +1308,13 @@ mod_02_planner_server <- function(id, r){
         layout_columns(
           col_widths = c(3, 4),
           span(
-            "Select stock to pivot on:",
+            "Select where to pivot:",
             tooltip(
               shiny::icon("info-circle"),
-              "All skewing functions have a pivot point, which is a 'waiting stock' around which the skew occurs.",
+              paste0(
+                "All skewing functions have a pivot point, which is the number of months around which the skew occurs.",
+                "The default is the 4th month, so people waiting longer than the performance target month are treated differently from those waiting shorter than the performance target month."
+              ),
               placement = "right"
             )
           ),
@@ -1325,8 +1335,8 @@ mod_02_planner_server <- function(id, r){
               shiny::icon("info-circle"),
               shiny::HTML(
                 paste0(
-                  "Option 1: <strong>rotate</strong> the capacity utilisation around the pivot point. <br><br>",
-                  "Option 2: change the clock stop rates above the pivot point <strong>uniformly</strong>, and change the clock stop rates below the pivot point <strong>uniformly</strong> in the opposite direction."
+                  "Option 1: <strong>rotate</strong> the treatment capacity utilisation around the pivot point. <br><br>",
+                  "Option 2: change the treatment capacity rates above the pivot point <strong>uniformly</strong>, and change the treatment capacity rates below the pivot point <strong>uniformly</strong> in the opposite direction."
                 )
               ),
               placement = "right"
@@ -1375,7 +1385,7 @@ mod_02_planner_server <- function(id, r){
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Select type of capacity change:",
+              "Select type of treatment capacity change:",
               tooltip(
                 shiny::icon("info-circle"),
                 linear_uniform_tooltip(
@@ -1396,17 +1406,10 @@ mod_02_planner_server <- function(id, r){
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Select range of capacity skews:",
+              "Select range of treatment capacity skews:",
               tooltip(
                 shiny::icon("info-circle"),
-                shiny::HTML(
-                  paste0(
-                    "A skew of 1 causes the profile of clock stop rates across the number of months waiting to be unchanged from the calibration period.<br><br>",
-                    "A skew of greater than 1 will increase the clock stop rate for the longer waiters, and decrease the clock stop rate for the shorter waiters.<br><br>",
-                    "A skew of less than 1 will decrease the clock stop rate for the longer waiters, and increase the clock stop rate for the shorter waiters.<br><br>",
-                    "All skew values leave the first stock (e.g., for individuals waiting less than 1 month) unchanged from the clock stop rate calculated from the calibration period."
-                  )
-                ),
+                skew_tooltip(),
                 placement = "right"
               )
             ),
@@ -1423,14 +1426,14 @@ mod_02_planner_server <- function(id, r){
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Align capacity and referrals after performance is achieved",
+              "Align treatment capacity and referrals after performance is achieved",
               tooltip(
                 shiny::icon("info-circle"),
                 shiny::HTML(
                   paste0(
-                    "If capacity and referrals are changing at different rates, extreme future scenarios can occur, ",
-                    "for example, waiting lists can clear if capacity is growing faster than referrals.<br><br>",
-                    "This setting adjusts the capacity change to 'track' referrals once the performance target has been achieved.<br><br>",
+                    "If treatment capacity and referrals are changing at different rates, extreme future scenarios can occur, ",
+                    "for example, waiting lists can clear if treatment capacity is growing faster than referrals.<br><br>",
+                    "This setting adjusts the treatment capacity change to 'track' referrals once the performance target has been achieved.<br><br>",
                     "This has a stabilising impact on forecasts beyond the performance target date."
                   )
                 ),
@@ -1472,7 +1475,7 @@ mod_02_planner_server <- function(id, r){
         tagList(
           layout_columns(
             col_widths = c(3, 4),
-            span("Percentage change for capacity (between -20% and 20%):"),
+            span("Percentage change for treatment capacity (between -20% and 20%):"),
             numericInput(
               inputId = ns("capacity_growth"),
               label = NULL,
@@ -1485,7 +1488,7 @@ mod_02_planner_server <- function(id, r){
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Select type of capacity change:",
+              "Select type of treatment capacity change:",
               tooltip(
                 shiny::icon("info-circle"),
                 linear_uniform_tooltip(
@@ -1506,17 +1509,10 @@ mod_02_planner_server <- function(id, r){
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Enter capacity utilisation skew:",
+              "Enter treatment capacity utilisation skew:",
               tooltip(
                 shiny::icon("info-circle"),
-                shiny::HTML(
-                  paste0(
-                    "A skew of 1 causes the profile of clock stop rates across the number of months waiting to be unchanged from the calibration period.<br><br>",
-                    "A skew of greater than 1 will increase the clock stop rate for the longer waiters, and decrease the clock stop rate for the shorter waiters.<br><br>",
-                    "A skew of less than 1 will decrease the clock stop rate for the longer waiting stocks, and increase the clock stop rate for the shorter waiters.<br><br>",
-                    "All skew values leave the first stock (e.g., for individuals waiting less than 1 month) unchanged from the clock stop rate relative to the calibration period."
-                  )
-                ),
+                skew_tooltip(),
                 placement = "right"
               )
             ),
@@ -1586,7 +1582,7 @@ mod_02_planner_server <- function(id, r){
         }
     )
 
-    # Forecast performance based on capacity inputs ---------------------------
+    # Forecast performance based on treatment capacity inputs ---------------------------
 
     observeEvent(
       c(input$calculate_performance), {
@@ -1699,7 +1695,7 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$forecast_end <- max(input$forecast_date)
           r$chart_specification$referrals_percent_change <- input$referral_growth
           r$chart_specification$referrals_change_type <- input$referral_growth_type
-          r$chart_specification$scenario_type <- "Estimate performance (from capacity inputs)"
+          r$chart_specification$scenario_type <- "Estimate performance (from treatment capacity inputs)"
           r$chart_specification$capacity_percent_change <- input$capacity_growth
           r$chart_specification$capacity_change_type <- input$capacity_growth_type
           r$chart_specification$capacity_skew <- input$capacity_skew
@@ -1714,7 +1710,7 @@ mod_02_planner_server <- function(id, r){
     )
 
 
-    # optimising capacity based on performance inputs -------------------------
+    # optimising treatment capacity based on performance inputs -------------------------
 
     observeEvent(
       c(input$optimise_capacity), {
@@ -1789,7 +1785,7 @@ mod_02_planner_server <- function(id, r){
               )
             )
 
-          # start list to store the future capacity values
+          # start list to store the future treatment capacity values
           projections_capacity_to_target <- list()
           projections_capacity_to_target[[1]] <- projections_capacity |>
             pull(.data$value)
@@ -1848,7 +1844,7 @@ mod_02_planner_server <- function(id, r){
           on.exit(progress$close())
 
           progress$set(
-            message = 'Calculating capacity change based on range of skews provided',
+            message = 'Calculating treatment capacity change based on range of skews provided',
             detail = 'This may take a while...'
           )
 
@@ -1879,7 +1875,7 @@ mod_02_planner_server <- function(id, r){
             i_target_data <- target_data() |>
               dplyr::slice(i)
 
-            # create dummy value to store capacity projections to
+            # create dummy value to store treatment capacity projections to
             j <- i + 1
 
             start_date_id <- match(
@@ -1960,7 +1956,7 @@ mod_02_planner_server <- function(id, r){
                     x
                   }
                 ),
-                # add start capacity for next time period
+                # add start treatment capacity for next time period
                 !!start_capacity_tj_col := purrr::map_dbl(
                   .data$capacity_projections,
                   \(x) unlist(x) |>
@@ -2007,7 +2003,7 @@ mod_02_planner_server <- function(id, r){
             ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
 
             if (isTRUE(input$capacity_track_referrals)) {
-              # here we track referrals with capacity following target achievement
+              # here we track referrals with treatment capacity following target achievement
 
 
               # calculate the change in referrals for each period
@@ -2018,7 +2014,7 @@ mod_02_planner_server <- function(id, r){
                 )
               )
 
-              # calculate post-target capacity
+              # calculate post-target treatment capacity
               projection_calcs <- projection_calcs |>
                 mutate(
                   capacity_projections = purrr::map(
@@ -2035,7 +2031,7 @@ mod_02_planner_server <- function(id, r){
 
             } else {
 
-              # continue projecting the last capacity change required to meet
+              # continue projecting the last treatment capacity change required to meet
               # the target onwards
               projection_calcs <- projection_calcs |>
                 mutate(
@@ -2070,7 +2066,7 @@ mod_02_planner_server <- function(id, r){
                 \(x) {
                   x[[1]] <- NULL
                   x <- unlist(x) |>
-                    # make negative capacity = 0
+                    # make negative treatment capacity = 0
                     (\(x) ifelse(x < 0, 0, x))()
                 }
               ),
@@ -2106,7 +2102,7 @@ mod_02_planner_server <- function(id, r){
             unlist() |>
             unname()
 
-          # create capacity projections profile
+          # create treatment capacity projections profile
           projections_capacity <- projection_calcs |>
             dplyr::pull(.data$capacity_projections) |>
             unlist()
@@ -2170,7 +2166,7 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$forecast_end <- max(input$forecast_date)
           r$chart_specification$referrals_percent_change <- input$referral_growth
           r$chart_specification$referrals_change_type <- input$referral_growth_type
-          r$chart_specification$scenario_type <- "Estimate capacity (from performance targets)"
+          r$chart_specification$scenario_type <- "Estimate treatment capacity (from performance targets)"
           r$chart_specification$capacity_percent_change <- "NEEDS TO BE REVIEWED FOR MULTIPLE CHANGES IN CAPACITY"
 
           r$chart_specification$capacity_change_type <- input$optimised_capacity_growth_type

@@ -11,8 +11,8 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 The goal of RTTshiny is to provide an interface to a stock-and-flow
 model on NHS Referral to Treatment data, to allow planners to understand
-how changes in future clock stops can effect the waiting list size and
-knock on performance.
+how changes in future treatment capacity can effect the waiting list
+size and knock on performance.
 
 ## Run without installing
 
