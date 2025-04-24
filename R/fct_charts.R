@@ -362,3 +362,45 @@ performance_text <- function(p_target_data) {
 
   return(txt)
 }
+
+
+
+# tooltip functions -------------------------------------------------------
+
+linear_tooltip <- function() {
+  dplyr::tibble(
+    period = 1:10,
+    value = c(rep(1, 5), 2:6)
+  ) |>
+    ggplot(
+      aes(x = period,
+          y = value)
+    ) +
+    geom_line() +
+    theme_linedraw() +
+    theme(
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid = element_blank()
+    )
+}
+
+uniform_tooltip <- function() {
+  dplyr::tibble(
+    period = 1:10,
+    value = rep(3, 10)
+  ) |>
+    ggplot(
+      aes(x = period,
+          y = value)
+    ) +
+    geom_line() +
+    theme_linedraw() +
+    theme(
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid = element_blank()
+    )
+}
