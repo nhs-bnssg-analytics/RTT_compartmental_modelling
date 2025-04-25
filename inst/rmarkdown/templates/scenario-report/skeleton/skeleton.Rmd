@@ -20,9 +20,13 @@ params:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 
-source(file = paste0(here::here(),'/R/fct_charts.R'))
+# Get the path to the files in the R folder
+r_file_path_charts <- system.file("R", "fct_charts.R", package = "RTTshiny")
+r_file_path_utils <- system.file("R", "utils_general.R", package = "RTTshiny")
 
-
+# Source the R files
+source(r_file_path_charts)
+source(r_file_path_utils)
 
 ```
 
@@ -36,6 +40,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(flextable)
+library(NHSRtt)
 ```
 
 
@@ -82,6 +87,10 @@ param_tab |>
 ```
 
 
+This report was built with version `r packageVersion("RTTshiny")` of the tool.
+
+\newpage
+
 ## Referrals
 
 This chart shows the historic and projected referrals for the model run.
@@ -89,7 +98,7 @@ This chart shows the historic and projected referrals for the model run.
 ```{r}
 #| label: referrals_plot
 #| results: 'asis'
-#| fig-height: 8
+#| fig-height: 7
 #| fig-width: 12
       
       ref_dat <- params$waiting_list |>
@@ -120,7 +129,7 @@ This plot show the historic and projected capacity for the model run
 ```{r}
 #| label: capacity_plot
 #| results: 'asis'
-#| fig-height: 8
+#| fig-height: 7
 #| fig-width: 12
 
       cap_dat <-  params$waiting_list |>
@@ -144,6 +153,7 @@ This plot show the historic and projected capacity for the model run
 
 ```
 
+\newpage
 
 ## Capacity split by wait length
 
@@ -152,7 +162,7 @@ This plot show the historic and projected capacity for the model run
 ```{r}
 #| label: capacity_plot_split
 #| results: 'asis'
-#| fig-height: 8
+#| fig-height: 7
 #| fig-width: 12
 
       cap_dat_split <- params$waiting_list |>
@@ -183,7 +193,7 @@ This plot show the historic and projected reneges for the model run
 ```{r}
 #| label: renege_plot
 #| results: 'asis'
-#| fig-height: 8
+#| fig-height: 7
 #| fig-width: 12
 
       renege_dat <- params$waiting_list |>
@@ -205,6 +215,7 @@ This plot show the historic and projected reneges for the model run
 
 ```
 
+\newpage
 
 ## Reneges split by waits
 
@@ -213,7 +224,7 @@ This plot show the historic and projected reneges for the model run
 ```{r}
 #| label: renege_plot_split
 #| results: 'asis'
-#| fig-height: 8
+#| fig-height: 7
 #| fig-width: 12
 
       ren_dat_split <- params$waiting_list |>
@@ -243,7 +254,7 @@ This plot show the historic and projected total waiting list size for the model 
 ```{r}
 #| label: total_waits
 #| results: 'asis'
-#| fig-height: 8
+#| fig-height: 7
 #| fig-width: 12
 
       wl_size_dat <- params$waiting_list |>
@@ -266,6 +277,7 @@ This plot show the historic and projected total waiting list size for the model 
 
 ```
 
+\newpage
 
 ## Total waiting list by period
 
@@ -274,7 +286,7 @@ This plot show the historic and projected total waiting list size for the model 
 ```{r}
 #| label: wl_plot_split
 #| results: 'asis'
-#| fig-height: 8
+#| fig-height: 7
 #| fig-width: 12
 
       wl_size_split <- params$waiting_list |>
@@ -304,34 +316,32 @@ This plot show the historic and projected 4 month waiting list performance for t
 ```{r}
 #| label: wl_performance
 #| results: 'asis'
-#| fig-height: 8
+#| fig-height: 7
 #| fig-width: 12
-# 
-#       wl_perf_dat <- params$waiting_list |>
-#         dplyr::rename(value = "incompletes") |>
-#         dplyr::group_by(.data$period_type) |>
-#         calc_performance(
-#           target_bin = 4
-#         ) |>
-#         rename(p_var = "prop")
-# 
-# 
-#       plot_output(data = wl_perf_dat,
-#                   p_trust = params$chart_specification$trust,
-#                   p_speciality = params$chart_specification$specialty,
-#                   p_chart = "4 month performance",
-#                   p_scenario = params$chart_specification$scenario_type,
-#                   p_cap_change = params$chart_specification$capacity_percent_change,
-#                   p_cap_skew = params$chart_specification$capacity_skew,
-#                   p_cap_change_type = params$chart_specification$capacity_change_type,
-#                   p_target_data = params$chart_specification$target_data,
-#                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
-#                   p_referrals_change_type = params$chart_specification$referrals_change_type,
-#                   p_perc = T,
-#                   p_target_line = T)
+ 
+      wl_perf_dat <- params$waiting_list |>
+        dplyr::rename(value = "incompletes") |>
+        dplyr::group_by(.data$period_type) |>
+        calc_performance(
+          target_bin = 4
+        ) |>
+        rename(p_var = "prop")
+
+
+      plot_output(data = wl_perf_dat,
+                  p_trust = params$chart_specification$trust,
+                  p_speciality = params$chart_specification$specialty,
+                  p_chart = "4 month performance",
+                  p_scenario = params$chart_specification$scenario_type,
+                  p_cap_change = params$chart_specification$capacity_percent_change,
+                  p_cap_skew = params$chart_specification$capacity_skew,
+                  p_cap_change_type = params$chart_specification$capacity_change_type,
+                  p_target_data = params$chart_specification$target_data,
+                  p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = params$chart_specification$referrals_change_type,
+                  p_perc = T,
+                  p_target_line = T)
       
 ```
 
 
-
-This report was built with version `r packageVersion("RTTshiny")` of the tool.
