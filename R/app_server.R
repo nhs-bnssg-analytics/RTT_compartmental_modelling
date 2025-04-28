@@ -16,4 +16,5 @@ app_server <- function(input, output, session) {
   mod_04_downloads_server("04_downloads_1", r = r)
   mod_05_definitions_server("05_definitions_1")
   mod_06_how_tos_server("06_how_tos_1")
+  mod_07_stories_server("07_stories_1")
 }

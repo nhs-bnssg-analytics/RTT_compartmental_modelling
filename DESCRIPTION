@@ -15,6 +15,7 @@ Imports:
     config (>= 0.3.2),
     dplyr,
     DT,
+    flextable,
     ggplot2,
     ggtext,
     golem (>= 0.4.1),

@@ -366,15 +366,16 @@ performance_text <- function(p_target_data) {
 
 
 # tooltip functions -------------------------------------------------------
-
+#' @import ggplot2
+#' @importFrom rlang .data
 linear_tooltip <- function() {
   dplyr::tibble(
     period = 1:10,
     value = c(rep(1, 5), 2:6)
   ) |>
     ggplot(
-      aes(x = period,
-          y = value)
+      aes(x = .data$period,
+          y = .data$value)
     ) +
     geom_line() +
     geom_vline(
@@ -388,7 +389,7 @@ linear_tooltip <- function() {
         label = "Forecast"
       ),
       aes(
-        label = label
+        label = .data$label
       ),
       hjust = 0,
       vjust = 1.2
@@ -411,14 +412,16 @@ linear_tooltip <- function() {
     ylim(0, 8)
 }
 
+#' @import ggplot2
+#' @importFrom rlang .data
 uniform_tooltip <- function() {
   dplyr::tibble(
     period = 1:10,
     value = c(rep(1, 5), rep(4, 5))
   ) |>
     ggplot(
-      aes(x = period,
-          y = value)
+      aes(x = .data$period,
+          y = .data$value)
     ) +
     geom_line() +
     geom_vline(
@@ -432,7 +435,7 @@ uniform_tooltip <- function() {
         label = "Forecast"
       ),
       aes(
-        label = label
+        label = .data$label
       ),
       hjust = 0,
       vjust = 1.2

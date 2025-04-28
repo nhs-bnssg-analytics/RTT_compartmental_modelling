@@ -102,6 +102,11 @@ app_ui <- function(request) {
         value = "tab_how_tos",
         mod_06_how_tos_ui("06_how_tos_1")
       ),
+      nav_panel(
+        title = "Stories",
+        value = "tab_stories",
+        mod_07_stories_ui("07_stories_1")
+      ),
       nav_spacer(),
       nav_menu(
         title = "Links",
