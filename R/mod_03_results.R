@@ -35,7 +35,25 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Total capacity",
+        title = "Waiting list size by months waiting",
+        p(""),
+        card(
+          card_body(
+            plotOutput(
+          ns("wl_wait_per"),
+          click = shiny::clickOpts(
+            id = ns("wl_split_plot_click")
+          ),
+          height = "600px"
+        ),
+        uiOutput(
+          ns("value_box_container_wl_split")
+        ),
+        min_height = '60vh')
+        )
+      ),
+      nav_panel(
+        title = "18 week performance",
         p(""),
         card(
           card_body(
@@ -111,7 +129,7 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Total waiting list size",
+        title = "Total treatment capacity",
         p(""),
         card(
           card_body(
@@ -130,7 +148,7 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Waiting list size by months waiting",
+        title = "Treatment capacity split by months waiting",
         p(""),
         card(
           card_body(
@@ -222,10 +240,10 @@ mod_03_results_server <- function(id, r){
     # reneges
     reactive_datasets$dat_ren_split <- NULL
     reactive_datasets$dat_ren_split_clicked <- NULL
-    # capacity
+    # treatment capacity
     reactive_datasets$dat_cap <- NULL
     reactive_datasets$dat_cap_clicked <- NULL
-    # capacity
+    # treatment capacity
     reactive_datasets$dat_cap_split <- NULL
     reactive_datasets$dat_cap_split_clicked <- NULL
 
@@ -269,7 +287,8 @@ mod_03_results_server <- function(id, r){
     output$wl_size <- renderPlot({
       reactive_datasets$dat_size <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
-                         .by = c("period", "period_type"))
+                         .by = c("period", "period_type")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_size,
                   p_trust = r$chart_specification$trust,
@@ -327,7 +346,8 @@ mod_03_results_server <- function(id, r){
     output$wl_wait_per <- renderPlot({
 
       reactive_datasets$dat_size_split <- r$waiting_list |>
-        dplyr::mutate(p_var = .data$incompletes)
+        dplyr::mutate(p_var = .data$incompletes) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_size_split,
                   p_trust = r$chart_specification$trust,
@@ -380,7 +400,7 @@ mod_03_results_server <- function(id, r){
       }
     })
 
-    ## Create waiting 4 month performance plots here
+    ## Create waiting 18 week performance plots here
     output$wl_performance <- renderPlot({
 
       reactive_datasets$dat_perf <- r$waiting_list |>
@@ -389,13 +409,15 @@ mod_03_results_server <- function(id, r){
         calc_performance(
           target_bin = 4
         ) |>
-        rename(p_var = "prop")
+        ungroup() |>
+        rename(p_var = "prop") |>
+        extend_period_type_data()
 
 
       plot_output(data = reactive_datasets$dat_perf,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
-                  p_chart = "4 month performance",
+                  p_chart = "18 week performance",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
                   p_cap_skew = r$chart_specification$capacity_skew,
@@ -448,8 +470,9 @@ mod_03_results_server <- function(id, r){
 
       reactive_datasets$dat_ref <- r$waiting_list |>
         dplyr::filter(.data$months_waited_id == 0) |>
-        dplyr::mutate(p_var  = sum(.data$incompletes + .data$calculated_treatments),
-                      .by = c("period", "period_type"))
+        dplyr::mutate(p_var  = sum(.data$adjusted_referrals),
+                      .by = c("period", "period_type")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_ref,
                   p_trust = r$chart_specification$trust,
@@ -505,7 +528,8 @@ mod_03_results_server <- function(id, r){
 
       reactive_datasets$dat_ren <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                         .by = c("period", "period_type"))
+                         .by = c("period", "period_type")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_ren,
                   p_trust = r$chart_specification$trust,
@@ -564,7 +588,8 @@ mod_03_results_server <- function(id, r){
 
       reactive_datasets$dat_ren_split <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                         .by = c("period", "period_type", "months_waited_id"))
+                         .by = c("period", "period_type", "months_waited_id")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_ren_split,
                   p_trust = r$chart_specification$trust,
@@ -582,7 +607,7 @@ mod_03_results_server <- function(id, r){
 
     }, res = 96)
 
-    # When capacity plot is clicked ------------------------------------------
+    # When treatment capacity plot is clicked ------------------------------------------
     observeEvent(
       c(input$capacity_plot_click), {
         reactive_clicks$capacity_plot_click <- TRUE
@@ -601,10 +626,10 @@ mod_03_results_server <- function(id, r){
       if (isTRUE(reactive_clicks$capacity_plot_click)) {
 
         bslib::value_box(
-          title = "Clock stop count information",
+          title = "Treatment capacity count information",
           value = value_box_text(
             x_val = reactive_datasets$dat_cap_clicked$period,
-            y_title = "Clock stops",
+            y_title = "Treatment capacity",
             y_val = reactive_datasets$dat_cap_clicked$p_var,
             y_val_type = "number"
           ),
@@ -616,17 +641,18 @@ mod_03_results_server <- function(id, r){
       }
     })
 
-    ## Create waiting list capacity plot(s)
+    ## Create waiting list treatment capacity plot(s)
     output$wl_capacity_tot <- renderPlot({
       reactive_datasets$dat_cap <- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                         .by = c("period", "period_type"))
+                         .by = c("period", "period_type")) |>
+        extend_period_type_data()
 
 
       plot_output(data = reactive_datasets$dat_cap,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
-                  p_chart = "total capacity",
+                  p_chart = "total treatment capacity",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
                   p_cap_skew = r$chart_specification$capacity_skew,
@@ -639,7 +665,7 @@ mod_03_results_server <- function(id, r){
 
     }, res = 96)
 
-    # When capacity plot is clicked ------------------------------------------
+    # When treatment capacity plot is clicked ------------------------------------------
     observeEvent(
       c(input$capacity_split_plot_click), {
         reactive_clicks$capacity_split_plot_click <- TRUE
@@ -659,10 +685,10 @@ mod_03_results_server <- function(id, r){
       if (isTRUE(reactive_clicks$capacity_split_plot_click)) {
 
         bslib::value_box(
-          title = "Clock stop count information",
+          title = "Treatment capacity count information",
           value = value_box_text(
             x_val = reactive_datasets$dat_cap_split_clicked$period,
-            y_title = "Clock stops",
+            y_title = "Treatment capacity",
             y_val = reactive_datasets$dat_cap_split_clicked$p_var,
             y_val_type = "number",
             facet = reactive_datasets$dat_cap_split_clicked$months_waited_id
@@ -675,16 +701,17 @@ mod_03_results_server <- function(id, r){
       }
     })
 
-    ## Create waiting list split capacity plot(s)
+    ## Create waiting list split treatment capacity plot(s)
     output$wl_capacity_split <- renderPlot({
       reactive_datasets$dat_cap_split<- r$waiting_list |>
         dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                         .by = c("period", "period_type", "months_waited_id"))
+                         .by = c("period", "period_type", "months_waited_id")) |>
+        extend_period_type_data()
 
       plot_output(data = reactive_datasets$dat_cap_split,
                   p_trust = r$chart_specification$trust,
                   p_speciality = r$chart_specification$specialty,
-                  p_chart = "capacity by months waiting",
+                  p_chart = "treatment capacity by months waiting",
                   p_scenario = r$chart_specification$scenario_type,
                   p_cap_change = r$chart_specification$capacity_percent_change,
                   p_cap_skew = r$chart_specification$capacity_skew,
@@ -701,46 +728,91 @@ mod_03_results_server <- function(id, r){
 
 # DT table ----------------------------------------------------------------
 
-    output$scenario_projections <- DT::renderDT({
 
-      DT::datatable(
-        r$waiting_list,
-        filter = "top",
-        extensions = "Buttons",
-        options = list(
-          paging = TRUE,
-          pageLength = 50,
-          lengthMenu = c(25, 50, 100),
-          searching = TRUE,
-          ordering = TRUE,
-          autoWidth = TRUE,
-          dom = 'Bfrtip',
-          buttons = list(
-            list(
-              extend = 'copy',
-              title = NULL, # prevents the title of the app being included when copying the data
-              className = "dtButton",
-              text = "Copy table to clipboard"
-            ),
-            list(
-              extend = 'csv',
-              className = 'dtButton',
-              text = "Download table to csv"
+      output$scenario_projections <- DT::renderDT({
+
+        new_col_names <- c(
+          "Period ID" = "period_id",
+          "Months waited (lower)" = "months_waited_id",
+          "Calculated treatment capacity" = "calculated_treatments",
+          Reneges = "reneges",
+          "Waiting list size (at end of month)" = "incompletes",
+          "Unadjusted referrals" = "unadjusted_referrals",
+          "Adjusted referrals" = "adjusted_referrals",
+          "Treatment capacity skew" = "capacity_skew",
+          "Measure type" = "period_type",
+          "Month start date" = "period"
+        )
+
+        if (is.null(r$waiting_list)) {
+          dplyr::tibble(
+            period_id = NA,
+            months_waited_id = NA,
+            calculated_treatments = NA,
+            reneges = NA,
+            incompletes = NA,
+            unadjusted_referrals = NA,
+            adjusted_referrals = NA,
+            capacity_skew = NA,
+            period_type = NA,
+            period = NA
+          ) |>
+            DT::datatable(
+              colnames = new_col_names,
+              rownames = FALSE,
+              caption = "Please return to the Scenario tab to create some modelled data",
+              options = list(
+                dom = 't', # 't' means show only the table, no other elements
+                paging = FALSE, # Disable pagination
+                searching = FALSE, # Disable search box
+                info = FALSE # Remove "Showing X of Y entries" text
+              )
             )
-          )
-        )
-      ) |>
-        DT::formatRound(
-          columns = c(
-            "calculated_treatments",
-            "reneges",
-            "incompletes",
-            "unadjusted_referrals"
-          ),
-          digits = 1
-        )
-    },
-    server = FALSE)
+        } else {
+
+
+          DT::datatable(
+            r$waiting_list,
+            filter = "top",
+            extensions = "Buttons",
+            options = list(
+              paging = TRUE,
+              pageLength = 50,
+              lengthMenu = c(25, 50, 100),
+              searching = TRUE,
+              ordering = TRUE,
+              autoWidth = TRUE,
+              dom = 'Bfrtip',
+              buttons = list(
+                list(
+                  extend = 'copy',
+                  title = NULL, # prevents the title of the app being included when copying the data
+                  className = "dtButton",
+                  text = "Copy table to clipboard"
+                ),
+                list(
+                  extend = 'csv',
+                  className = 'dtButton',
+                  text = "Download table to csv"
+                )
+              )
+            ),
+            colnames = new_col_names,
+            rownames = FALSE
+          ) |>
+            DT::formatRound(
+              columns = c(
+                "Calculated treatment capacity",
+                "Reneges",
+                "Waiting list size (at end of month)",
+                "Unadjusted referrals",
+                "Adjusted referrals"
+              ),
+              digits = 1
+            )
+        }
+      },
+      server = FALSE)
   })
 }
 

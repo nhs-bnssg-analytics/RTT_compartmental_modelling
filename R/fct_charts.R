@@ -82,13 +82,13 @@ plot_output <- function(data,
     theme_minimal() +
     xlab(NULL)
 
-  if (p_scenario == "Estimate performance (from capacity inputs)") {
+  if (p_scenario == "Estimate performance (from treatment capacity inputs)") {
     p <- p +
       labs(
         title = paste0("<b>", p_trust, "</b> : ", p_speciality),
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>", p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
-          "<br>Performance based on a ", p_cap_change_type, " capacity change of ", p_cap_change, "% with a utilisation skew factor of ", p_cap_skew,
+          "<br>Performance based on a ", p_cap_change_type, " treatment capacity change of ", p_cap_change, "% with a utilisation skew factor of ", p_cap_skew,
           "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "% </span>"
         ),
         caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ", format(Sys.Date(), "%d/%m/%Y"))
@@ -97,7 +97,7 @@ plot_output <- function(data,
         plot.title = ggtext::element_markdown(),
         plot.subtitle = ggtext::element_markdown()
       )
-  } else if (p_target_line == F & p_scenario == 'Estimate capacity (from performance targets)') {
+  } else if (p_target_line == F & p_scenario == 'Estimate treatment capacity (from performance targets)') {
 
     txt <- performance_text(p_target_data)
 
@@ -107,7 +107,7 @@ plot_output <- function(data,
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
           p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
-          "<br>Optimised capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a target of ", txt, " of patients seen within 4 months",
+          "<br>Optimised treatment capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a target of ", txt, " of patients seen within 18 weeks",
           "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
         ),
         caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
@@ -126,7 +126,7 @@ plot_output <- function(data,
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
           p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
-          "<br>Optimised capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a <span style='color:red'>**target**</span> of ", txt, " of patients seen within 4 months",
+          "<br>Optimised treatment capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a <span style='color:red'>**target**</span> of ", txt, " of patients seen within 18 weeks",
           "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
         ),
         caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
@@ -162,7 +162,7 @@ plot_output <- function(data,
                    date_labels = "%b %y")
   }
 
-  if (p_target_line == T & p_scenario == 'Estimate capacity (from performance targets)') {
+  if (p_target_line == T & p_scenario == 'Estimate treatment capacity (from performance targets)') {
     p <- p +
       geom_hline(
         data = p_target_data,
@@ -179,6 +179,10 @@ plot_output <- function(data,
 
 
 plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
+
+  if (is.null(params)) {
+    return(ggplot())
+  }
 
   original <- params |>
     dplyr::select(
@@ -244,7 +248,7 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
         y = .data$capacity_param
       )
     ) +
-    geom_line(
+    geom_step(
       aes(
         group = .data$scenario,
         colour = .data$scenario
@@ -256,11 +260,36 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
       values = col_palette
     ) +
     labs(
-      x = "Stock (# mnths waited)",
-      y = "Clock stop rate"
+      x = "Number of months waited",
+      y = "Treatment capacity rate"
     )
 
   return(p_skews)
+}
+
+#' geom_step in the charts do not display the final observed or projected months
+#' well because the stepped line terminates at the start of the month. This
+#' function adds an artificial month onto the observed and projected
+#' period_types so they are displayed better on the visualisations
+#' @param plot_data tibble containing the columns period and period_type (which
+#'   contains values "Observed" and "Projected")
+#' @importFrom dplyr filter mutate bind_rows
+extend_period_type_data <- function(plot_data) {
+  additional_month <- plot_data |>
+    filter(
+      .data$period == max(.data$period),
+      .by = "period_type"
+    ) |>
+    mutate(
+      period = .data$period %m+% months(1)
+    )
+
+  plot_data <- plot_data |>
+    bind_rows(
+      additional_month
+    )
+
+  return(plot_data)
 }
 
 #' function to return the data behind where the user has clicked
@@ -280,6 +309,14 @@ click_info <- function(data, click_x, facet = NULL) {
     dplyr::filter(
       x_val - .data$period == min(x_val - .data$period)
     )
+
+  if (nrow(nearest_idx) > 1) {
+    # this will only occur for the first period after the observed data finishes
+    # because it is artificially extended so it is displayed better on the
+    # charts
+    nearest_idx <- nearest_idx |>
+      filter(.data$period_type == "Projected")
+  }
 
   if (!is.null(facet)) {
     nearest_idx <- nearest_idx |>
@@ -324,4 +361,137 @@ performance_text <- function(p_target_data) {
   txt <- p_out
 
   return(txt)
+}
+
+
+
+# tooltip functions -------------------------------------------------------
+#' @import ggplot2
+#' @importFrom rlang .data
+linear_tooltip <- function() {
+  dplyr::tibble(
+    period = 1:10,
+    value = c(rep(1, 5), 2:6)
+  ) |>
+    ggplot(
+      aes(x = .data$period,
+          y = .data$value)
+    ) +
+    geom_line() +
+    geom_vline(
+      xintercept = 5.5,
+      linetype = "dashed"
+    ) +
+    geom_text(
+      data = dplyr::tibble(
+        period = 6,
+        value = Inf,
+        label = "Forecast"
+      ),
+      aes(
+        label = .data$label
+      ),
+      hjust = 0,
+      vjust = 1.2
+    ) +
+    theme_linedraw() +
+    theme(
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid = element_blank(),
+      panel.background = element_rect(
+        fill = "#FAE100",
+        colour= "#FAE100"
+      ),
+      plot.background = element_rect(
+        fill = "#FAE100",
+        colour= "#FAE100"
+      )
+    ) +
+    ylim(0, 8)
+}
+
+#' @import ggplot2
+#' @importFrom rlang .data
+uniform_tooltip <- function() {
+  dplyr::tibble(
+    period = 1:10,
+    value = c(rep(1, 5), rep(4, 5))
+  ) |>
+    ggplot(
+      aes(x = .data$period,
+          y = .data$value)
+    ) +
+    geom_line() +
+    geom_vline(
+      xintercept = 5.5,
+      linetype = "dashed"
+    ) +
+    geom_text(
+      data = dplyr::tibble(
+        period = 6,
+        value = Inf,
+        label = "Forecast"
+      ),
+      aes(
+        label = .data$label
+      ),
+      hjust = 0,
+      vjust = 1.2
+    ) +
+    theme_linedraw() +
+    theme(
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid = element_blank(),
+      panel.background = element_rect(
+        fill = "#FAE100",
+        colour= "#FAE100"
+      ),
+      plot.background = element_rect(
+        fill = "#FAE100",
+        colour= "#FAE100"
+      )
+    ) +
+    ylim(0, 8)
+}
+
+
+linear_uniform_tooltip <- function(uniform_id, linear_id) {
+
+  div(
+    shiny::HTML(
+      paste0(
+        "<strong>Uniform:</strong> ",
+        "Treatment capacity/referral change occurs in first month and remains flat for the whole 'Forecast horizon' period.<br><br>"
+      )
+    ),
+    plotOutput(
+      outputId = uniform_id,
+      height = "75px"
+    ),
+    shiny::HTML(
+      paste0(
+        "<strong>Linear:</strong> ",
+        "The first month of the 'Forecast horizon' period is estimated from the historic data, and then treatment capacity/referral is changed linearly until the end of the 'Forecast horizon'."
+      )
+    ),
+    plotOutput(
+      outputId = linear_id,
+      height = "75px"
+    )
+  )
+}
+
+skew_tooltip <- function() {
+  shiny::HTML(
+    paste0(
+      "A skew of 1 causes the profile of treatment capacity rates across the number of months waiting to be unchanged from the calibration period.<br><br>",
+      "A skew of greater than 1 will increase the treatment capacity rate for the longer waiters, and decrease the treatment capacity rate for the shorter waiters.<br><br>",
+      "A skew of less than 1 will decrease the treatment capacity rate for the longer waiters, and increase the treatment capacity rate for the shorter waiters.<br><br>",
+      "All skew values leave the treatment capacity rates for individuals waiting less than 1 month unchanged from the treatment capacity rate calculated from the calibration period."
+    )
+  )
 }

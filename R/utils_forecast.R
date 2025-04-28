@@ -134,7 +134,7 @@ calculate_t1_value <- function(monthly_rtt) {
         pval <= 0.05 ~ as.numeric(.data$lm_val),
         .default = .data$mean_val
       ),
-      # capacity can't be less than zero, so it is fixed to zero if so
+      # treatment capacity can't be less than zero, so it is fixed to zero if so
       t_1_val = case_when(
         .data$t_1_val < 0 ~ 0,
         .default = .data$t_1_val
