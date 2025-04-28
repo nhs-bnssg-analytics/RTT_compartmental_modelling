@@ -59,6 +59,12 @@ plot_output <- function(data,
                         p_perc,
                         p_facet = F,
                         p_target_line = F) {
+
+  if (is.null(data)) {
+    p <- ggplot()
+    return(p)
+  }
+
   p <- ggplot2::ggplot() +
     geom_step(
       data = dplyr::filter(data, .data$period_type == "Observed"),
@@ -177,6 +183,10 @@ plot_output <- function(data,
   p
 }
 
+
+holding_chart <- function() {
+  ggplot()
+}
 
 plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
 
@@ -379,7 +389,7 @@ linear_tooltip <- function() {
     ) +
     geom_line() +
     geom_vline(
-      xintercept = 5.5,
+      xintercept = 5,
       linetype = "dashed"
     ) +
     geom_text(
@@ -416,8 +426,8 @@ linear_tooltip <- function() {
 #' @importFrom rlang .data
 uniform_tooltip <- function() {
   dplyr::tibble(
-    period = 1:10,
-    value = c(rep(1, 5), rep(4, 5))
+    period = c(1:5, 5:10),
+    value = c(rep(1, 5), rep(4, 6))
   ) |>
     ggplot(
       aes(x = .data$period,
@@ -425,7 +435,7 @@ uniform_tooltip <- function() {
     ) +
     geom_line() +
     geom_vline(
-      xintercept = 5.5,
+      xintercept = 5,
       linetype = "dashed"
     ) +
     geom_text(

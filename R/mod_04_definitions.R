@@ -7,7 +7,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
-mod_05_definitions_ui <- function(id){
+mod_04_definitions_ui <- function(id){
   ns <- NS(id)
 
   definitions <- list(
@@ -55,7 +55,7 @@ mod_05_definitions_ui <- function(id){
 #' 05_definitions Server Functions
 #'
 #' @noRd
-mod_05_definitions_server <- function(id){
+mod_04_definitions_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 

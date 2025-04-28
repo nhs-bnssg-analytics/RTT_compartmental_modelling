@@ -11,14 +11,12 @@
 mod_01_introduction_ui <- function(id){
   ns <- NS(id)
   page_fillable(
-    # theme = bs_theme(bootswatch = thm),
     layout_columns(
       col_widths = c(12),
       card(
         card_body(
-          p("This is a tool to help the NHS plan to manage waiting times."),
           h3("About this tool"),
-          p("This tool helps healthcare planners to plan resources to meet hospital waiting list targets."),
+          p("This is a tool to help the NHS plan to manage waiting lists and waiting times."),
 
           p("By calibrating on historical waiting list, referral and treatment data, this tool provides forecasts
           of waiting lists and associated performance based on future projections of referrals, to help the user

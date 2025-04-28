@@ -87,27 +87,22 @@ app_ui <- function(request) {
         value = "tab_results",
         mod_03_results_ui("03_results_1")
       ),
-      nav_panel(
-        title = "Downloads",
-        value = "tab_download",
-        mod_04_downloads_ui("04_downloads_1")
-      ),
+      nav_spacer(),
       nav_panel(
         title = "Definitions",
         value = "tab_definitions",
-        mod_05_definitions_ui("05_definitions_1")
+        mod_04_definitions_ui("04_definitions_1")
       ),
       nav_panel(
-        title = "How tos",
-        value = "tab_how_tos",
-        mod_06_how_tos_ui("06_how_tos_1")
+        title = "Tutorials",
+        value = "tab_tutorials",
+        mod_05_tutorials_ui("05_tutorials_1")
       ),
       nav_panel(
-        title = "Stories",
-        value = "tab_stories",
-        mod_07_stories_ui("07_stories_1")
+        title = "Acknowledgements",
+        value = "tab_acknowledgements",
+        mod_06_acknowledgements_ui("06_acknowledgements_1")
       ),
-      nav_spacer(),
       nav_menu(
         title = "Links",
         nav_item(github_shiny),

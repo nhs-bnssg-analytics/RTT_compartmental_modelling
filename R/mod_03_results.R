@@ -13,6 +13,7 @@
 #' @importFrom tidyr pivot_wider
 mod_03_results_ui <- function(id){
   ns <- NS(id)
+
   tagList(
     navset_tab(
       nav_panel(
@@ -35,25 +36,7 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Waiting list size by months waiting",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-          ns("wl_wait_per"),
-          click = shiny::clickOpts(
-            id = ns("wl_split_plot_click")
-          ),
-          height = "600px"
-        ),
-        uiOutput(
-          ns("value_box_container_wl_split")
-        ),
-        min_height = '60vh')
-        )
-      ),
-      nav_panel(
-        title = "18 week performance",
+        title = "Total treatment capacity",
         p(""),
         card(
           card_body(
@@ -72,7 +55,7 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Capacity split by months waiting",
+        title = "Treatment capacity split by months waiting",
         p(""),
         card(
           card_body(
@@ -86,8 +69,7 @@ mod_03_results_ui <- function(id){
             uiOutput(
               ns("value_box_container_cap_split")
             ),
-            min_height = '60vh'
-          )
+            min_height = '60vh')
         )
       ),
       nav_panel(
@@ -129,7 +111,7 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Total treatment capacity",
+        title = "Total waiting list size",
         p(""),
         card(
           card_body(
@@ -148,25 +130,25 @@ mod_03_results_ui <- function(id){
         )
       ),
       nav_panel(
-        title = "Treatment capacity split by months waiting",
+        title = "Waiting list size by months waiting",
         p(""),
         card(
           card_body(
             plotOutput(
-              ns("wl_wait_per"),
-              click = shiny::clickOpts(
-                id = ns("wl_split_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_wl_split")
-            ),
-            min_height = '60vh')
+          ns("wl_wait_per"),
+          click = shiny::clickOpts(
+            id = ns("wl_split_plot_click")
+          ),
+          height = "600px"
+        ),
+        uiOutput(
+          ns("value_box_container_wl_split")
+        ),
+        min_height = '60vh')
         )
       ),
       nav_panel(
-        title = "4 Month Performance",
+        title = "18 week performance",
         p(""),
         card(
           card_body(
@@ -285,24 +267,28 @@ mod_03_results_server <- function(id, r){
 
     ## Create waiting list size plot(s)
     output$wl_size <- renderPlot({
-      reactive_datasets$dat_size <- r$waiting_list |>
-        dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
-                         .by = c("period", "period_type")) |>
-        extend_period_type_data()
 
-      plot_output(data = reactive_datasets$dat_size,
-                  p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$specialty,
-                  p_chart = "waiting list size",
-                  p_scenario = r$chart_specification$scenario_type,
-                  p_cap_change = r$chart_specification$capacity_percent_change,
-                  p_cap_skew = r$chart_specification$capacity_skew,
-                  p_cap_change_type = r$chart_specification$capacity_change_type,
-                  p_target_data = r$chart_specification$target_data,
-                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                  p_referrals_change_type = r$chart_specification$referrals_change_type,
-                  p_perc = F)
+      if (is.null(r$waiting_list)) {
+        holding_chart()
+      } else {
+        reactive_datasets$dat_size <- r$waiting_list |>
+          dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
+                           .by = c("period", "period_type")) |>
+          extend_period_type_data()
 
+        plot_output(data = reactive_datasets$dat_size,
+                    p_trust = r$chart_specification$trust,
+                    p_speciality = r$chart_specification$specialty,
+                    p_chart = "waiting list size",
+                    p_scenario = r$chart_specification$scenario_type,
+                    p_cap_change = r$chart_specification$capacity_percent_change,
+                    p_cap_skew = r$chart_specification$capacity_skew,
+                    p_cap_change_type = r$chart_specification$capacity_change_type,
+                    p_target_data = r$chart_specification$target_data,
+                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                    p_referrals_change_type = r$chart_specification$referrals_change_type,
+                    p_perc = F)
+      }
     }, res = 96)
 
 
@@ -344,24 +330,27 @@ mod_03_results_server <- function(id, r){
 
     ## Create waiting by split
     output$wl_wait_per <- renderPlot({
+      if (is.null(r$waiting_list)) {
+        holding_chart()
+      } else {
+        reactive_datasets$dat_size_split <- r$waiting_list |>
+          dplyr::mutate(p_var = .data$incompletes) |>
+          extend_period_type_data()
 
-      reactive_datasets$dat_size_split <- r$waiting_list |>
-        dplyr::mutate(p_var = .data$incompletes) |>
-        extend_period_type_data()
-
-      plot_output(data = reactive_datasets$dat_size_split,
-                  p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$specialty,
-                  p_chart = "numbers waiting by period",
-                  p_scenario = r$chart_specification$scenario_type,
-                  p_cap_change = r$chart_specification$capacity_percent_change,
-                  p_cap_skew = r$chart_specification$capacity_skew,
-                  p_cap_change_type = r$chart_specification$capacity_change_type,
-                  p_target_data = r$chart_specification$target_data,
-                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                  p_referrals_change_type = r$chart_specification$referrals_change_type,
-                  p_perc = F,
-                  p_facet = T)
+        plot_output(data = reactive_datasets$dat_size_split,
+                    p_trust = r$chart_specification$trust,
+                    p_speciality = r$chart_specification$specialty,
+                    p_chart = "numbers waiting by period",
+                    p_scenario = r$chart_specification$scenario_type,
+                    p_cap_change = r$chart_specification$capacity_percent_change,
+                    p_cap_skew = r$chart_specification$capacity_skew,
+                    p_cap_change_type = r$chart_specification$capacity_change_type,
+                    p_target_data = r$chart_specification$target_data,
+                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                    p_referrals_change_type = r$chart_specification$referrals_change_type,
+                    p_perc = F,
+                    p_facet = T)
+      }
 
     }, res = 96)
 
@@ -402,31 +391,34 @@ mod_03_results_server <- function(id, r){
 
     ## Create waiting 18 week performance plots here
     output$wl_performance <- renderPlot({
+      if (is.null(r$waiting_list)) {
+        holding_chart()
+      } else {
+        reactive_datasets$dat_perf <- r$waiting_list |>
+          dplyr::rename(value = "incompletes") |>
+          dplyr::group_by(.data$period_type) |>
+          calc_performance(
+            target_bin = 4
+          ) |>
+          ungroup() |>
+          rename(p_var = "prop") |>
+          extend_period_type_data()
 
-      reactive_datasets$dat_perf <- r$waiting_list |>
-        dplyr::rename(value = "incompletes") |>
-        dplyr::group_by(.data$period_type) |>
-        calc_performance(
-          target_bin = 4
-        ) |>
-        ungroup() |>
-        rename(p_var = "prop") |>
-        extend_period_type_data()
 
-
-      plot_output(data = reactive_datasets$dat_perf,
-                  p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$specialty,
-                  p_chart = "18 week performance",
-                  p_scenario = r$chart_specification$scenario_type,
-                  p_cap_change = r$chart_specification$capacity_percent_change,
-                  p_cap_skew = r$chart_specification$capacity_skew,
-                  p_cap_change_type = r$chart_specification$capacity_change_type,
-                  p_target_data = r$chart_specification$target_data,
-                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                  p_referrals_change_type = r$chart_specification$referrals_change_type,
-                  p_perc = T,
-                  p_target_line = T)
+        plot_output(data = reactive_datasets$dat_perf,
+                    p_trust = r$chart_specification$trust,
+                    p_speciality = r$chart_specification$specialty,
+                    p_chart = "18 week performance",
+                    p_scenario = r$chart_specification$scenario_type,
+                    p_cap_change = r$chart_specification$capacity_percent_change,
+                    p_cap_skew = r$chart_specification$capacity_skew,
+                    p_cap_change_type = r$chart_specification$capacity_change_type,
+                    p_target_data = r$chart_specification$target_data,
+                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                    p_referrals_change_type = r$chart_specification$referrals_change_type,
+                    p_perc = T,
+                    p_target_line = T)
+      }
 
     }, res = 96)
 
@@ -468,24 +460,28 @@ mod_03_results_server <- function(id, r){
     ## Create referrals plots
     output$wl_referrals <- renderPlot({
 
-      reactive_datasets$dat_ref <- r$waiting_list |>
-        dplyr::filter(.data$months_waited_id == 0) |>
-        dplyr::mutate(p_var  = sum(.data$adjusted_referrals),
-                      .by = c("period", "period_type")) |>
-        extend_period_type_data()
+      if (is.null(r$waiting_list)) {
+        holding_chart()
+      } else {
+        reactive_datasets$dat_ref <- r$waiting_list |>
+          dplyr::filter(.data$months_waited_id == 0) |>
+          dplyr::mutate(p_var  = sum(.data$adjusted_referrals),
+                        .by = c("period", "period_type")) |>
+          extend_period_type_data()
 
-      plot_output(data = reactive_datasets$dat_ref,
-                  p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$specialty,
-                  p_chart = "referrals",
-                  p_scenario = r$chart_specification$scenario_type,
-                  p_cap_change = r$chart_specification$capacity_percent_change,
-                  p_cap_skew = r$chart_specification$capacity_skew,
-                  p_cap_change_type = r$chart_specification$capacity_change_type,
-                  p_target_data = r$chart_specification$target_data,
-                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                  p_referrals_change_type = r$chart_specification$referrals_change_type,
-                  p_perc = F)
+        plot_output(data = reactive_datasets$dat_ref,
+                    p_trust = r$chart_specification$trust,
+                    p_speciality = r$chart_specification$specialty,
+                    p_chart = "referrals",
+                    p_scenario = r$chart_specification$scenario_type,
+                    p_cap_change = r$chart_specification$capacity_percent_change,
+                    p_cap_skew = r$chart_specification$capacity_skew,
+                    p_cap_change_type = r$chart_specification$capacity_change_type,
+                    p_target_data = r$chart_specification$target_data,
+                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                    p_referrals_change_type = r$chart_specification$referrals_change_type,
+                    p_perc = F)
+      }
 
     }, res = 96)
 
@@ -526,23 +522,27 @@ mod_03_results_server <- function(id, r){
     ## Create reneging plots - total
     output$wl_reneging_plot_total <- renderPlot({
 
-      reactive_datasets$dat_ren <- r$waiting_list |>
-        dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                         .by = c("period", "period_type")) |>
-        extend_period_type_data()
+      if (is.null(r$waiting_list)) {
+        holding_chart()
+      } else {
+        reactive_datasets$dat_ren <- r$waiting_list |>
+          dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
+                           .by = c("period", "period_type")) |>
+          extend_period_type_data()
 
-      plot_output(data = reactive_datasets$dat_ren,
-                  p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$specialty,
-                  p_chart = "total net reneges",
-                  p_scenario = r$chart_specification$scenario_type,
-                  p_cap_change = r$chart_specification$capacity_percent_change,
-                  p_cap_skew = r$chart_specification$capacity_skew,
-                  p_cap_change_type = r$chart_specification$capacity_change_type,
-                  p_target_data = r$chart_specification$target_data,
-                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                  p_referrals_change_type = r$chart_specification$referrals_change_type,
-                  p_perc = F)
+        plot_output(data = reactive_datasets$dat_ren,
+                    p_trust = r$chart_specification$trust,
+                    p_speciality = r$chart_specification$specialty,
+                    p_chart = "total net reneges",
+                    p_scenario = r$chart_specification$scenario_type,
+                    p_cap_change = r$chart_specification$capacity_percent_change,
+                    p_cap_skew = r$chart_specification$capacity_skew,
+                    p_cap_change_type = r$chart_specification$capacity_change_type,
+                    p_target_data = r$chart_specification$target_data,
+                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                    p_referrals_change_type = r$chart_specification$referrals_change_type,
+                    p_perc = F)
+      }
 
 
     }, res = 96)
@@ -586,24 +586,29 @@ mod_03_results_server <- function(id, r){
     ## Create reneging plots - split
     output$wl_reneging_plot_split <- renderPlot({
 
-      reactive_datasets$dat_ren_split <- r$waiting_list |>
-        dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                         .by = c("period", "period_type", "months_waited_id")) |>
-        extend_period_type_data()
+      if (is.null(r$waiting_list)) {
+        holding_chart()
+      } else {
 
-      plot_output(data = reactive_datasets$dat_ren_split,
-                  p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$specialty,
-                  p_chart = "net reneges by months waiting",
-                  p_scenario = r$chart_specification$scenario_type,
-                  p_cap_change = r$chart_specification$capacity_percent_change,
-                  p_cap_skew = r$chart_specification$capacity_skew,
-                  p_cap_change_type = r$chart_specification$capacity_change_type,
-                  p_target_data = r$chart_specification$target_data,
-                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                  p_referrals_change_type = r$chart_specification$referrals_change_type,
-                  p_perc = F,
-                  p_facet = T)
+        reactive_datasets$dat_ren_split <- r$waiting_list |>
+          dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
+                           .by = c("period", "period_type", "months_waited_id")) |>
+          extend_period_type_data()
+
+        plot_output(data = reactive_datasets$dat_ren_split,
+                    p_trust = r$chart_specification$trust,
+                    p_speciality = r$chart_specification$specialty,
+                    p_chart = "net reneges by months waiting",
+                    p_scenario = r$chart_specification$scenario_type,
+                    p_cap_change = r$chart_specification$capacity_percent_change,
+                    p_cap_skew = r$chart_specification$capacity_skew,
+                    p_cap_change_type = r$chart_specification$capacity_change_type,
+                    p_target_data = r$chart_specification$target_data,
+                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                    p_referrals_change_type = r$chart_specification$referrals_change_type,
+                    p_perc = F,
+                    p_facet = T)
+      }
 
     }, res = 96)
 
@@ -643,25 +648,30 @@ mod_03_results_server <- function(id, r){
 
     ## Create waiting list treatment capacity plot(s)
     output$wl_capacity_tot <- renderPlot({
-      reactive_datasets$dat_cap <- r$waiting_list |>
-        dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                         .by = c("period", "period_type")) |>
-        extend_period_type_data()
+
+      if (is.null(r$waiting_list)) {
+        holding_chart()
+      } else {
+        reactive_datasets$dat_cap <- r$waiting_list |>
+          dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
+                           .by = c("period", "period_type")) |>
+          extend_period_type_data()
 
 
-      plot_output(data = reactive_datasets$dat_cap,
-                  p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$specialty,
-                  p_chart = "total treatment capacity",
-                  p_scenario = r$chart_specification$scenario_type,
-                  p_cap_change = r$chart_specification$capacity_percent_change,
-                  p_cap_skew = r$chart_specification$capacity_skew,
-                  p_cap_change_type = r$chart_specification$capacity_change_type,
-                  p_target_data = r$chart_specification$target_data,
-                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                  p_referrals_change_type = r$chart_specification$referrals_change_type,
-                  p_perc = F,
-                  p_facet = F)
+        plot_output(data = reactive_datasets$dat_cap,
+                    p_trust = r$chart_specification$trust,
+                    p_speciality = r$chart_specification$specialty,
+                    p_chart = "total treatment capacity",
+                    p_scenario = r$chart_specification$scenario_type,
+                    p_cap_change = r$chart_specification$capacity_percent_change,
+                    p_cap_skew = r$chart_specification$capacity_skew,
+                    p_cap_change_type = r$chart_specification$capacity_change_type,
+                    p_target_data = r$chart_specification$target_data,
+                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                    p_referrals_change_type = r$chart_specification$referrals_change_type,
+                    p_perc = F,
+                    p_facet = F)
+      }
 
     }, res = 96)
 
@@ -703,24 +713,30 @@ mod_03_results_server <- function(id, r){
 
     ## Create waiting list split treatment capacity plot(s)
     output$wl_capacity_split <- renderPlot({
-      reactive_datasets$dat_cap_split<- r$waiting_list |>
-        dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                         .by = c("period", "period_type", "months_waited_id")) |>
-        extend_period_type_data()
 
-      plot_output(data = reactive_datasets$dat_cap_split,
-                  p_trust = r$chart_specification$trust,
-                  p_speciality = r$chart_specification$specialty,
-                  p_chart = "treatment capacity by months waiting",
-                  p_scenario = r$chart_specification$scenario_type,
-                  p_cap_change = r$chart_specification$capacity_percent_change,
-                  p_cap_skew = r$chart_specification$capacity_skew,
-                  p_cap_change_type = r$chart_specification$capacity_change_type,
-                  p_target_data = r$chart_specification$target_data,
-                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                  p_referrals_change_type = r$chart_specification$referrals_change_type,
-                  p_perc = F,
-                  p_facet = T)
+      if (is.null(r$waiting_list)) {
+        holding_chart()
+      } else {
+
+        reactive_datasets$dat_cap_split<- r$waiting_list |>
+          dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
+                           .by = c("period", "period_type", "months_waited_id")) |>
+          extend_period_type_data()
+
+        plot_output(data = reactive_datasets$dat_cap_split,
+                    p_trust = r$chart_specification$trust,
+                    p_speciality = r$chart_specification$specialty,
+                    p_chart = "treatment capacity by months waiting",
+                    p_scenario = r$chart_specification$scenario_type,
+                    p_cap_change = r$chart_specification$capacity_percent_change,
+                    p_cap_skew = r$chart_specification$capacity_skew,
+                    p_cap_change_type = r$chart_specification$capacity_change_type,
+                    p_target_data = r$chart_specification$target_data,
+                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                    p_referrals_change_type = r$chart_specification$referrals_change_type,
+                    p_perc = F,
+                    p_facet = T)
+      }
 
     }, res = 96)
 
