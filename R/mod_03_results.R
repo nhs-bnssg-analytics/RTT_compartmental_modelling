@@ -6,176 +6,74 @@
 #'
 #' @noRd
 #'
-#' @importFrom shiny NS tagList clickOpts
+#' @importFrom shiny NS tagList clickOpts uiOutput p actionButton plotOutput clickOpts
 #' @importFrom DT DTOutput
-#' @importFrom bslib navset_tab nav_panel card card_body
+#' @importFrom bslib navset_tab nav_panel card card_body page_sidebar
+#'   layout_column_wrap
 #' @importFrom dplyr if_else
 #' @importFrom tidyr pivot_wider
 mod_03_results_ui <- function(id){
   ns <- NS(id)
 
-  tagList(
-    navset_tab(
-      nav_panel(
-        title = "Referrals",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-              ns("wl_referrals"),
-              click = shiny::clickOpts(
-                id = ns("referrals_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_ref")
-            ),
-            min_height = '60vh'
-          )
-        )
+  page_sidebar(
+    sidebar = sidebar(
+      actionButton(
+        inputId = ns("btn_referrals"),
+        label = "Referrals"
       ),
-      nav_panel(
-        title = "Total treatment capacity",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-              ns("wl_capacity_tot"),
-              click = shiny::clickOpts(
-                id = ns("capacity_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_cap")
-            ),
-            min_height = '60vh'
-          )
-        )
+      p("Treatment capacity"),
+      actionButton(
+        inputId = ns("btn_capacity_ttl"),
+        label = "Total"
       ),
-      nav_panel(
-        title = "Treatment capacity split by months waiting",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-              ns("wl_capacity_split"),
-              click = shiny::clickOpts(
-                id = ns("capacity_split_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_cap_split")
-            ),
-            min_height = '60vh')
-        )
+      actionButton(
+        inputId = ns("btn_capacity_mnth"),
+        label = "Distribution"
       ),
-      nav_panel(
-        title = "Net total reneges",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-              ns("wl_reneging_plot_total"),
-              click = shiny::clickOpts(
-                id = ns("reneges_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_ren")
-            ),
-            min_height = '60vh'
-          )
-        )
+      p("Reneges"),
+      actionButton(
+        inputId = ns("btn_reneges_ttl"),
+        label = "Total"
       ),
-      nav_panel(
-        title = "Number of reneges by month waiting",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-              ns("wl_reneging_plot_split"),
-              click = shiny::clickOpts(
-                id = ns("reneges_split_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_ren_split")
-            ),
-            min_height = '60vh'
-          )
-        )
+      actionButton(
+        inputId = ns("btn_reneges_mnth"),
+        label = "Distribution"
       ),
-      nav_panel(
-        title = "Total waiting list size",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-              ns("wl_size"),
-              click = shiny::clickOpts(
-                id = ns("wl_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_wl")
-            ),
-            min_height = '60vh'
-          )
-        )
+      p("Waiting list size"),
+      actionButton(
+        inputId = ns("btn_waiting_list_ttl"),
+        label = "Total"
       ),
-      nav_panel(
-        title = "Waiting list size by months waiting",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-          ns("wl_wait_per"),
+      actionButton(
+        inputId = ns("btn_waiting_list_mnth"),
+        label = "Distribution"
+      ),
+      actionButton(
+        inputId = ns("btn_performance"),
+        label = "18 week performance"
+      ),
+      actionButton(
+        inputId = ns("btn_data"),
+        label = "Data table"
+      ),
+      uiOutput(ns("btn_report_ui"))
+    ),
+    card(
+      card_body(
+        plotOutput(
+          ns("results_plot"),
           click = shiny::clickOpts(
-            id = ns("wl_split_plot_click")
+            id = ns("plot_click")
           ),
           height = "600px"
         ),
-        uiOutput(
-          ns("value_box_container_wl_split")
-        ),
-        min_height = '60vh')
-        )
-      ),
-      nav_panel(
-        title = "18 week performance",
-        p(""),
-        card(
-          card_body(
-            plotOutput(
-              ns("wl_performance"),
-              click = shiny::clickOpts(
-                id = ns("performance_plot_click")
-              ),
-              height = "600px"
-            ),
-            uiOutput(
-              ns("value_box_container_perf")
-            ),
-            min_height = '60vh'
-          )
-        )
-      ),
-      nav_panel(
-        title = "Table",
-        card(
-          card_body(
-            DT::DTOutput(
-              ns("scenario_projections")
-            ),
-            min_height = '80vh'
-          )
-        )
+        min_height = '60vh'
+      )
+    ),
+    layout_column_wrap(
+      width = 1/2,
+      uiOutput(
+        ns("value_box_container")
       )
     )
   )
@@ -183,7 +81,7 @@ mod_03_results_ui <- function(id){
 
 #' 03_results Server Functions
 #' @importFrom DT renderDT formatRound datatable
-#' @importFrom dplyr group_by rename summarise
+#' @importFrom dplyr group_by rename summarise tribble
 #' @importFrom rlang .data
 #' @importFrom bslib value_box
 #' @import ggplot2
@@ -192,556 +90,320 @@ mod_03_results_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    reactive_clicks <- reactiveValues()
-    reactive_clicks$wl_plot_click <- NULL
-    reactive_clicks$performance_plot_click <- NULL
-    reactive_clicks$referrals_plot_click <- NULL
-    reactive_clicks$reneges_plot_click <- NULL
-    reactive_clicks$capacity_plot_click <- NULL
-    reactive_clicks$wl_split_plot_click <- NULL
-    reactive_clicks$reneges_split_plot_click <- NULL
-    reactive_clicks$capacity_split_plot_click <- NULL
+    reactive_data <- reactiveValues()
+    reactive_data$plot_click_info <- NULL
+    reactive_data$plot_clicked <- NULL
+    reactive_data$btn_val <- NULL
+    reactive_data$plot_data <- NULL
 
-    reactive_datasets <- reactiveValues()
+# report download ---------------------------------------------------------
 
-    # waiting list size
-    reactive_datasets$dat_size <- NULL
-    reactive_datasets$dat_size_clicked <- NULL
-    # waiting list split size
-    reactive_datasets$dat_size_split <- NULL
-    reactive_datasets$dat_size_split_clicked <- NULL
-    # performance
-    reactive_datasets$dat_perf <- NULL
-    reactive_datasets$dat_perf_clicked <- NULL
-    # referrals
-    reactive_datasets$dat_ref <- NULL
-    reactive_datasets$dat_ref_clicked <- NULL
-    # reneges
-    reactive_datasets$dat_ren <- NULL
-    reactive_datasets$dat_ren_clicked <- NULL
-    # reneges
-    reactive_datasets$dat_ren_split <- NULL
-    reactive_datasets$dat_ren_split_clicked <- NULL
-    # treatment capacity
-    reactive_datasets$dat_cap <- NULL
-    reactive_datasets$dat_cap_clicked <- NULL
-    # treatment capacity
-    reactive_datasets$dat_cap_split <- NULL
-    reactive_datasets$dat_cap_split_clicked <- NULL
+    output$btn_report_ui <- renderUI({
+      if (!is.null(r$waiting_list)) {
+        if (!requireNamespace("flextable", quietly = TRUE)) {
+          showModal(
+            modalDialog(
+              title = "flextable missing",
+              "The 'flextable' package is required to enable reporting functionality. If you would like this, please exit the app and run 'install.packages('flextable')'.",
+              easyClose = TRUE,
+              footer = NULL
+            )
+          )
+        } else {
+          downloadButton(
+            ns("btn_report"),
+            "Generate report"#,
+            # style = "width:25%;"
+          )
+        }
+      }
+    })
 
 
+    output$btn_report <- downloadHandler(
+      filename <-  "Trust planning report.docx",
+      content = function(file) {
 
-    # when WL plot is clicked -------------------------------------------------
+        tempReport <- file.path(tempdir(), "skeleton.Rmd")
 
-    observeEvent(
-      c(input$wl_plot_click), {
-        reactive_clicks$wl_plot_click <- TRUE
-
-        x_val <- as.Date(input$wl_plot_click$x)
-        reactive_datasets$dat_size_clicked <- click_info(
-          data = reactive_datasets$dat_size,
-          click_x = x_val
+        file.copy(
+          system.file("rmarkdown", "templates", "scenario-report", "skeleton", "skeleton.Rmd", package = "RTTshiny"),
+          tempReport,
+          overwrite = TRUE
+        )
+        params <- list(
+          waiting_list = r$waiting_list,
+          trust = r$chart_specification$trust,
+          specialty = r$chart_specification$specialty,
+          scenario = r$chart_specification$scenario_type,
+          cap_change = r$chart_specification$capacity_percent_change,
+          cap_skew = r$chart_specification$capacity_skew,
+          cap_change_type = r$chart_specification$capacity_change_type,
+          target_data = r$chart_specification$target_data,
+          referrals_percent_change = r$chart_specification$referrals_percent_change,
+          referrals_change_type = r$chart_specification$referrals_change_type,
+          chart_specification = r$chart_specification
+        )
+        rmarkdown::render(
+          tempReport,
+          output_file = file,
+          params = params,
+          envir = new.env(parent = globalenv())
         )
 
       }
     )
-    # Render the waiting list value box based on click data
-    output$value_box_container_wl <- renderUI({
-      if (isTRUE(reactive_clicks$wl_plot_click)) {
 
-        bslib::value_box(
-          title = "Waiting list information",
-          value = value_box_text(
-            x_val = reactive_datasets$dat_size_clicked$period,
-            y_title = "Waiting list size",
-            y_val = reactive_datasets$dat_size_clicked$p_var,
-            y_val_type = "number"
-          ),
-          showcase = shiny::icon("chart-line"),
-          theme = "purple",
-          full_screen = TRUE,
-          fill = TRUE
-        )
+# identify last clicked button --------------------------------------------
+
+    lapply(
+      X = c(
+        "referrals",
+        "capacity_ttl",
+        "capacity_mnth",
+        "reneges_ttl",
+        "reneges_mnth",
+        "waiting_list_ttl",
+        "waiting_list_mnth",
+        "performance",
+        "data",
+        "report_ui"
+      ),
+      FUN = function(i) {
+        observeEvent(input[[paste0("btn_", i)]], {
+          if (input[[paste0("btn_", i)]] > 0) {
+            reactive_data$btn_val <- paste0("btn_", i)
+          }
+          reactive_data$plot_clicked <- FALSE
+        })
       }
-    })
+    )
 
-    ## Create waiting list size plot(s)
-    output$wl_size <- renderPlot({
+# plot --------------------------------------------------------------------
 
-      if (is.null(r$waiting_list)) {
+    output$results_plot <- renderPlot({
+
+      if (is.null(r$waiting_list) | is.null(reactive_data$btn_val)) {
         holding_chart()
       } else {
-        reactive_datasets$dat_size <- r$waiting_list |>
-          dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
-                           .by = c("period", "period_type")) |>
-          extend_period_type_data()
+        if (reactive_data$btn_val == "btn_referrals") {
+          reactive_data$plot_data <- r$waiting_list |>
+            dplyr::filter(.data$months_waited_id == 0) |>
+            dplyr::mutate(p_var  = sum(.data$adjusted_referrals),
+                          .by = c("period", "period_type")) |>
+            extend_period_type_data()
 
-        plot_output(data = reactive_datasets$dat_size,
-                    p_trust = r$chart_specification$trust,
-                    p_speciality = r$chart_specification$specialty,
-                    p_chart = "waiting list size",
-                    p_scenario = r$chart_specification$scenario_type,
-                    p_cap_change = r$chart_specification$capacity_percent_change,
-                    p_cap_skew = r$chart_specification$capacity_skew,
-                    p_cap_change_type = r$chart_specification$capacity_change_type,
-                    p_target_data = r$chart_specification$target_data,
-                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                    p_referrals_change_type = r$chart_specification$referrals_change_type,
-                    p_perc = F)
+          plot_output(data = reactive_data$plot_data,
+                      p_trust = r$chart_specification$trust,
+                      p_speciality = r$chart_specification$specialty,
+                      p_chart = "referrals",
+                      p_scenario = r$chart_specification$scenario_type,
+                      p_cap_change = r$chart_specification$capacity_percent_change,
+                      p_cap_skew = r$chart_specification$capacity_skew,
+                      p_cap_change_type = r$chart_specification$capacity_change_type,
+                      p_target_data = r$chart_specification$target_data,
+                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                      p_referrals_change_type = r$chart_specification$referrals_change_type,
+                      p_perc = F)
+        } else if (reactive_data$btn_val == "btn_capacity_ttl") {
+          reactive_data$plot_data <- r$waiting_list |>
+            dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
+                             .by = c("period", "period_type")) |>
+            extend_period_type_data()
+
+
+          plot_output(data = reactive_data$plot_data,
+                      p_trust = r$chart_specification$trust,
+                      p_speciality = r$chart_specification$specialty,
+                      p_chart = "total treatment capacity",
+                      p_scenario = r$chart_specification$scenario_type,
+                      p_cap_change = r$chart_specification$capacity_percent_change,
+                      p_cap_skew = r$chart_specification$capacity_skew,
+                      p_cap_change_type = r$chart_specification$capacity_change_type,
+                      p_target_data = r$chart_specification$target_data,
+                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                      p_referrals_change_type = r$chart_specification$referrals_change_type,
+                      p_perc = F,
+                      p_facet = F)
+
+        } else if (reactive_data$btn_val == "btn_capacity_mnth") {
+          reactive_data$plot_data <- r$waiting_list |>
+            dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
+                             .by = c("period", "period_type", "months_waited_id")) |>
+            extend_period_type_data()
+
+          plot_output(data = reactive_data$plot_data,
+                      p_trust = r$chart_specification$trust,
+                      p_speciality = r$chart_specification$specialty,
+                      p_chart = "treatment capacity by months waiting",
+                      p_scenario = r$chart_specification$scenario_type,
+                      p_cap_change = r$chart_specification$capacity_percent_change,
+                      p_cap_skew = r$chart_specification$capacity_skew,
+                      p_cap_change_type = r$chart_specification$capacity_change_type,
+                      p_target_data = r$chart_specification$target_data,
+                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                      p_referrals_change_type = r$chart_specification$referrals_change_type,
+                      p_perc = F,
+                      p_facet = T)
+        } else if (reactive_data$btn_val == "btn_reneges_ttl") {
+          reactive_data$plot_data <- r$waiting_list |>
+            dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
+                             .by = c("period", "period_type")) |>
+            extend_period_type_data()
+
+          plot_output(data = reactive_data$plot_data,
+                      p_trust = r$chart_specification$trust,
+                      p_speciality = r$chart_specification$specialty,
+                      p_chart = "total net reneges",
+                      p_scenario = r$chart_specification$scenario_type,
+                      p_cap_change = r$chart_specification$capacity_percent_change,
+                      p_cap_skew = r$chart_specification$capacity_skew,
+                      p_cap_change_type = r$chart_specification$capacity_change_type,
+                      p_target_data = r$chart_specification$target_data,
+                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                      p_referrals_change_type = r$chart_specification$referrals_change_type,
+                      p_perc = F)
+        } else if (reactive_data$btn_val == "btn_reneges_mnth") {
+          reactive_data$plot_data <- r$waiting_list |>
+            dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
+                             .by = c("period", "period_type", "months_waited_id")) |>
+            extend_period_type_data()
+
+          plot_output(data = reactive_data$plot_data,
+                      p_trust = r$chart_specification$trust,
+                      p_speciality = r$chart_specification$specialty,
+                      p_chart = "net reneges by months waiting",
+                      p_scenario = r$chart_specification$scenario_type,
+                      p_cap_change = r$chart_specification$capacity_percent_change,
+                      p_cap_skew = r$chart_specification$capacity_skew,
+                      p_cap_change_type = r$chart_specification$capacity_change_type,
+                      p_target_data = r$chart_specification$target_data,
+                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                      p_referrals_change_type = r$chart_specification$referrals_change_type,
+                      p_perc = F,
+                      p_facet = T)
+        } else if (reactive_data$btn_val == "btn_waiting_list_ttl") {
+          reactive_data$plot_data <- r$waiting_list |>
+            dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
+                             .by = c("period", "period_type")) |>
+            extend_period_type_data()
+
+          plot_output(data = reactive_data$plot_data,
+                      p_trust = r$chart_specification$trust,
+                      p_speciality = r$chart_specification$specialty,
+                      p_chart = "waiting list size",
+                      p_scenario = r$chart_specification$scenario_type,
+                      p_cap_change = r$chart_specification$capacity_percent_change,
+                      p_cap_skew = r$chart_specification$capacity_skew,
+                      p_cap_change_type = r$chart_specification$capacity_change_type,
+                      p_target_data = r$chart_specification$target_data,
+                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                      p_referrals_change_type = r$chart_specification$referrals_change_type,
+                      p_perc = F)
+        } else if (reactive_data$btn_val == "btn_waiting_list_mnth") {
+          reactive_data$plot_data <- r$waiting_list |>
+            dplyr::mutate(p_var = .data$incompletes) |>
+            extend_period_type_data()
+
+          plot_output(data = reactive_data$plot_data,
+                      p_trust = r$chart_specification$trust,
+                      p_speciality = r$chart_specification$specialty,
+                      p_chart = "numbers waiting by period",
+                      p_scenario = r$chart_specification$scenario_type,
+                      p_cap_change = r$chart_specification$capacity_percent_change,
+                      p_cap_skew = r$chart_specification$capacity_skew,
+                      p_cap_change_type = r$chart_specification$capacity_change_type,
+                      p_target_data = r$chart_specification$target_data,
+                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                      p_referrals_change_type = r$chart_specification$referrals_change_type,
+                      p_perc = F,
+                      p_facet = T)
+        } else if (reactive_data$btn_val == "btn_performance") {
+          reactive_data$plot_data <- r$waiting_list |>
+            dplyr::rename(value = "incompletes") |>
+            dplyr::group_by(.data$period_type) |>
+            calc_performance(
+              target_bin = 4
+            ) |>
+            ungroup() |>
+            rename(p_var = "prop") |>
+            extend_period_type_data()
+
+
+          plot_output(data = reactive_data$plot_data,
+                      p_trust = r$chart_specification$trust,
+                      p_speciality = r$chart_specification$specialty,
+                      p_chart = "18 week performance",
+                      p_scenario = r$chart_specification$scenario_type,
+                      p_cap_change = r$chart_specification$capacity_percent_change,
+                      p_cap_skew = r$chart_specification$capacity_skew,
+                      p_cap_change_type = r$chart_specification$capacity_change_type,
+                      p_target_data = r$chart_specification$target_data,
+                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                      p_referrals_change_type = r$chart_specification$referrals_change_type,
+                      p_perc = T,
+                      p_target_line = T)
+        }
+
       }
+
     }, res = 96)
 
 
+# plot clicks -------------------------------------------------------------
 
-    # When waiting list size split plot is clicked --------------------------------
     observeEvent(
-      c(input$wl_split_plot_click), {
-        reactive_clicks$wl_split_plot_click <- TRUE
+      c(input$plot_click), {
 
-        x_val <- as.Date(input$wl_split_plot_click$x)
-        reactive_datasets$dat_size_split_clicked <- click_info(
-          data = reactive_datasets$dat_size_split,
+        reactive_data$plot_clicked <- TRUE
+
+        x_val <- as.Date(input$plot_click$x)
+        reactive_data$plot_click_info <- click_info(
+          data = reactive_data$plot_data,
           click_x = x_val,
-          facet = input$wl_split_plot_click$panelvar1
+          facet = input$plot_click$panelvar1
         )
       }
     )
 
-    # Render the waiting list value box based on click data
-    output$value_box_container_wl_split <- renderUI({
-      if (isTRUE(reactive_clicks$wl_split_plot_click)) {
+    # Render the reneges value box based on click data
+    output$value_box_container <- renderUI({
 
-        bslib::value_box(
-          title = "Waiting list information",
-          value = value_box_text(
-            x_val = reactive_datasets$dat_size_split_clicked$period,
-            y_title = "Waiting list size",
-            y_val = reactive_datasets$dat_size_split_clicked$p_var,
-            y_val_type = "number",
-            facet = reactive_datasets$dat_size_split_clicked$months_waited_id
-          ),
-          showcase = shiny::icon("chart-line"),
-          theme = "purple",
-          full_screen = TRUE,
-          fill = TRUE
-        )
-      }
-    })
-
-    ## Create waiting by split
-    output$wl_wait_per <- renderPlot({
-      if (is.null(r$waiting_list)) {
-        holding_chart()
-      } else {
-        reactive_datasets$dat_size_split <- r$waiting_list |>
-          dplyr::mutate(p_var = .data$incompletes) |>
-          extend_period_type_data()
-
-        plot_output(data = reactive_datasets$dat_size_split,
-                    p_trust = r$chart_specification$trust,
-                    p_speciality = r$chart_specification$specialty,
-                    p_chart = "numbers waiting by period",
-                    p_scenario = r$chart_specification$scenario_type,
-                    p_cap_change = r$chart_specification$capacity_percent_change,
-                    p_cap_skew = r$chart_specification$capacity_skew,
-                    p_cap_change_type = r$chart_specification$capacity_change_type,
-                    p_target_data = r$chart_specification$target_data,
-                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                    p_referrals_change_type = r$chart_specification$referrals_change_type,
-                    p_perc = F,
-                    p_facet = T)
-      }
-
-    }, res = 96)
-
-    # when performance plot is clicked ----------------------------------------
-
-    observeEvent(
-      c(input$performance_plot_click), {
-        reactive_clicks$performance_plot_click <- TRUE
-
-        x_val <- as.Date(input$performance_plot_click$x)
-        reactive_datasets$dat_perf_clicked <- click_info(
-          data = reactive_datasets$dat_perf,
-          click_x = x_val
-        )
-      }
-    )
-
-    # Render the performance value box based on click data
-    output$value_box_container_perf <- renderUI({
-
-      if (isTRUE(reactive_clicks$performance_plot_click)) {
-
-        bslib::value_box(
-          title = "Performance information",
-          value = value_box_text(
-            x_val = reactive_datasets$dat_perf_clicked$period,
-            y_title = "Performance",
-            y_val = reactive_datasets$dat_perf_clicked$p_var,
-            y_val_type = "percent"
-          ),
-          showcase = shiny::icon("chart-line"),
-          theme = "purple",
-          full_screen = TRUE,
-          fill = TRUE
-        )
-      }
-    })
-
-    ## Create waiting 18 week performance plots here
-    output$wl_performance <- renderPlot({
-      if (is.null(r$waiting_list)) {
-        holding_chart()
-      } else {
-        reactive_datasets$dat_perf <- r$waiting_list |>
-          dplyr::rename(value = "incompletes") |>
-          dplyr::group_by(.data$period_type) |>
-          calc_performance(
-            target_bin = 4
+      if (isTRUE(reactive_data$plot_clicked)) {
+        # browser()
+        value_box_info <- dplyr::tribble(
+                          ~button,                                 ~title,             ~y_title, ~y_val_type,
+                  "btn_referrals",           "Referral count information",          "Referrals",    "number",
+               "btn_capacity_ttl", "Treatment capacity count information", "Treatment capacity",    "number",
+              "btn_capacity_mnth", "Treatment capacity count information", "Treatment capacity",    "number",
+                "btn_reneges_ttl",             "Renege count information",            "Reneges",    "number",
+               "btn_reneges_mnth",             "Renege count information",            "Reneges",    "number",
+           "btn_waiting_list_ttl",             "Waiting list information",  "Waiting list size",    "number",
+          "btn_waiting_list_mnth",             "Waiting list information",  "Waiting list size",    "number",
+                "btn_performance",              "Performance information",        "Performance",   "percent"
           ) |>
-          ungroup() |>
-          rename(p_var = "prop") |>
-          extend_period_type_data()
+          dplyr::filter(
+            .data$button == reactive_data$btn_val
+          )
 
-
-        plot_output(data = reactive_datasets$dat_perf,
-                    p_trust = r$chart_specification$trust,
-                    p_speciality = r$chart_specification$specialty,
-                    p_chart = "18 week performance",
-                    p_scenario = r$chart_specification$scenario_type,
-                    p_cap_change = r$chart_specification$capacity_percent_change,
-                    p_cap_skew = r$chart_specification$capacity_skew,
-                    p_cap_change_type = r$chart_specification$capacity_change_type,
-                    p_target_data = r$chart_specification$target_data,
-                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                    p_referrals_change_type = r$chart_specification$referrals_change_type,
-                    p_perc = T,
-                    p_target_line = T)
-      }
-
-    }, res = 96)
-
-
-# When referrals plot is clicked ------------------------------------------
-    observeEvent(
-      c(input$referrals_plot_click), {
-        reactive_clicks$referrals_plot_click <- TRUE
-
-        x_val <- as.Date(input$referrals_plot_click$x)
-        reactive_datasets$dat_ref_clicked <- click_info(
-          data = reactive_datasets$dat_ref,
-          click_x = x_val
-        )
-      }
-    )
-
-    # Render the referrals value box based on click data
-    output$value_box_container_ref <- renderUI({
-
-      if (isTRUE(reactive_clicks$referrals_plot_click)) {
 
         bslib::value_box(
-          title = "Referral count information",
+          title = value_box_info[["title"]],
           value = value_box_text(
-            x_val = reactive_datasets$dat_ref_clicked$period,
-            y_title = "Referrals",
-            y_val = reactive_datasets$dat_ref_clicked$p_var,
-            y_val_type = "number"
+            x_val = reactive_data$plot_click_info$period,
+            y_title = value_box_info[["y_title"]],
+            y_val = reactive_data$plot_click_info$p_var,
+            y_val_type = value_box_info[["y_val_type"]],
+            facet = reactive_data$plot_click_info$months_waited_id
           ),
           showcase = shiny::icon("chart-line"),
           theme = "purple",
           full_screen = TRUE,
-          fill = TRUE
+          fill = TRUE,
+          id = "performance"
         )
       }
     })
-
-    ## Create referrals plots
-    output$wl_referrals <- renderPlot({
-
-      if (is.null(r$waiting_list)) {
-        holding_chart()
-      } else {
-        reactive_datasets$dat_ref <- r$waiting_list |>
-          dplyr::filter(.data$months_waited_id == 0) |>
-          dplyr::mutate(p_var  = sum(.data$adjusted_referrals),
-                        .by = c("period", "period_type")) |>
-          extend_period_type_data()
-
-        plot_output(data = reactive_datasets$dat_ref,
-                    p_trust = r$chart_specification$trust,
-                    p_speciality = r$chart_specification$specialty,
-                    p_chart = "referrals",
-                    p_scenario = r$chart_specification$scenario_type,
-                    p_cap_change = r$chart_specification$capacity_percent_change,
-                    p_cap_skew = r$chart_specification$capacity_skew,
-                    p_cap_change_type = r$chart_specification$capacity_change_type,
-                    p_target_data = r$chart_specification$target_data,
-                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                    p_referrals_change_type = r$chart_specification$referrals_change_type,
-                    p_perc = F)
-      }
-
-    }, res = 96)
-
-# When reneges plot is clicked ------------------------------------------
-    observeEvent(
-      c(input$reneges_plot_click), {
-        reactive_clicks$reneges_plot_click <- TRUE
-
-        x_val <- as.Date(input$reneges_plot_click$x)
-        reactive_datasets$dat_ren_clicked <- click_info(
-          data = reactive_datasets$dat_ren,
-          click_x = x_val
-        )
-      }
-    )
-
-    # Render the reneges value box based on click data
-    output$value_box_container_ren <- renderUI({
-
-      if (isTRUE(reactive_clicks$reneges_plot_click)) {
-
-        bslib::value_box(
-          title = "Reneges count information",
-          value = value_box_text(
-            x_val = reactive_datasets$dat_ren_clicked$period,
-            y_title = "Reneges",
-            y_val = reactive_datasets$dat_ren_clicked$p_var,
-            y_val_type = "number"
-          ),
-          showcase = shiny::icon("chart-line"),
-          theme = "purple",
-          full_screen = TRUE,
-          fill = TRUE
-        )
-      }
-    })
-
-    ## Create reneging plots - total
-    output$wl_reneging_plot_total <- renderPlot({
-
-      if (is.null(r$waiting_list)) {
-        holding_chart()
-      } else {
-        reactive_datasets$dat_ren <- r$waiting_list |>
-          dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                           .by = c("period", "period_type")) |>
-          extend_period_type_data()
-
-        plot_output(data = reactive_datasets$dat_ren,
-                    p_trust = r$chart_specification$trust,
-                    p_speciality = r$chart_specification$specialty,
-                    p_chart = "total net reneges",
-                    p_scenario = r$chart_specification$scenario_type,
-                    p_cap_change = r$chart_specification$capacity_percent_change,
-                    p_cap_skew = r$chart_specification$capacity_skew,
-                    p_cap_change_type = r$chart_specification$capacity_change_type,
-                    p_target_data = r$chart_specification$target_data,
-                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                    p_referrals_change_type = r$chart_specification$referrals_change_type,
-                    p_perc = F)
-      }
-
-
-    }, res = 96)
-
-# When reneges split plot is clicked ------------------------------------------
-    observeEvent(
-      c(input$reneges_split_plot_click), {
-        reactive_clicks$reneges_split_plot_click <- TRUE
-
-        x_val <- as.Date(input$reneges_split_plot_click$x)
-        reactive_datasets$dat_ren_split_clicked <- click_info(
-          data = reactive_datasets$dat_ren_split,
-          click_x = x_val,
-          facet = input$reneges_split_plot_click$panelvar1
-        )
-      }
-    )
-
-    # Render the reneges value box based on click data
-    output$value_box_container_ren_split <- renderUI({
-
-      if (isTRUE(reactive_clicks$reneges_split_plot_click)) {
-
-        bslib::value_box(
-          title = "Reneges count information",
-          value = value_box_text(
-            x_val = reactive_datasets$dat_ren_split_clicked$period,
-            y_title = "Reneges",
-            y_val = reactive_datasets$dat_ren_split_clicked$p_var,
-            y_val_type = "number",
-            facet = reactive_datasets$dat_ren_split_clicked$months_waited_id
-          ),
-          showcase = shiny::icon("chart-line"),
-          theme = "purple",
-          full_screen = TRUE,
-          fill = TRUE
-        )
-      }
-    })
-
-    ## Create reneging plots - split
-    output$wl_reneging_plot_split <- renderPlot({
-
-      if (is.null(r$waiting_list)) {
-        holding_chart()
-      } else {
-
-        reactive_datasets$dat_ren_split <- r$waiting_list |>
-          dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                           .by = c("period", "period_type", "months_waited_id")) |>
-          extend_period_type_data()
-
-        plot_output(data = reactive_datasets$dat_ren_split,
-                    p_trust = r$chart_specification$trust,
-                    p_speciality = r$chart_specification$specialty,
-                    p_chart = "net reneges by months waiting",
-                    p_scenario = r$chart_specification$scenario_type,
-                    p_cap_change = r$chart_specification$capacity_percent_change,
-                    p_cap_skew = r$chart_specification$capacity_skew,
-                    p_cap_change_type = r$chart_specification$capacity_change_type,
-                    p_target_data = r$chart_specification$target_data,
-                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                    p_referrals_change_type = r$chart_specification$referrals_change_type,
-                    p_perc = F,
-                    p_facet = T)
-      }
-
-    }, res = 96)
-
-    # When treatment capacity plot is clicked ------------------------------------------
-    observeEvent(
-      c(input$capacity_plot_click), {
-        reactive_clicks$capacity_plot_click <- TRUE
-
-        x_val <- as.Date(input$capacity_plot_click$x)
-        reactive_datasets$dat_cap_clicked <- click_info(
-          data = reactive_datasets$dat_cap,
-          click_x = x_val
-        )
-      }
-    )
-
-    # Render the reneges value box based on click data
-    output$value_box_container_cap <- renderUI({
-
-      if (isTRUE(reactive_clicks$capacity_plot_click)) {
-
-        bslib::value_box(
-          title = "Treatment capacity count information",
-          value = value_box_text(
-            x_val = reactive_datasets$dat_cap_clicked$period,
-            y_title = "Treatment capacity",
-            y_val = reactive_datasets$dat_cap_clicked$p_var,
-            y_val_type = "number"
-          ),
-          showcase = shiny::icon("chart-line"),
-          theme = "purple",
-          full_screen = TRUE,
-          fill = TRUE
-        )
-      }
-    })
-
-    ## Create waiting list treatment capacity plot(s)
-    output$wl_capacity_tot <- renderPlot({
-
-      if (is.null(r$waiting_list)) {
-        holding_chart()
-      } else {
-        reactive_datasets$dat_cap <- r$waiting_list |>
-          dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                           .by = c("period", "period_type")) |>
-          extend_period_type_data()
-
-
-        plot_output(data = reactive_datasets$dat_cap,
-                    p_trust = r$chart_specification$trust,
-                    p_speciality = r$chart_specification$specialty,
-                    p_chart = "total treatment capacity",
-                    p_scenario = r$chart_specification$scenario_type,
-                    p_cap_change = r$chart_specification$capacity_percent_change,
-                    p_cap_skew = r$chart_specification$capacity_skew,
-                    p_cap_change_type = r$chart_specification$capacity_change_type,
-                    p_target_data = r$chart_specification$target_data,
-                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                    p_referrals_change_type = r$chart_specification$referrals_change_type,
-                    p_perc = F,
-                    p_facet = F)
-      }
-
-    }, res = 96)
-
-    # When treatment capacity plot is clicked ------------------------------------------
-    observeEvent(
-      c(input$capacity_split_plot_click), {
-        reactive_clicks$capacity_split_plot_click <- TRUE
-
-        x_val <- as.Date(input$capacity_split_plot_click$x)
-        reactive_datasets$dat_cap_split_clicked <- click_info(
-          data = reactive_datasets$dat_cap_split,
-          click_x = x_val,
-          facet = input$capacity_split_plot_click$panelvar1
-        )
-      }
-    )
-
-    # Render the reneges value box based on click data
-    output$value_box_container_cap_split <- renderUI({
-
-      if (isTRUE(reactive_clicks$capacity_split_plot_click)) {
-
-        bslib::value_box(
-          title = "Treatment capacity count information",
-          value = value_box_text(
-            x_val = reactive_datasets$dat_cap_split_clicked$period,
-            y_title = "Treatment capacity",
-            y_val = reactive_datasets$dat_cap_split_clicked$p_var,
-            y_val_type = "number",
-            facet = reactive_datasets$dat_cap_split_clicked$months_waited_id
-          ),
-          showcase = shiny::icon("chart-line"),
-          theme = "purple",
-          full_screen = TRUE,
-          fill = TRUE
-        )
-      }
-    })
-
-    ## Create waiting list split treatment capacity plot(s)
-    output$wl_capacity_split <- renderPlot({
-
-      if (is.null(r$waiting_list)) {
-        holding_chart()
-      } else {
-
-        reactive_datasets$dat_cap_split<- r$waiting_list |>
-          dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                           .by = c("period", "period_type", "months_waited_id")) |>
-          extend_period_type_data()
-
-        plot_output(data = reactive_datasets$dat_cap_split,
-                    p_trust = r$chart_specification$trust,
-                    p_speciality = r$chart_specification$specialty,
-                    p_chart = "treatment capacity by months waiting",
-                    p_scenario = r$chart_specification$scenario_type,
-                    p_cap_change = r$chart_specification$capacity_percent_change,
-                    p_cap_skew = r$chart_specification$capacity_skew,
-                    p_cap_change_type = r$chart_specification$capacity_change_type,
-                    p_target_data = r$chart_specification$target_data,
-                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                    p_referrals_change_type = r$chart_specification$referrals_change_type,
-                    p_perc = F,
-                    p_facet = T)
-      }
-
-    }, res = 96)
-
-
-
 # DT table ----------------------------------------------------------------
 
 

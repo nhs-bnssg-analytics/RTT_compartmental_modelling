@@ -343,7 +343,9 @@ local_enframe <- function(named_vector, name, value_name) {
 }
 
 
-value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NULL) {
+value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NA) {
+
+  x_val <- format(x_val, "%b %Y")
 
   y_val_type <- match.arg(
     y_val_type,
@@ -370,7 +372,7 @@ value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NULL) {
     )
   }
 
-  if (is.null(facet)) {
+  if (is.na(facet)) {
     out <- p(
       HTML(
         paste0(

@@ -1029,7 +1029,7 @@ mod_02_planner_server <- function(id, r){
             showcase = shiny::icon("chart-line"),
             theme = value_box_theme(bg = "#FFB81C", fg = "#231f20"),
             class = "border",
-            id = "latest_performance"
+            id = "performance"
           )
         )
 

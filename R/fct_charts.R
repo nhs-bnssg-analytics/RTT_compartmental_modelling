@@ -320,19 +320,24 @@ click_info <- function(data, click_x, facet = NULL) {
       x_val - .data$period == min(x_val - .data$period)
     )
 
+  if (!is.null(facet)) {
+    nearest_idx <- nearest_idx |>
+      filter(
+        .data$months_waited_id == facet
+      )
+  } else {
+    nearest_idx <- nearest_idx |>
+      mutate(
+        months_waited_id = NA_real_
+      )
+  }
+
   if (nrow(nearest_idx) > 1) {
     # this will only occur for the first period after the observed data finishes
     # because it is artificially extended so it is displayed better on the
     # charts
     nearest_idx <- nearest_idx |>
       filter(.data$period_type == "Projected")
-  }
-
-  if (!is.null(facet)) {
-    nearest_idx <- nearest_idx |>
-      filter(
-        .data$months_waited_id == facet
-      )
   }
 
   return(nearest_idx)
