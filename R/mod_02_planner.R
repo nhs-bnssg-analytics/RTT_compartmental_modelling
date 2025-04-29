@@ -21,7 +21,7 @@ mod_02_planner_ui <- function(id){
 
     selectizeInput(
       inputId = ns("region"),
-      label = "Select NHS Region(s)",
+      label = "Select NHS region(s)",
       choices = sort(unique(org_lkp$`NHS Region Name`)),
       options = list(
         placeholder = "Leave blank to aggregate all available regions"
@@ -30,7 +30,7 @@ mod_02_planner_ui <- function(id){
     ),
     selectizeInput(
       inputId = ns("trust_parent_codes"),
-      label = "Select Provider Parent(s)",
+      label = "Select provider parent(s)",
       choices = sort(unique(org_lkp$`Provider Parent Name`)),
       options = list(
         placeholder = "Leave blank to aggregate all available provider parent orgs"
@@ -39,7 +39,7 @@ mod_02_planner_ui <- function(id){
     ),
     selectizeInput(
       inputId = ns("commissioner_parent_codes"),
-      label = "Select Commissioner Parent(s)",
+      label = "Select commissioner parent(s)",
       choices = sort(unique(org_lkp$`Commissioner Parent Name`)),
       options = list(
         placeholder = "Leave blank to aggregate all available commissioner parent orgs"
@@ -48,7 +48,7 @@ mod_02_planner_ui <- function(id){
     ),
     selectizeInput(
       inputId = ns("commissioner_org_codes"),
-      label = "Select Commissioner Org(s)",
+      label = "Select commissioner organisation(s)",
       choices = sort(unique(org_lkp$`Commissioner Org Name`)),
       options = list(
         placeholder = "Leave blank to aggregate all available commissioner orgs"
@@ -57,7 +57,7 @@ mod_02_planner_ui <- function(id){
     ),
     selectizeInput(
       inputId = ns("trust_codes"),
-      label = "Select Provider(s)",
+      label = "Select provider(s)",
       choices = sort(unique(org_lkp$`Provider Org Name`)),
       options = list(
         placeholder = "Leave blank to aggregate all available providers"
@@ -66,7 +66,7 @@ mod_02_planner_ui <- function(id){
     ),
     selectInput(
       inputId = ns("specialty_codes"),
-      label = "Select Specialties",
+      label = "Select specialties",
       selected = "Total",
       choices = unname(treatment_function_codes),
       multiple = FALSE

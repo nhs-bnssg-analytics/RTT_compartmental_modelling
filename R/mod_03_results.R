@@ -6,10 +6,11 @@
 #'
 #' @noRd
 #'
-#' @importFrom shiny NS tagList clickOpts uiOutput p actionButton plotOutput clickOpts
+#' @importFrom shiny NS tagList clickOpts uiOutput p actionButton plotOutput
+#'   clickOpts
 #' @importFrom DT DTOutput
 #' @importFrom bslib navset_tab nav_panel card card_body page_sidebar
-#'   layout_column_wrap
+#'   layout_column_wrap tooltip
 #' @importFrom dplyr if_else
 #' @importFrom tidyr pivot_wider
 mod_03_results_ui <- function(id){
@@ -17,44 +18,121 @@ mod_03_results_ui <- function(id){
 
   page_sidebar(
     sidebar = sidebar(
-      actionButton(
-        inputId = ns("btn_referrals"),
-        label = "Referrals"
+      # gap = 0,
+      p("INPUTS",
+        class = "sidebar_header"),
+      tooltip(
+        actionButton(
+          inputId = ns("btn_referrals"),
+          label = "Referrals",
+          icon = shiny::icon("star"),
+          class = "results_button"
+        ),
+        placement = "right",
+        "Referral counts over the period"
       ),
-      p("Treatment capacity"),
-      actionButton(
-        inputId = ns("btn_capacity_ttl"),
-        label = "Total"
+      tooltip(
+        p("Treatment capacity",
+          class = "results_button"),
+        placement = "right",
+        "Treatment capacity counts over the period"
       ),
-      actionButton(
-        inputId = ns("btn_capacity_mnth"),
-        label = "Distribution"
+      tooltip(
+        actionButton(
+          inputId = ns("btn_capacity_ttl"),
+          label = "Total",
+          icon = shiny::icon("star"),
+          class = "results_subbutton"
+        ),
+        placement = "right",
+        "Total counts of treatment capacity"
       ),
-      p("Reneges"),
-      actionButton(
-        inputId = ns("btn_reneges_ttl"),
-        label = "Total"
+      tooltip(
+        actionButton(
+          inputId = ns("btn_capacity_mnth"),
+          label = "Distribution",
+          icon = shiny::icon("star"),
+          class = "results_subbutton"
+        ),
+        placement = "right",
+        "Treatment capacity distributed by number of months waited"
       ),
-      actionButton(
-        inputId = ns("btn_reneges_mnth"),
-        label = "Distribution"
+      tooltip(
+        p("Reneges",
+          class = "results_button"),
+        placement = "right",
+        "Number of reneges over the period"
       ),
-      p("Waiting list size"),
-      actionButton(
-        inputId = ns("btn_waiting_list_ttl"),
-        label = "Total"
+      tooltip(
+
+        actionButton(
+          inputId = ns("btn_reneges_ttl"),
+          label = "Total",
+          icon = shiny::icon("star"),
+          class = "results_subbutton"
+        ),
+        placement = "right",
+        "The total number of reneges each month"
       ),
-      actionButton(
-        inputId = ns("btn_waiting_list_mnth"),
-        label = "Distribution"
+      tooltip(
+        actionButton(
+          inputId = ns("btn_reneges_mnth"),
+          label = "Distribution",
+          icon = shiny::icon("star"),
+          class = "results_subbutton"
+        ),
+        placement = "right",
+        "Reneges distributed by number of months waited"
       ),
-      actionButton(
-        inputId = ns("btn_performance"),
-        label = "18 week performance"
+      hr(),
+      p("OUTPUTS",
+        class = "sidebar_header"),
+      tooltip(
+        p("Waiting list size",
+          class = "results_button"),
+        placement = "right",
+        "The size of the waiting list over the period"
       ),
-      actionButton(
-        inputId = ns("btn_data"),
-        label = "Data table"
+      tooltip(
+        actionButton(
+          inputId = ns("btn_waiting_list_ttl"),
+          label = "Total",
+          icon = shiny::icon("star"),
+          class = "results_subbutton"
+        ),
+        placement = "right",
+        "Total size of the waiting list"
+      ),
+      tooltip(
+        actionButton(
+          inputId = ns("btn_waiting_list_mnth"),
+          label = "Distribution",
+          icon = shiny::icon("star"),
+          class = "results_subbutton"
+        ),
+        placement = "right",
+        "Size of the waiting list by the number of months waited"
+      ),
+      tooltip(
+        actionButton(
+          inputId = ns("btn_performance"),
+          label = "18 week performance",
+          icon = shiny::icon("star"),
+          class = "results_button"
+        ),
+        placement = "right",
+        "The 18 week performance over the period"
+      ),
+      hr(),
+      tooltip(
+        actionButton(
+          inputId = ns("btn_data"),
+          label = "Data table",
+          icon = shiny::icon("star"),
+          class = "results_button"
+        ),
+        placement = "right",
+        "View the data in a table"
       ),
       uiOutput(ns("btn_report_ui"))
     ),
@@ -80,6 +158,7 @@ mod_03_results_ui <- function(id){
 #' @importFrom dplyr group_by rename summarise tribble
 #' @importFrom rlang .data
 #' @importFrom bslib value_box
+#' @importFrom shiny updateActionButton showModal modalDialog downloadHandler
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r){
@@ -170,7 +249,22 @@ mod_03_results_server <- function(id, r){
       FUN = function(i) {
         observeEvent(input[[paste0("btn_", i)]], {
           if (input[[paste0("btn_", i)]] > 0) {
+# browser()
+            if (!is.null(reactive_data$btn_val)) {
+              shiny::updateActionButton(
+                session = session,
+                inputId = ns(reactive_data$btn_val),
+                icon = shiny::icon("star")
+              )
+            }
+
             reactive_data$btn_val <- paste0("btn_", i)
+            shiny::updateActionButton(
+              session = session,
+              inputId = ns(reactive_data$btn_val),
+              # icon = shiny::icon("star", class = "fa-solid fa-star")
+              icon = shiny::icon("calendar")
+            )
           }
           reactive_data$plot_clicked <- FALSE
 
