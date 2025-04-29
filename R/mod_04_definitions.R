@@ -1,4 +1,4 @@
-#' 05_definitions UI Function
+#' 04_definitions UI Function
 #'
 #' @description A shiny Module.
 #'
@@ -52,7 +52,7 @@ mod_04_definitions_ui <- function(id){
   )
 }
 
-#' 05_definitions Server Functions
+#' 04_definitions Server Functions
 #'
 #' @noRd
 mod_04_definitions_server <- function(id){
@@ -63,7 +63,7 @@ mod_04_definitions_server <- function(id){
 }
 
 ## To be copied in the UI
-# mod_05_definitions_ui("05_definitions_1")
+# mod_04_definitions_ui("04_definitions_1")
 
 ## To be copied in the server
-# mod_05_definitions_server("05_definitions_1")
+# mod_04_definitions_server("04_definitions_1")

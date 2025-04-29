@@ -1,4 +1,4 @@
-#' 07_stories UI Function
+#' 06_stories UI Function
 #'
 #' @description A shiny Module.
 #'
@@ -82,7 +82,7 @@ mod_06_acknowledgements_ui <- function(id){
   )
 }
 
-#' 07_stories Server Functions
+#' 06_stories Server Functions
 #'
 #' @noRd
 mod_06_acknowledgements_server <- function(id){
@@ -93,7 +93,7 @@ mod_06_acknowledgements_server <- function(id){
 }
 
 ## To be copied in the UI
-# mod_07_acknowledgements_ui("07_acknowledgements_1")
+# mod_06_acknowledgements_ui("06_acknowledgements_1")
 
 ## To be copied in the server
-# mod_07_acknowledgements_server("07_acknowledgements_1")
+# mod_06_acknowledgements_server("06_acknowledgements_1")

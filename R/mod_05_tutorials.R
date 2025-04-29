@@ -1,4 +1,4 @@
-#' 06_how_tos UI Function
+#' 05_how_tos UI Function
 #'
 #' @description A shiny Module.
 #'
@@ -14,7 +14,7 @@ mod_05_tutorials_ui <- function(id){
   )
 }
 
-#' 06_how_tos Server Functions
+#' 05_how_tos Server Functions
 #'
 #' @noRd
 mod_05_tutorials_server <- function(id){
@@ -25,7 +25,7 @@ mod_05_tutorials_server <- function(id){
 }
 
 ## To be copied in the UI
-# mod_06_tutorials_ui("06_tutorials_1")
+# mod_05_tutorials_ui("05_tutorials_1")
 
 ## To be copied in the server
-# mod_06_tutorials_server("06_tutorials_1")
+# mod_05_tutorials_server("05_tutorials_1")
