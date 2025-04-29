@@ -60,12 +60,8 @@ mod_03_results_ui <- function(id){
     ),
     card(
       card_body(
-        plotOutput(
-          ns("results_plot"),
-          click = shiny::clickOpts(
-            id = ns("plot_click")
-          ),
-          height = "600px"
+        uiOutput(
+          ns("results_ui")
         ),
         min_height = '60vh'
       )
@@ -95,6 +91,8 @@ mod_03_results_server <- function(id, r){
     reactive_data$plot_clicked <- NULL
     reactive_data$btn_val <- NULL
     reactive_data$plot_data <- NULL
+    reactive_data$show_plot <- FALSE
+    reactive_data$show_table <- FALSE
 
 # report download ---------------------------------------------------------
 
@@ -175,9 +173,108 @@ mod_03_results_server <- function(id, r){
             reactive_data$btn_val <- paste0("btn_", i)
           }
           reactive_data$plot_clicked <- FALSE
+
+          if (reactive_data$btn_val == "btn_data") {
+            reactive_data$show_plot <- FALSE
+            reactive_data$show_table <- TRUE
+          } else if (reactive_data$btn_val != "btn_report_ui") {
+            reactive_data$show_plot <- TRUE
+            reactive_data$show_table <- FALSE
+          }
         })
       }
     )
+
+# DT table ----------------------------------------------------------------
+
+
+    output$results_table <- DT::renderDT({
+
+      new_col_names <- c(
+        "Months waited" = "months_waited_id",
+        "Calculated treatment capacity" = "calculated_treatments",
+        Reneges = "reneges",
+        "Waiting list size (at end of month)" = "incompletes",
+        "Unadjusted referrals" = "unadjusted_referrals",
+        "Adjusted referrals" = "adjusted_referrals",
+        "Treatment capacity skew" = "capacity_skew",
+        "Measure type" = "period_type",
+        "Month start date" = "period"
+      )
+
+      if (is.null(r$waiting_list)) {
+        dplyr::tibble(
+          period = NA,
+          months_waited_id = NA,
+          calculated_treatments = NA,
+          reneges = NA,
+          incompletes = NA,
+          unadjusted_referrals = NA,
+          adjusted_referrals = NA,
+          capacity_skew = NA,
+          period_type = NA
+        ) |>
+          DT::datatable(
+            colnames = new_col_names,
+            rownames = FALSE,
+            caption = "Please return to the Scenario tab to create some modelled data",
+            options = list(
+              dom = 't', # 't' means show only the table, no other elements
+              paging = FALSE, # Disable pagination
+              searching = FALSE, # Disable search box
+              info = FALSE # Remove "Showing X of Y entries" text
+            )
+          )
+      } else {
+
+        r$waiting_list |>
+          dplyr::select(
+            !c("period_id")
+          ) |>
+          dplyr::relocate(
+            "period", .before = dplyr::everything()
+          ) |>
+          DT::datatable(
+            filter = "top",
+            extensions = "Buttons",
+            options = list(
+              paging = TRUE,
+              pageLength = 50,
+              lengthMenu = c(25, 50, 100),
+              searching = TRUE,
+              ordering = TRUE,
+              autoWidth = TRUE,
+              dom = 'Blfrtip',
+              buttons = list(
+                list(
+                  extend = 'copy',
+                  title = NULL, # prevents the title of the app being included when copying the data
+                  className = "dtButton",
+                  text = "Copy table to clipboard"
+                ),
+                list(
+                  extend = 'csv',
+                  className = 'dtButton',
+                  text = "Download table to csv"
+                )
+              )
+            ),
+            colnames = new_col_names,
+            rownames = FALSE
+          ) |>
+          DT::formatRound(
+            columns = c(
+              "Calculated treatment capacity",
+              "Reneges",
+              "Waiting list size (at end of month)",
+              "Unadjusted referrals",
+              "Adjusted referrals"
+            ),
+            digits = 1
+          )
+      }
+    },
+    server = FALSE)
 
 # plot --------------------------------------------------------------------
 
@@ -353,6 +450,25 @@ mod_03_results_server <- function(id, r){
     }, res = 96)
 
 
+
+# dynamic ui --------------------------------------------------------------
+    output$results_ui <- renderUI({
+      if (reactive_data$show_plot == TRUE) {
+        plotOutput(
+          ns("results_plot"),
+          click = shiny::clickOpts(
+            id = ns("plot_click")
+          ),
+          height = "600px"
+        )
+      } else if (reactive_data$show_table ==  TRUE) {
+        DTOutput(
+          ns("results_table")
+        )
+      }
+    })
+
+
 # plot clicks -------------------------------------------------------------
 
     observeEvent(
@@ -407,93 +523,7 @@ mod_03_results_server <- function(id, r){
         )
       }
     })
-# DT table ----------------------------------------------------------------
 
-
-      output$scenario_projections <- DT::renderDT({
-
-        new_col_names <- c(
-          "Period ID" = "period_id",
-          "Months waited (lower)" = "months_waited_id",
-          "Calculated treatment capacity" = "calculated_treatments",
-          Reneges = "reneges",
-          "Waiting list size (at end of month)" = "incompletes",
-          "Unadjusted referrals" = "unadjusted_referrals",
-          "Adjusted referrals" = "adjusted_referrals",
-          "Treatment capacity skew" = "capacity_skew",
-          "Measure type" = "period_type",
-          "Month start date" = "period"
-        )
-
-        if (is.null(r$waiting_list)) {
-          dplyr::tibble(
-            period_id = NA,
-            months_waited_id = NA,
-            calculated_treatments = NA,
-            reneges = NA,
-            incompletes = NA,
-            unadjusted_referrals = NA,
-            adjusted_referrals = NA,
-            capacity_skew = NA,
-            period_type = NA,
-            period = NA
-          ) |>
-            DT::datatable(
-              colnames = new_col_names,
-              rownames = FALSE,
-              caption = "Please return to the Scenario tab to create some modelled data",
-              options = list(
-                dom = 't', # 't' means show only the table, no other elements
-                paging = FALSE, # Disable pagination
-                searching = FALSE, # Disable search box
-                info = FALSE # Remove "Showing X of Y entries" text
-              )
-            )
-        } else {
-
-
-          DT::datatable(
-            r$waiting_list,
-            filter = "top",
-            extensions = "Buttons",
-            options = list(
-              paging = TRUE,
-              pageLength = 50,
-              lengthMenu = c(25, 50, 100),
-              searching = TRUE,
-              ordering = TRUE,
-              autoWidth = TRUE,
-              dom = 'Bfrtip',
-              buttons = list(
-                list(
-                  extend = 'copy',
-                  title = NULL, # prevents the title of the app being included when copying the data
-                  className = "dtButton",
-                  text = "Copy table to clipboard"
-                ),
-                list(
-                  extend = 'csv',
-                  className = 'dtButton',
-                  text = "Download table to csv"
-                )
-              )
-            ),
-            colnames = new_col_names,
-            rownames = FALSE
-          ) |>
-            DT::formatRound(
-              columns = c(
-                "Calculated treatment capacity",
-                "Reneges",
-                "Waiting list size (at end of month)",
-                "Unadjusted referrals",
-                "Adjusted referrals"
-              ),
-              digits = 1
-            )
-        }
-      },
-      server = FALSE)
   })
 }
 
