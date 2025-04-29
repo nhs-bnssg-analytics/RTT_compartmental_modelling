@@ -103,7 +103,7 @@ This chart shows the historic and projected referrals for the model run.
 #| fig-width: 12
       
       ref_dat <- params$waiting_list |>
-        dplyr::filter(.data$months_waited_id == 0) |>
+        dplyr::filter(.data$months_waited_id == "0-1 months") |>
         dplyr::mutate(p_var  = sum(.data$incompletes + .data$calculated_treatments),
                       .by = c("period", "period_type"))
 
@@ -123,9 +123,9 @@ This chart shows the historic and projected referrals for the model run.
 ```
 
 
-## Overall Capacity
+## Overall treatment capacity
 
-This plot show the historic and projected capacity for the model run
+This plot show the historic and projected treatment capacity for the model run.
 
 ```{r}
 #| label: capacity_plot
@@ -156,9 +156,9 @@ This plot show the historic and projected capacity for the model run
 
 \newpage
 
-## Capacity split by wait length
+## Treatment capacity distribution
 
-This plot show the historic and projected capacity for the model run
+This plot show the historic and projected treatment capacity distribution for the model run.
 
 ```{r}
 #| label: capacity_plot_split
@@ -189,7 +189,7 @@ This plot show the historic and projected capacity for the model run
 
 ## Total reneges
 
-This plot show the historic and projected reneges for the model run
+This plot show the historic and projected reneges for the model run.
 
 ```{r}
 #| label: renege_plot
@@ -218,9 +218,9 @@ This plot show the historic and projected reneges for the model run
 
 \newpage
 
-## Reneges split by waits
+## Renege distributions
 
-This plot show the historic and projected reneges for the model run
+This plot show the historic and projected renege distributions for the model run.
 
 ```{r}
 #| label: renege_plot_split
@@ -248,9 +248,9 @@ This plot show the historic and projected reneges for the model run
 
 ```
 
-## Total waiting list size
+## Waiting list size
 
-This plot show the historic and projected total waiting list size for the model run
+This plot show the historic and projected total waiting list size for the model run.
 
 ```{r}
 #| label: total_waits
@@ -280,9 +280,9 @@ This plot show the historic and projected total waiting list size for the model 
 
 \newpage
 
-## Total waiting list by period
+## Waiting list distribution
 
-This plot show the historic and projected total waiting list size for the model run
+This plot show the historic and projected waiting list size distribution for the model run.
 
 ```{r}
 #| label: wl_plot_split
@@ -310,9 +310,9 @@ This plot show the historic and projected total waiting list size for the model 
 ```
 
 
-## Waiting list 4 month performance
+## 18 week waiting list performance
 
-This plot show the historic and projected 4 month waiting list performance for the model run
+This plot show the historic and projected 18 week waiting list performance for the model run.
 
 ```{r}
 #| label: wl_performance
@@ -323,6 +323,9 @@ This plot show the historic and projected 4 month waiting list performance for t
       wl_perf_dat <- params$waiting_list |>
         dplyr::rename(value = "incompletes") |>
         dplyr::group_by(.data$period_type) |>
+        mutate(
+          months_waited_id = extract_first_number(.data$months_waited_id)
+        ) |> 
         calc_performance(
           target_bin = 4
         ) |>
@@ -332,7 +335,7 @@ This plot show the historic and projected 4 month waiting list performance for t
       plot_output(data = wl_perf_dat,
                   p_trust = params$chart_specification$trust,
                   p_speciality = params$chart_specification$specialty,
-                  p_chart = "4 month performance",
+                  p_chart = "18 week performance",
                   p_scenario = params$chart_specification$scenario_type,
                   p_cap_change = params$chart_specification$capacity_percent_change,
                   p_cap_skew = params$chart_specification$capacity_skew,

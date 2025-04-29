@@ -188,7 +188,7 @@ mod_03_results_server <- function(id, r){
       } else {
         if (reactive_data$btn_val == "btn_referrals") {
           reactive_data$plot_data <- r$waiting_list |>
-            dplyr::filter(.data$months_waited_id == 0) |>
+            dplyr::filter(.data$months_waited_id == "0-1 months") |>
             dplyr::mutate(p_var  = sum(.data$adjusted_referrals),
                           .by = c("period", "period_type")) |>
             extend_period_type_data()
@@ -322,6 +322,9 @@ mod_03_results_server <- function(id, r){
           reactive_data$plot_data <- r$waiting_list |>
             dplyr::rename(value = "incompletes") |>
             dplyr::group_by(.data$period_type) |>
+            mutate(
+              months_waited_id = extract_first_number(.data$months_waited_id)
+            ) |>
             calc_performance(
               target_bin = 4
             ) |>

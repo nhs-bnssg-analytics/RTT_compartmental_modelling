@@ -116,6 +116,10 @@ extract_percent <- function(text) {
   }
 }
 
+extract_first_number <- function(text) {
+  start_month <- sub("[+\\-].*", "", text)
+  return(as.integer(start_month))
+}
 
 #' Replaces values in a string vector with corresponding values from a named
 #' vector
@@ -387,13 +391,8 @@ value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NA) {
       )
     )
   } else {
-    if (facet < 12) {
-      months_waited <- paste0(
-        facet, "-", facet + 1, " months"
-      )
-    } else {
-      months_waited <- "12+ months"
-    }
+
+    months_waited <- facet
 
     out <- p(
       HTML(
