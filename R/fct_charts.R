@@ -67,6 +67,16 @@ plot_output <- function(data,
   }
 
   p <- ggplot2::ggplot() +
+    geom_vline(
+      data = dplyr::filter(
+        data,
+        months.Date(.data$period) == "January"
+      ),
+      aes(
+        xintercept = .data$period
+      ),
+      alpha = 0.3
+    ) +
     geom_step(
       data = dplyr::filter(data, .data$period_type == "Observed"),
       aes(
