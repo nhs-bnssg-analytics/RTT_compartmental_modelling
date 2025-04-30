@@ -121,19 +121,6 @@ mod_03_results_ui <- function(id){
           ns("results_ui")
         ),
         min_height = '60vh'
-      ),
-      card_footer(
-        div(
-          class = "label-left",
-          sliderInput(
-            inputId = ns("chart_res"),
-            label = "Select chart resolution (pixels per inch)",
-            min = 72,
-            max = 144,
-            value = 96,
-            step = 8
-          )
-        )
       )
     ),
     layout_column_wrap(
@@ -329,7 +316,7 @@ mod_03_results_server <- function(id, r){
               searching = TRUE,
               ordering = TRUE,
               autoWidth = TRUE,
-              dom = 'Blfrtip',
+              dom = 'Blrtip',
               buttons = list(
                 list(
                   extend = 'copy',
@@ -376,6 +363,11 @@ mod_03_results_server <- function(id, r){
         input$btn_data,
         input$btn_report_ui
       ), {
+        if (is.null(input$chart_res)) {
+          calc_res <- 96
+        } else {
+          calc_res <- input$chart_res
+        }
         output$results_plot <- renderPlot({
           if (is.null(r$waiting_list) | is.null(reactive_data$btn_val)) {
             holding_chart()
@@ -479,23 +471,25 @@ mod_03_results_server <- function(id, r){
 
             }
 
-            plot_output(data = reactive_data$plot_data,
-                        p_trust = r$chart_specification$trust,
-                        p_speciality = r$chart_specification$specialty,
-                        p_chart = chart_type,
-                        p_scenario = r$chart_specification$scenario_type,
-                        p_cap_change = r$chart_specification$capacity_percent_change,
-                        p_cap_skew = r$chart_specification$capacity_skew,
-                        p_cap_change_type = r$chart_specification$capacity_change_type,
-                        p_target_data = r$chart_specification$target_data,
-                        p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                        p_referrals_change_type = r$chart_specification$referrals_change_type,
-                        p_perc = percentage_axis,
-                        p_facet = include_facets,
-                        p_target_line = include_target_line)
+            if (!(reactive_data$btn_val %in% c("btn_data", "btn_report_ui"))) {
+              plot_output(data = reactive_data$plot_data,
+                          p_trust = r$chart_specification$trust,
+                          p_speciality = r$chart_specification$specialty,
+                          p_chart = chart_type,
+                          p_scenario = r$chart_specification$scenario_type,
+                          p_cap_change = r$chart_specification$capacity_percent_change,
+                          p_cap_skew = r$chart_specification$capacity_skew,
+                          p_cap_change_type = r$chart_specification$capacity_change_type,
+                          p_target_data = r$chart_specification$target_data,
+                          p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                          p_referrals_change_type = r$chart_specification$referrals_change_type,
+                          p_perc = percentage_axis,
+                          p_facet = include_facets,
+                          p_target_line = include_target_line)
+            }
           }
 
-        }, res = input$chart_res)
+        }, res = calc_res)
       }
     )
 
@@ -506,12 +500,25 @@ mod_03_results_server <- function(id, r){
 # dynamic ui --------------------------------------------------------------
     output$results_ui <- renderUI({
       if (reactive_data$show_plot == TRUE) {
-        plotOutput(
-          ns("results_plot"),
-          click = shiny::clickOpts(
-            id = ns("plot_click")
+        div(
+          plotOutput(
+            ns("results_plot"),
+            click = shiny::clickOpts(
+              id = ns("plot_click")
+            ),
+            height = "600px"
           ),
-          height = "600px"
+          div(
+            class = "label-left",
+            sliderInput(
+              inputId = ns("chart_res"),
+              label = "Select chart resolution (pixels per inch)",
+              min = 72,
+              max = 144,
+              value = 96,
+              step = 8
+            )
+          )
         )
       } else if (reactive_data$show_table ==  TRUE) {
         DTOutput(
