@@ -37,24 +37,6 @@ app_ui <- function(request) {
 
   theme_selection <- "litera"
 
-  acknowledgements <- HTML(
-    paste(
-      "The RTT Planner was a collaboration driven by the SW Decision Support Network",
-      "",
-      "Many thanks to the collaborators:",
-      "Sebastian Fox",
-      "Simon Wellesley-Miller",
-      "Richard Wood",
-      "Richard Blackwell",
-      "Claire Rudler",
-      "Nick Cooper",
-      "",
-      "And input from Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW",
-      sep = "<br>"
-    )
-  )
-
-
   page_fillable(
     # Leave this function for adding external resources
     golem_add_external_resources(),
@@ -124,14 +106,6 @@ app_ui <- function(request) {
               )
             ),
             class = "text-center text-muted"
-          ),
-          accordion(
-            accordion_panel(
-              title = "Acknowledgements",
-              acknowledgements
-
-            ),
-            open = FALSE
           )
         )
       )

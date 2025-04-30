@@ -15,7 +15,6 @@ Imports:
     config (>= 0.3.2),
     dplyr,
     DT,
-    flextable,
     ggplot2,
     ggtext,
     golem (>= 0.4.1),
@@ -30,6 +29,7 @@ Imports:
     tidyr,
     utils
 Suggests: 
+    flextable,
     spelling,
     testthat (>= 3.0.0)
 Remotes:

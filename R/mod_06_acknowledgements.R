@@ -7,7 +7,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS h2 p div HTML
-#' @importFrom bslib page_fluid card card_header card_body layout_columns
+#' @importFrom bslib page_fluid card card_header card_body layout_column_wrap
 mod_06_acknowledgements_ui <- function(id){
   ns <- NS(id)
 
@@ -35,50 +35,89 @@ mod_06_acknowledgements_ui <- function(id){
     color = c("#330072", "#AE2573", "#8A1538", "#ED8B00", "#FFB81C")
   )
 
-  page_fluid(
-    card(
-      card_header(
-        h2("Timeline of RTT Planner", class = "text-left"),
-        p("The story of how this tool unfolded", class = "text-left text-muted")
-      ),
-      card_body(
-        # Text-based timeline
-        lapply(1:nrow(timeline_data), function(i) {
-          event <- timeline_data[i, ]
+  generate_cards <- function(data) {
+    cards_list <- list()
+
+    for (i in 1:nrow(data)) {
+      cards_list[[i]] <- card(
+        style = paste0("border-radius: 5px; border-left: 4px solid ", data$color[i], ";"),
+        card_header(data$content[i]),
+        card_body(
           div(
             class = "timeline-item mb-4",
-            style = if(i < nrow(timeline_data)) "border-left: 2px solid #dee2e6; padding-left: 20px; position: relative;" else "padding-left: 20px; position: relative;",
+            style = if(i < nrow(data)) {
+              "border-left: 2px solid #dee2e6; padding-left: 20px; position: relative;"
+            } else {
+              "padding-left: 20px; position: relative;"
+            },
 
             # Date marker
             div(
               class = "timeline-marker",
-              style = paste0("position: absolute; left: -10px; background-color: ", event$color, "; width: 20px; height: 20px; border-radius: 50%;"),
+              style = paste0("position: absolute; left: -10px; background-color: ", data$color[i], "; width: 20px; height: 20px; border-radius: 50%;"),
               ""
             ),
 
             # Event content
             div(
-              class = "timeline-content p-3",
-              style = paste0("border-radius: 5px; background-color: #f8f9fa; border-left: 4px solid ", event$color, ";"),
-
-              div(
-                class = "d-flex justify-content-between",
-                h4(event$content, class = "mb-2", style = paste0("color: ", event$color, ";")),
-                span(event$date, class = "text-muted")
-              ),
               p(
                 shiny::HTML(
-                  event$description
+                  data$description[i]
                 ),
-                class = "mb-0 mt-2"
+                class = "mb-0 mt-2",
+                style = "font-size: 0.8em;"
+              ),
+              p(
+                data$date[i],
+                class = "text-muted",
+                style = "font-size: 0.8em; text-align: right;"
               )
             )
           )
-        })
+        )#,
+        # height = "200px"
+      )
+    }
+
+    return(cards_list)
+  }
+
+  page_fluid(
+    h2("Timeline of RTT Planner", class = "text-left"),
+    p("The story of how this tool unfolded", class = "text-left text-muted"),
+    do.call(
+      layout_column_wrap,
+      c(
+        list(
+          width = 1 / nrow(timeline_data),
+          gap = "10px"
+        ),
+        generate_cards(timeline_data)
       )
     ),
-    min_height = "450px",
-    full_screen = TRUE
+    card(
+      card_header(
+        "Specific acknowledgements"
+      ),
+      card_body(
+        HTML(
+          paste(
+            "The RTT Planner was a collaboration driven by the SW Decision Support Network.",
+            "",
+            "Many thanks to the collaborators:",
+            "Sebastian Fox",
+            "Simon Wellesley-Miller",
+            "Richard Wood",
+            "Richard Blackwell",
+            "Claire Rudler",
+            "Nick Cooper",
+            "",
+            "And input from Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
+            sep = "<br>"
+          )
+        )
+      )
+    )
   )
 }
 

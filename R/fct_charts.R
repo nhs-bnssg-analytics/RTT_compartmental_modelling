@@ -37,7 +37,7 @@
 #' @param p_target_line A logical value indicating whether to include target
 #'   line and change colour of "target" in subheading
 #'
-#' @importFrom dplyr filter distinct rename left_join join_by
+#' @importFrom dplyr filter distinct rename left_join join_by tibble cross_join
 #' @importFrom ggtext element_markdown
 #' @importFrom scales percent comma
 #' @importFrom rlang .data
@@ -210,10 +210,10 @@ plot_output <- function(data,
       geom_ribbon(
         data = target_month,
         aes(
-          y = y,
-          group = group,
-          xmin = start_date,
-          xmax = end_date
+          y = .data$y,
+          group = .data$group,
+          xmin = .data$start_date,
+          xmax = .data$end_date
         ),
         alpha = 0.5,
         fill = "gray45"
