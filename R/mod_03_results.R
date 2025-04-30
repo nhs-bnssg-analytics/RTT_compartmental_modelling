@@ -145,7 +145,6 @@ mod_03_results_ui <- function(id){
       )
     ),
     layout_column_wrap(
-      width = 1/2,
       uiOutput(
         ns("value_box_container")
       )
@@ -384,38 +383,21 @@ mod_03_results_server <- function(id, r){
                           .by = c("period", "period_type")) |>
             extend_period_type_data()
 
-          plot_output(data = reactive_data$plot_data,
-                      p_trust = r$chart_specification$trust,
-                      p_speciality = r$chart_specification$specialty,
-                      p_chart = "referrals",
-                      p_scenario = r$chart_specification$scenario_type,
-                      p_cap_change = r$chart_specification$capacity_percent_change,
-                      p_cap_skew = r$chart_specification$capacity_skew,
-                      p_cap_change_type = r$chart_specification$capacity_change_type,
-                      p_target_data = r$chart_specification$target_data,
-                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                      p_referrals_change_type = r$chart_specification$referrals_change_type,
-                      p_perc = F)
-        } else if (reactive_data$btn_val == "btn_capacity_ttl") {
+          chart_type <- "referrals"
+          include_facets <- FALSE
+          percentage_axis <- FALSE
+          include_target_line <- FALSE
+
+          } else if (reactive_data$btn_val == "btn_capacity_ttl") {
           reactive_data$plot_data <- r$waiting_list |>
             dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
                              .by = c("period", "period_type")) |>
             extend_period_type_data()
 
-
-          plot_output(data = reactive_data$plot_data,
-                      p_trust = r$chart_specification$trust,
-                      p_speciality = r$chart_specification$specialty,
-                      p_chart = "total treatment capacity",
-                      p_scenario = r$chart_specification$scenario_type,
-                      p_cap_change = r$chart_specification$capacity_percent_change,
-                      p_cap_skew = r$chart_specification$capacity_skew,
-                      p_cap_change_type = r$chart_specification$capacity_change_type,
-                      p_target_data = r$chart_specification$target_data,
-                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                      p_referrals_change_type = r$chart_specification$referrals_change_type,
-                      p_perc = F,
-                      p_facet = F)
+          chart_type <- "total treatment capacity"
+          include_facets <- FALSE
+          percentage_axis <- FALSE
+          include_target_line <- FALSE
 
         } else if (reactive_data$btn_val == "btn_capacity_mnth") {
           reactive_data$plot_data <- r$waiting_list |>
@@ -423,92 +405,54 @@ mod_03_results_server <- function(id, r){
                              .by = c("period", "period_type", "months_waited_id")) |>
             extend_period_type_data()
 
-          plot_output(data = reactive_data$plot_data,
-                      p_trust = r$chart_specification$trust,
-                      p_speciality = r$chart_specification$specialty,
-                      p_chart = "treatment capacity by months waiting",
-                      p_scenario = r$chart_specification$scenario_type,
-                      p_cap_change = r$chart_specification$capacity_percent_change,
-                      p_cap_skew = r$chart_specification$capacity_skew,
-                      p_cap_change_type = r$chart_specification$capacity_change_type,
-                      p_target_data = r$chart_specification$target_data,
-                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                      p_referrals_change_type = r$chart_specification$referrals_change_type,
-                      p_perc = F,
-                      p_facet = T)
+          chart_type <- "treatment capacity by months waiting"
+          include_facets <- TRUE
+          percentage_axis <- FALSE
+          include_target_line <- FALSE
+
         } else if (reactive_data$btn_val == "btn_reneges_ttl") {
           reactive_data$plot_data <- r$waiting_list |>
             dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
                              .by = c("period", "period_type")) |>
             extend_period_type_data()
 
-          plot_output(data = reactive_data$plot_data,
-                      p_trust = r$chart_specification$trust,
-                      p_speciality = r$chart_specification$specialty,
-                      p_chart = "total net reneges",
-                      p_scenario = r$chart_specification$scenario_type,
-                      p_cap_change = r$chart_specification$capacity_percent_change,
-                      p_cap_skew = r$chart_specification$capacity_skew,
-                      p_cap_change_type = r$chart_specification$capacity_change_type,
-                      p_target_data = r$chart_specification$target_data,
-                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                      p_referrals_change_type = r$chart_specification$referrals_change_type,
-                      p_perc = F)
+          chart_type <- "total net reneges"
+          include_facets <- FALSE
+          percentage_axis <- FALSE
+          include_target_line <- FALSE
+
         } else if (reactive_data$btn_val == "btn_reneges_mnth") {
           reactive_data$plot_data <- r$waiting_list |>
             dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
                              .by = c("period", "period_type", "months_waited_id")) |>
             extend_period_type_data()
 
-          plot_output(data = reactive_data$plot_data,
-                      p_trust = r$chart_specification$trust,
-                      p_speciality = r$chart_specification$specialty,
-                      p_chart = "net reneges by months waiting",
-                      p_scenario = r$chart_specification$scenario_type,
-                      p_cap_change = r$chart_specification$capacity_percent_change,
-                      p_cap_skew = r$chart_specification$capacity_skew,
-                      p_cap_change_type = r$chart_specification$capacity_change_type,
-                      p_target_data = r$chart_specification$target_data,
-                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                      p_referrals_change_type = r$chart_specification$referrals_change_type,
-                      p_perc = F,
-                      p_facet = T)
+          chart_type <- "net reneges by months waiting"
+          include_facets <- TRUE
+          percentage_axis <- FALSE
+          include_target_line <- FALSE
+
         } else if (reactive_data$btn_val == "btn_waiting_list_ttl") {
           reactive_data$plot_data <- r$waiting_list |>
             dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
                              .by = c("period", "period_type")) |>
             extend_period_type_data()
 
-          plot_output(data = reactive_data$plot_data,
-                      p_trust = r$chart_specification$trust,
-                      p_speciality = r$chart_specification$specialty,
-                      p_chart = "waiting list size",
-                      p_scenario = r$chart_specification$scenario_type,
-                      p_cap_change = r$chart_specification$capacity_percent_change,
-                      p_cap_skew = r$chart_specification$capacity_skew,
-                      p_cap_change_type = r$chart_specification$capacity_change_type,
-                      p_target_data = r$chart_specification$target_data,
-                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                      p_referrals_change_type = r$chart_specification$referrals_change_type,
-                      p_perc = F)
+          chart_type <- "waiting list size"
+          include_facets <- FALSE
+          percentage_axis <- FALSE
+          include_target_line <- FALSE
+
         } else if (reactive_data$btn_val == "btn_waiting_list_mnth") {
           reactive_data$plot_data <- r$waiting_list |>
             dplyr::mutate(p_var = .data$incompletes) |>
             extend_period_type_data()
 
-          plot_output(data = reactive_data$plot_data,
-                      p_trust = r$chart_specification$trust,
-                      p_speciality = r$chart_specification$specialty,
-                      p_chart = "numbers waiting by period",
-                      p_scenario = r$chart_specification$scenario_type,
-                      p_cap_change = r$chart_specification$capacity_percent_change,
-                      p_cap_skew = r$chart_specification$capacity_skew,
-                      p_cap_change_type = r$chart_specification$capacity_change_type,
-                      p_target_data = r$chart_specification$target_data,
-                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                      p_referrals_change_type = r$chart_specification$referrals_change_type,
-                      p_perc = F,
-                      p_facet = T)
+          chart_type <- "numbers waiting by period"
+          include_facets <- TRUE
+          percentage_axis <- FALSE
+          include_target_line <- FALSE
+
         } else if (reactive_data$btn_val == "btn_performance") {
           reactive_data$plot_data <- r$waiting_list |>
             dplyr::rename(value = "incompletes") |>
@@ -524,21 +468,27 @@ mod_03_results_server <- function(id, r){
             extend_period_type_data()
 
 
-          plot_output(data = reactive_data$plot_data,
-                      p_trust = r$chart_specification$trust,
-                      p_speciality = r$chart_specification$specialty,
-                      p_chart = "18 week performance",
-                      p_scenario = r$chart_specification$scenario_type,
-                      p_cap_change = r$chart_specification$capacity_percent_change,
-                      p_cap_skew = r$chart_specification$capacity_skew,
-                      p_cap_change_type = r$chart_specification$capacity_change_type,
-                      p_target_data = r$chart_specification$target_data,
-                      p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                      p_referrals_change_type = r$chart_specification$referrals_change_type,
-                      p_perc = T,
-                      p_target_line = T)
+          chart_type <- "18 weeks performance"
+          include_facets <- FALSE
+          percentage_axis <- TRUE
+          include_target_line <- TRUE
+
         }
 
+        plot_output(data = reactive_data$plot_data,
+                    p_trust = r$chart_specification$trust,
+                    p_speciality = r$chart_specification$specialty,
+                    p_chart = chart_type,
+                    p_scenario = r$chart_specification$scenario_type,
+                    p_cap_change = r$chart_specification$capacity_percent_change,
+                    p_cap_skew = r$chart_specification$capacity_skew,
+                    p_cap_change_type = r$chart_specification$capacity_change_type,
+                    p_target_data = r$chart_specification$target_data,
+                    p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                    p_referrals_change_type = r$chart_specification$referrals_change_type,
+                    p_perc = percentage_axis,
+                    p_facet = include_facets,
+                    p_target_line = include_target_line)
       }
 
     }, res = 96)
@@ -583,7 +533,7 @@ mod_03_results_server <- function(id, r){
     output$value_box_container <- renderUI({
 
       if (isTRUE(reactive_data$plot_clicked)) {
-        # browser()
+
         value_box_info <- dplyr::tribble(
                           ~button,                                 ~title,             ~y_title, ~y_val_type,
                   "btn_referrals",           "Referral count information",          "Referrals",    "number",
@@ -611,7 +561,7 @@ mod_03_results_server <- function(id, r){
           ),
           showcase = shiny::icon("chart-line"),
           theme = "purple",
-          full_screen = TRUE,
+          full_screen = FALSE,
           fill = TRUE,
           id = "performance"
         )

@@ -2114,14 +2114,6 @@ mod_02_planner_server <- function(id, r){
           #   abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
           # )
 
-          # store the convergence status
-          r$chart_specification$optimise_status <- projection_calcs |>
-            dplyr::select(
-              dplyr::starts_with("status")
-            ) |>
-            unlist() |>
-            unname()
-
           # create treatment capacity projections profile
           projections_capacity <- projection_calcs |>
             dplyr::pull(.data$capacity_projections) |>
@@ -2213,13 +2205,21 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$capacity_skew <- projection_calcs$skew_param[[1]]
           r$chart_specification$target_data <- target_data()
 
-          if (any(r$chart_specification$optimise_status == "waitlist_cleared")) {
-            r$chart_specification$optimise_status <- "waitlist_cleared"
-          } else if (all(r$chart_specification$optimise_status == "converged")) {
-            r$chart_specification$optimise_status <- "converged"
-          } else {
-            r$chart_specification$optimise_status <- "unknown"
-          }
+          # calculate the convergence status
+          r$chart_specification$optimise_status <- r$waiting_list |>
+            summarise(
+              incompletes = sum(.data$incompletes),
+              .by = c("period", "period_type")
+            ) |>
+            filter(
+              .data$period_type == "Projected"
+            ) |>
+            filter(
+              .data$incompletes == min(.data$incompletes)
+            ) |>
+            pull(.data$incompletes) |>
+            min() |>
+            (\(x) ifelse(x == 0, "waitlist_cleared", "converged"))()
 
 
           reactive_values$optimise_status_card_visible <- TRUE

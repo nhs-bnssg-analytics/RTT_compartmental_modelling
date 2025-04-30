@@ -41,6 +41,7 @@
 #' @importFrom ggtext element_markdown
 #' @importFrom scales percent comma
 #' @importFrom rlang .data
+#' @importFrom lubridate `%m+%`
 #' @import ggplot2
 #' @return A ggplot2 plot object of selected values
 #' @noRd
@@ -169,7 +170,56 @@ plot_output <- function(data,
   }
 
   if (p_target_line == T & p_scenario == 'Estimate treatment capacity (from performance targets)') {
+
+    # create the target month table
+    target_month <- dplyr::tibble(
+      start_date = p_target_data[["Target_date"]]
+    ) |>
+      mutate(
+        end_date = (.data$start_date %m+% months(1)) - 1,
+        group = dplyr::row_number()
+      ) |>
+      dplyr::cross_join(
+        dplyr::tibble(
+          y = c(-Inf, Inf)
+        )
+      )
+
+    p_target_data_chart <- p_target_data |>
+      mutate(
+        Target_text = paste0(
+          format(.data$Target_date, format = "%b %y"),
+          " performance target: ",
+          .data$Target_percentage,
+          "%"
+        ),
+        Target_date = (.data$Target_date %m+% months(1)) - 1
+      )
+
     p <- p +
+      geom_ribbon(
+        data = target_month,
+        aes(
+          y = y,
+          group = group,
+          xmin = start_date,
+          xmax = end_date
+        ),
+        alpha = 0.5,
+        fill = "gray45"
+      ) +
+      geom_text(
+        data = p_target_data_chart,
+        aes(
+          label = .data$Target_text,
+          x = .data$Target_date
+        ),
+        y = -Inf,
+        vjust = -0.12,
+        hjust = -0.025,
+        angle = 90,
+        alpha = 0.8
+      ) +
       geom_hline(
         data = p_target_data,
         aes(

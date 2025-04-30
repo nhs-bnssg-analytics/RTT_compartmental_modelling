@@ -41,6 +41,7 @@ library(dplyr)
 library(tidyr)
 library(flextable)
 library(NHSRtt)
+library(lubridate)
 ```
 
 
@@ -319,6 +320,7 @@ This plot show the historic and projected 18 week waiting list performance for t
 #| results: 'asis'
 #| fig-height: 7
 #| fig-width: 12
+#| warnings: FALSE
  
       wl_perf_dat <- params$waiting_list |>
         dplyr::rename(value = "incompletes") |>
