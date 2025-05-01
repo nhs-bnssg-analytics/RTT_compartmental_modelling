@@ -236,11 +236,15 @@ plot_output <- function(data,
           yintercept = .data$Target_percentage / 100
         ),
         colour = 'red',
-        linetype = 'dotted')
+        linetype = 'dotted'
+      )
   }
 
-
-  p
+  p +
+    scale_x_date(
+      breaks = january_breaks,
+      date_labels = "%b\n%Y"
+    )
 }
 
 #' @importFrom dplyr tibble
@@ -376,6 +380,44 @@ extend_period_type_data <- function(plot_data) {
 
   return(plot_data)
 }
+
+january_breaks <- function(limits) {
+
+  years_in_data <- length(
+    seq(
+      from = limits[1],
+      to = limits[2],
+      by = "year"
+    )
+  ) - 1
+
+  if (years_in_data <= 4) {
+    labels_per_year <- 4
+  } else if (years_in_data <= 8) {
+    labels_per_year <- 2
+  } else {
+    labels_per_year <- 1
+  }
+
+  # Use pretty to generate similar breaks
+  approx_breaks <- pretty(
+    limits,
+    n = labels_per_year * years_in_data # n is approximate number of breaks
+  )
+
+  # compare month of all labels with january
+  label_months <- lubridate::month(approx_breaks)
+
+  earliest_month <- min(label_months)
+
+  # calc difference in months from january
+  difference_in_months <- earliest_month - 1
+
+  new_breaks <- approx_breaks %m+% months(difference_in_months)
+
+  return(new_breaks)
+}
+
 
 #' function to return the data behind where the user has clicked
 #' @param data the data underpinning the chart that has been clicked
