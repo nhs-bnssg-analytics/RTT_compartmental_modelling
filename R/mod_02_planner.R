@@ -83,11 +83,15 @@ mod_02_planner_ui <- function(id){
       max = 24,
       value = 12
     ),
-    bslib::input_task_button(
-      id = ns("dwnld_rtt_data"),
-      label = "Download RTT data",
-      label_busy = "Downloading...",
-      type = "dark"
+    layout_columns(
+      col_widths = c(11, 1),
+      bslib::input_task_button(
+        id = ns("dwnld_rtt_data"),
+        label = "Download RTT data",
+        label_busy = "Downloading...",
+        type = "dark"
+      ),
+      uiOutput(ns("tick_mark_dwnld"))
     ),
     card(
       bslib::accordion(
@@ -266,6 +270,8 @@ mod_02_planner_server <- function(id, r){
     reactive_values$default_target <- NULL
     reactive_values$referrals_uplift <- NULL
     reactive_values$optimise_status_card_visible <- NULL
+    reactive_values$performance_calculated <- FALSE
+
 
     r$chart_specification <- list(
       trust = NULL,
@@ -533,6 +539,7 @@ mod_02_planner_server <- function(id, r){
 
         reactive_values$data_downloaded <- TRUE
 
+
         # calculate unadjusted referrals
         unadjusted_referrals <- r$all_data |>
           filter(
@@ -641,6 +648,23 @@ mod_02_planner_server <- function(id, r){
       ignoreInit = TRUE
     )
 
+
+# download complete symbol ------------------------------------------------
+
+
+    # Output the tick mark when the process is complete
+    output$tick_mark_dwnld <- renderUI({
+
+      if (isTRUE(reactive_values$data_downloaded)) {
+        shiny::icon(
+          "check",
+          class = "green-tick"
+        )
+      } else {
+
+        NULL
+      }
+    })
 
     # bring your own data -----------------------------------------------------
 
@@ -791,7 +815,7 @@ mod_02_planner_server <- function(id, r){
       if (!is.null(check_data$imported_data_checked)) {
         imported_data <- check_data$imported_data_checked
       }
-      # browser()
+
       # create period lookup, but append the imported data to the start of the
       # horizon period so the start point of the projections begin at the end of
       # the imported period
@@ -1250,26 +1274,34 @@ mod_02_planner_server <- function(id, r){
 
     output$optimise_capacity_ui <- renderUI({
       if (isTRUE(reactive_values$data_downloaded)) {
-        bslib::input_task_button(
-          id = ns("optimise_capacity"),
-          label = "Optimise treatment capacity",
-          label_busy = "Forecasting...",
-          type = "dark",
-          class = "model_button",
-          icon = shiny::icon("calculator")
+        layout_columns(
+          col_widths = c(11, 1),
+          bslib::input_task_button(
+            id = ns("optimise_capacity"),
+            label = "Optimise treatment capacity",
+            label_busy = "Forecasting...",
+            type = "dark",
+            class = "model_button",
+            icon = shiny::icon("calculator")
+          ),
+          uiOutput(ns("tick_mark_optimise"))
         )
       }
     })
 
     output$calculate_performance_ui <- renderUI({
       if (isTRUE(reactive_values$data_downloaded)) {
-        bslib::input_task_button(
-          id = ns("calculate_performance"),
-          label = "Calculate future performance",
-          label_busy = "Forecasting...",
-          type = "dark",
-          class = "model_button",
-          icon = shiny::icon("calculator")
+        layout_columns(
+          col_widths = c(11, 1),
+          bslib::input_task_button(
+            id = ns("calculate_performance"),
+            label = "Calculate future performance",
+            label_busy = "Forecasting...",
+            type = "dark",
+            class = "model_button",
+            icon = shiny::icon("calculator")
+          ),
+          uiOutput(ns("tick_mark_performance"))
         )
       }
     })
@@ -1730,11 +1762,28 @@ mod_02_planner_server <- function(id, r){
             Target_performance = as.numeric()
           )
           r$chart_specification$optimise_status <- NULL
+
+          reactive_values$performance_calculated <- TRUE
         }
       },
       ignoreInit = TRUE
     )
 
+# capacity calculation complete symbol ------------------------------------------------
+
+
+    # Output the tick mark when the process is complete
+    output$tick_mark_performance <- renderUI({
+
+      if (isTRUE(reactive_values$performance_calculated)) {
+        shiny::icon(
+          "check",
+          class = "green-tick-larger"
+        )
+      } else {
+        NULL
+      }
+    })
 
     # optimising treatment capacity based on performance inputs -------------------------
 
@@ -2233,6 +2282,22 @@ mod_02_planner_server <- function(id, r){
         }
       }
     )
+
+# optimisation complete symbol ------------------------------------------------
+
+
+    # Output the tick mark when the process is complete
+    output$tick_mark_optimise <- renderUI({
+
+      if (isTRUE(reactive_values$optimise_status_card_visible)) {
+        shiny::icon(
+          "check",
+          class = "green-tick-larger"
+        )
+      } else {
+        NULL
+      }
+    })
 
   })
 }

@@ -66,4 +66,12 @@
   background: #003087;
 }
 
+.green-tick {
+  color: green;
+  font-size: 2em;
+}
 
+.green-tick-larger {
+  color: green;
+  font-size: 2.3em;
+}
