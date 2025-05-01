@@ -20,10 +20,10 @@ mod_06_acknowledgements_ui <- function(id){
       "ICS and NHS England development",
       "First release"
     ),
-    date = c("From December 2019", "Winter 2024", "November 2024", "December 2024 to March 2025", "May 2025"),
+    date = c("October 2022", "Winter 2024", "November 2024", "December 2024 to March 2025", "May 2025"),
     description = c(
       paste0(
-        "First RTT model developed in NHS BNSSG ICB, and <a href='https://pmc.ncbi.nlm.nih.gov/articles/PMC8143633/'>research paper published.</a>",
+        "First RTT model developed in NHS BNSSG ICB, and <a href='https://link.springer.com/article/10.1007/s10729-022-09615-2'>research paper published.</a>",
         "<br><br>",
         "Research continues along with more associated publications."
       ),

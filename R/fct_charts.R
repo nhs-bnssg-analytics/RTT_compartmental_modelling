@@ -62,7 +62,7 @@ plot_output <- function(data,
                         p_target_line = F) {
 
   if (is.null(data)) {
-    p <- ggplot()
+    p <- holding_chart()
     return(p)
   }
 
@@ -243,9 +243,24 @@ plot_output <- function(data,
   p
 }
 
-
+#' @importFrom dplyr tibble
+#' @importFrom rlang .data
+#' @import ggplot2
 holding_chart <- function() {
-  ggplot()
+  ggplot() +
+    geom_text(
+      data = dplyr::tibble(
+        x = 1,
+        y = 1,
+        label = "Please return to the 'Scenario planner' tab to create some modelled data"
+      ),
+      aes(
+        x = .data$x,
+        y = .data$y,
+        label = .data$label
+      ),
+    ) +
+    theme_void()
 }
 
 plot_skew <- function(params, skew_values, pivot_bin, skew_method) {

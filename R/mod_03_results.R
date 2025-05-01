@@ -289,7 +289,7 @@ mod_03_results_server <- function(id, r){
           DT::datatable(
             colnames = new_col_names,
             rownames = FALSE,
-            caption = "Please return to the Scenario tab to create some modelled data",
+            caption = "Please return to the 'Scenario planner' tab to create some modelled data",
             options = list(
               dom = 't', # 't' means show only the table, no other elements
               paging = FALSE, # Disable pagination

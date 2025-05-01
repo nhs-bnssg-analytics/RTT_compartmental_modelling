@@ -16,11 +16,12 @@ mod_01_introduction_ui <- function(id){
       card(
         card_body(
           h3("About this tool"),
-          p("This is a tool to help the NHS plan to manage waiting lists and waiting times."),
+          p("This is a tool to help the NHS plan and manage elective waiting lists and waiting times."),
 
-          p("By calibrating on historical waiting list, referral and treatment data, this tool provides forecasts
-          of waiting lists and associated performance based on future projections of referrals, to help the user
-          make informed decisions to improve patient care delivery and achieve NHS performance targets."),
+          p("This tool projects future waiting list and associated performance metrics based on a model calibrated
+            on historical referral, treatment and reneging activity. By applying the calibrated model to referral
+            trajectories, the tool can help users make informed decisions to improve patient care
+            delivery and achieve NHS performance targets."),
 
           p(HTML("This tool has been developed, and is maintained, by the South West Decision Support Network.
             See the <em>Acknowledgements</em> tab for its history and to find out more about the collaborators.")),
