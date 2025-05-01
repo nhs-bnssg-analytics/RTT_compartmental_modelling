@@ -410,6 +410,8 @@ mod_02_planner_server <- function(id, r){
                      detail = 'This is used for calibrating the model')
 
         selections_labels <- filters_displays(
+          nhs_regions = input$region,
+          nhs_only = input$nhs_only,
           trust_parents = input$trust_parent_codes,
           trusts = input$trust_codes,
           comm_parents = input$commissioner_parent_codes,
@@ -714,6 +716,8 @@ mod_02_planner_server <- function(id, r){
                      detail = 'This will be included in template csv file')
 
         selections_labels <- filters_displays(
+          nhs_regions = input$region,
+          nhs_only = input$nhs_only,
           trust_parents = input$trust_parent_codes,
           trusts = input$trust_codes,
           comm_parents = input$commissioner_parent_codes,
@@ -809,6 +813,8 @@ mod_02_planner_server <- function(id, r){
         )
 
       selections_labels <- filters_displays(
+        nhs_regions = input$region,
+        nhs_only = input$nhs_only,
         trust_parents = input$trust_parent_codes,
         trusts = input$trust_codes,
         comm_parents = input$commissioner_parent_codes,

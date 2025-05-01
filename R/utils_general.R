@@ -233,12 +233,35 @@ org_name_lkp <- function(names = NULL, type) {
 #'   subsequently displayed in the chart titles. If multiple or no selections
 #'   are made, then this will take the value 'Aggregated'.
 #' @noRd
-filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
+filters_displays <- function(nhs_regions, nhs_only, trust_parents, trusts, comm_parents, comms, spec) {
 
   selected_trust_parents <- org_name_lkp(
     names = trust_parents,
     type = "Provider Parent"
   )
+
+  if (all(is.null(trusts), is.null(trust_parents), is.null(comm_parents), is.null(comms))) {
+
+    data_table <- org_lkp
+
+    if (isTRUE(nhs_only)) {
+      data_table <- data_table |>
+        dplyr::filter(
+          grepl("NHS", .data$`Provider Org Name`)
+        )
+    }
+
+    if (!is.null(nhs_regions)) {
+      data_table <- data_table |>
+        dplyr::filter(
+          .data$`NHS Region Name` %in% nhs_regions
+        )
+    }
+
+    trusts <- data_table |>
+      dplyr::pull(.data$`Provider Org Name`) |>
+      unique()
+  }
 
   selected_trusts <- org_name_lkp(
     names = trusts,
