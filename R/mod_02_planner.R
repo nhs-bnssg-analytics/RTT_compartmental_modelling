@@ -1669,6 +1669,20 @@ mod_02_planner_server <- function(id, r){
 
         if (input$calculate_performance >= 1) {
 
+          selections_labels <- filters_displays(
+            nhs_regions = input$region,
+            nhs_only = input$nhs_only,
+            trust_parents = input$trust_parent_codes,
+            trusts = input$trust_codes,
+            comm_parents = input$commissioner_parent_codes,
+            comms = input$commissioner_org_codes,
+            spec = input$specialty_codes
+          )
+
+          # pass some values to the charting module
+          r$chart_specification$trust <- selections_labels$trusts$display
+          r$chart_specification$specialty <- selections_labels$specialties$display
+
           forecast_months <- lubridate::interval(
             as.Date(input$forecast_date[[1]]),
             as.Date(input$forecast_date[[2]])
@@ -1834,6 +1848,20 @@ mod_02_planner_server <- function(id, r){
         r$chart_specification$optimise_status <- NULL
 
         if (input$optimise_capacity >= 1) {
+
+          selections_labels <- filters_displays(
+            nhs_regions = input$region,
+            nhs_only = input$nhs_only,
+            trust_parents = input$trust_parent_codes,
+            trusts = input$trust_codes,
+            comm_parents = input$commissioner_parent_codes,
+            comms = input$commissioner_org_codes,
+            spec = input$specialty_codes
+          )
+
+          # pass some values to the charting module
+          r$chart_specification$trust <- selections_labels$trusts$display
+          r$chart_specification$specialty <- selections_labels$specialties$display
 
           skew <- dplyr::tibble(
             skew_param = seq(

@@ -299,7 +299,14 @@ mod_03_results_server <- function(id, r){
 
 
     output$btn_report <- downloadHandler(
-      filename <-  "Trust planning report.docx",
+      filename <-  paste0(
+        r$chart_specification$trust,
+        " ",
+        r$chart_specification$specialty,
+        " ",
+        format(Sys.time(), format = "%Y%m%d %H%M%S"),
+        ".docx"
+      ),
       content = function(file) {
 
         tempReport <- file.path(tempdir(), "skeleton.Rmd")
@@ -450,7 +457,14 @@ mod_03_results_server <- function(id, r){
                 list(
                   extend = 'csv',
                   className = 'dtButton',
-                  text = "Download table to csv"
+                  text = "Download table to csv",
+                  title = paste0(
+                    r$chart_specification$trust,
+                    " ",
+                    r$chart_specification$specialty,
+                    " ",
+                    format(Sys.time(), format = "%Y%m%d %H%M%S")
+                  )
                 )
               )
             ),
