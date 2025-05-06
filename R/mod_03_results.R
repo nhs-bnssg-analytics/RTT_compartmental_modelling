@@ -40,8 +40,9 @@ mod_03_results_ui <- function(id){
 #' @importFrom DT renderDT formatRound datatable
 #' @importFrom dplyr group_by rename summarise tribble
 #' @importFrom rlang .data
-#' @importFrom bslib value_box
+#' @importFrom bslib value_box layout_column_wrap
 #' @importFrom shiny updateActionButton showModal modalDialog downloadHandler
+#'   actionButton p hr uiOutput
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r){
@@ -62,7 +63,9 @@ mod_03_results_server <- function(id, r){
 
     output$dynamic_sidebar_ui <- renderUI({
 
-      if (r$chart_specification$scenario_type == "Estimate performance (from treatment capacity inputs)") {
+      if (is.null(r$chart_specification$scenario_type)) {
+        tagList()
+      } else if (r$chart_specification$scenario_type == "Estimate performance (from treatment capacity inputs)") {
 
         layout_column_wrap(
           width = 1,
@@ -489,8 +492,12 @@ mod_03_results_server <- function(id, r){
           calc_res <- input$chart_res
         }
         output$results_plot <- renderPlot({
-          if (is.null(r$waiting_list) | is.null(reactive_data$btn_val)) {
-            holding_chart()
+
+          # browser()
+          if (is.null(r$waiting_list) | identical(r$waiting_list, tibble())) {
+            holding_chart(type = "model")
+          } else if (is.null(reactive_data$btn_val)) {
+            holding_chart(type = "select_chart")
           } else {
             if (reactive_data$btn_val == "btn_referrals") {
               reactive_data$plot_data <- r$waiting_list |>
@@ -619,7 +626,11 @@ mod_03_results_server <- function(id, r){
 
 # dynamic ui --------------------------------------------------------------
     output$results_ui <- renderUI({
-      if (reactive_data$show_plot == TRUE) {
+       if (reactive_data$show_table ==  TRUE) {
+        DTOutput(
+          ns("results_table")
+        )
+      } else {
         div(
           plotOutput(
             ns("results_plot"),
@@ -639,10 +650,6 @@ mod_03_results_server <- function(id, r){
               step = 8
             )
           )
-        )
-      } else if (reactive_data$show_table ==  TRUE) {
-        DTOutput(
-          ns("results_table")
         )
       }
     })

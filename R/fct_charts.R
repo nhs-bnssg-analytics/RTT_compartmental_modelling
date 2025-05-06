@@ -61,11 +61,6 @@ plot_output <- function(data,
                         p_facet = F,
                         p_target_line = F) {
 
-  if (is.null(data)) {
-    p <- holding_chart()
-    return(p)
-  }
-
   p <- ggplot2::ggplot() +
     geom_vline(
       data = dplyr::filter(
@@ -244,16 +239,31 @@ plot_output <- function(data,
   return(p)
 }
 
+#' @param type one of "model" (advising user to return to modelling page) or
+#'   "select_chart" (advising user to select the chart)
 #' @importFrom dplyr tibble
 #' @importFrom rlang .data
 #' @import ggplot2
-holding_chart <- function() {
+#' @noRd
+holding_chart <- function(type) {
+
+  type <- match.arg(
+    type,
+    c("model", "select_chart")
+  )
+
+  if (type == "model") {
+    holding_text <- "Please return to the 'Scenario planner' tab to create some modelled data"
+  } else if (type == "select_chart") {
+    holding_text <- "Please make chart selection on the sidebar"
+  }
+
   ggplot() +
     geom_text(
       data = dplyr::tibble(
         x = 1,
         y = 1,
-        label = "Please return to the 'Scenario planner' tab to create some modelled data"
+        label = holding_text
       ),
       aes(
         x = .data$x,
