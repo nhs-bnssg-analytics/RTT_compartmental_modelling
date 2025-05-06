@@ -169,14 +169,15 @@ plot_output <- function(data,
   if (p_facet == T ) {
     p <- p +
       facet_wrap(~months_waited_id, ncol = 4) +
-      scale_x_date(breaks = "6 month",
-                   minor_breaks = "2 month",
-                   date_labels = "%b %y")
+      scale_x_date(
+        breaks = january_breaks_facetted,
+        date_labels = "%b\n%Y")
   } else {
     p <- p +
-      scale_x_date(breaks = "3 month",
-                   minor_breaks = "1 month",
-                   date_labels = "%b %y")
+      scale_x_date(
+        breaks = january_breaks,
+        date_labels = "%b\n%Y"
+      )
   }
 
   if (p_target_line == T & p_scenario == 'Estimate treatment capacity (from performance targets)') {
@@ -240,11 +241,7 @@ plot_output <- function(data,
       )
   }
 
-  p +
-    scale_x_date(
-      breaks = january_breaks,
-      date_labels = "%b\n%Y"
-    )
+  return(p)
 }
 
 #' @importFrom dplyr tibble
@@ -381,8 +378,7 @@ extend_period_type_data <- function(plot_data) {
   return(plot_data)
 }
 
-january_breaks <- function(limits) {
-
+calc_breaks <- function(limits, facetted) {
   years_in_data <- length(
     seq(
       from = limits[1],
@@ -399,10 +395,24 @@ january_breaks <- function(limits) {
     labels_per_year <- 1
   }
 
+  if (isTRUE(facetted)) {
+    labels_per_year <- labels_per_year / 2
+  }
+
   # Use pretty to generate similar breaks
   approx_breaks <- pretty(
     limits,
     n = labels_per_year * years_in_data # n is approximate number of breaks
+  )
+
+  return(approx_breaks)
+}
+
+january_breaks <- function(limits) {
+
+  approx_breaks <- calc_breaks(
+    limits = limits,
+    facetted = FALSE
   )
 
   # compare month of all labels with january
@@ -418,6 +428,25 @@ january_breaks <- function(limits) {
   return(new_breaks)
 }
 
+january_breaks_facetted <- function(limits) {
+
+  approx_breaks <- calc_breaks(
+    limits = limits,
+    facetted = TRUE
+  )
+
+  # compare month of all labels with january
+  label_months <- lubridate::month(approx_breaks)
+
+  earliest_month <- min(label_months)
+
+  # calc difference in months from january
+  difference_in_months <- earliest_month - 1
+
+  new_breaks <- approx_breaks %m+% months(difference_in_months)
+
+  return(new_breaks)
+}
 
 #' function to return the data behind where the user has clicked
 #' @param data the data underpinning the chart that has been clicked
