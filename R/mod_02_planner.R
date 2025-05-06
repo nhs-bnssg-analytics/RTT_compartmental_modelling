@@ -76,13 +76,7 @@ mod_02_planner_ui <- function(id){
       label = "Show NHS providers only",
       value = TRUE,
     ),
-    sliderInput(
-      inputId = ns("calibration_months"),
-      label = "Select number of months to calibrate data on:",
-      min = 2,
-      max = 24,
-      value = 12
-    ),
+    uiOutput(ns("calibration_months_ui")),
     layout_columns(
       col_widths = c(11, 1),
       bslib::input_task_button(
@@ -271,6 +265,10 @@ mod_02_planner_server <- function(id, r){
     reactive_values$referrals_uplift <- NULL
     reactive_values$optimise_status_card_visible <- NULL
     reactive_values$performance_calculated <- FALSE
+    reactive_values$latest_date <- lubridate::floor_date(
+      NHSRtt::latest_rtt_date(),
+      unit = "months"
+    )
 
 
     r$chart_specification <- list(
@@ -380,6 +378,50 @@ mod_02_planner_server <- function(id, r){
           selected = current_provider
         )
       })
+
+
+# calibration months slider -----------------------------------------------
+
+    output$calibration_months_ui <- renderUI({
+      # Initial rendering or subsequent updates based on input$slider value
+      current_value <- input$calibration_months
+
+      # Handle the initial NULL value when the app first loads
+      if(is.null(current_value)) {
+        current_value <- 12  # Default starting value
+      }
+
+      date_text <- paste0(
+        "(",
+        format(
+          reactive_values$latest_date %m-% months(current_value - 1),
+          format = "%b %Y"
+        ),
+        " to ",
+        format(
+          reactive_values$latest_date,
+          format = "%b %Y"
+        ),
+        ")"
+      )
+
+      # Create label that includes the current value
+      label_text <- paste0(
+        "Select number of months to calibrate data on ",
+        date_text,
+        ":"
+      )
+
+      # Return the slider with the dynamic label
+      sliderInput(
+        inputId = ns("calibration_months"),
+        label = label_text,
+        min = 2,
+        max = 24,
+        value = current_value
+      )
+    })
+
 
     # download data button ----------------------------------------------------
     observeEvent(
