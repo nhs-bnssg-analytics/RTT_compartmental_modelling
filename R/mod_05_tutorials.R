@@ -9,8 +9,26 @@
 #' @importFrom shiny NS tagList
 mod_05_tutorials_ui <- function(id){
   ns <- NS(id)
-  tagList(
+  page_fluid(
+    layout_column_wrap(
+      width = 1 / 5,
+      card(
+        height = "400px",
+        width = "200px",
+        card_header("Modelling concepts"),
 
+        tags$iframe(
+          src = "https://nhs-my.sharepoint.com/personal/sebastian_fox3_nhs_net/_layouts/15/embed.aspx?UniqueId=20b4a879-0270-4606-86af-3d290fa6e793&embed=%7B%22ust%22%3Atrue%2C%22hv%22%3A%22CopyEmbedCode%22%7D&referrer=StreamWebApp&referrerScenario=EmbedDialog.Create",
+          width = "100%",
+          height = "100%",
+          frameborder = "0",
+          allowfullscreen = TRUE
+        )
+        # HTML(
+        #   '<iframe src="https://nhs-my.sharepoint.com/personal/sebastian_fox3_nhs_net/_layouts/15/embed.aspx?UniqueId=20b4a879-0270-4606-86af-3d290fa6e793&embed=%7B%22ust%22%3Atrue%2C%22hv%22%3A%22CopyEmbedCode%22%7D&referrer=StreamWebApp&referrerScenario=EmbedDialog.Create" width="640" height="360" frameborder="0" scrolling="no" allowfullscreen title="Recording-20250506_162049.webm"></iframe>'
+        # )
+      )
+    )
   )
 }
 
