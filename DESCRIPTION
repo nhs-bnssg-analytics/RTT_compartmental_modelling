@@ -20,6 +20,7 @@ Imports:
     golem (>= 0.4.1),
     lubridate,
     NHSRtt (>= 0.2.3),
+    pkgload,
     purrr,
     rlang,
     scales,
