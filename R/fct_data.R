@@ -57,6 +57,40 @@ get_rtt_data_with_progress <- function(
 }
 
 
+#' convert string to date format, but check on format of string before
+#' conversion. If format is unrecognised then the function returns "ambiguous
+#' date format".
+#'
+#' @details accepts date formats "dd/mm/yyyy" and "yyyy-mm-dd"
+#' @noRd
+convert_to_date <- function(char_vector) {
+  # Attempt conversion from "dd/mm/yyyy" format
+  dates_format1 <- as.Date(char_vector, format = "%d/%m/%Y")
+
+  # Attempt conversion from "yyyy-mm-dd" format
+  dates_format2 <- as.Date(char_vector, format = "%Y-%m-%d")
+
+  # Check if NAs are produced by first conversion
+  if (all(!is.na(dates_format1))) {
+    return(dates_format1)
+  } else if (all(!is.na(dates_format2))) {
+    return(dates_format2)
+  } else {
+    NAs_format1 <- sum(is.na(dates_format1))
+    NAs_format2 <- sum(is.na(dates_format2))
+
+    if (NAs_format1 > NAs_format2) {
+      final_vector <- dates_format2
+    } else if (NAs_format2 > NAs_format1) {
+      final_vector <- dates_format1
+    } else {
+      final_vector <- rep("Ambiguous date format", length(char_vector))
+    }
+  }
+
+  return(final_vector)
+}
+
 #' check the data imported into the app
 #' @param imported_data a tibble with columns of period, type, value and
 #'   months_waited_id
@@ -70,6 +104,19 @@ check_imported_data <- function(imported_data) {
 
   if (length(missing_cols) > 0) {
     msg <- paste("Error: Missing required columns:", paste(missing_cols, collapse = ", "))
+    data_checked <- NULL
+
+    return(
+      list(
+        msg = msg,
+        imported_data_checked = data_checked
+      )
+    )
+  }
+
+  # check the dates in the period column
+  if (any(is.na(imported_data$period))) {
+    msg <- "Data not loaded. An ambiguous date format was used in the provided file. Accepted date formats are 'dd/mm/yyyy' and 'yyyy-mm-dd'."
     data_checked <- NULL
 
     return(
