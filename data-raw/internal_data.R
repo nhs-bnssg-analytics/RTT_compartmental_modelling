@@ -134,12 +134,21 @@ sample_data <- purrr::map(
     )
   )
 
+# results data
+example_chart_data <- read.csv(
+  "tests/testthat/test_data_results.csv"
+) |>
+  mutate(
+    period = as.Date(period, format = "%d/%m/%Y")
+  )
+
 usethis::use_data(
   org_lkp,
   trust_lkp,
   treatment_function_codes,
   specialty_lkp,
   sample_data,
+  example_chart_data,
   internal = TRUE,
   overwrite = TRUE
 )
