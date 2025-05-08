@@ -9,7 +9,11 @@ app_server <- function(input, output, session) {
 
   r <- reactiveValues()
 
+
   mod_01_introduction_server("01_introduction_1")
   mod_02_planner_server("02_planner_1", r = r)
   mod_03_results_server("03_results_1", r = r)
+  mod_04_definitions_server("04_definitions_1")
+  mod_05_tutorials_server("05_tutorials_1")
+  mod_06_acknowledgements_server("06_acknowledgements_1")
 }

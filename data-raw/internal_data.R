@@ -65,11 +65,90 @@ specialty_lkp <- dplyr::tribble(
   "X06",                       "Other"
 )
 
+
+# sample input data -------------------------------------------------------
+
+date_start = as.Date("2024-01-01")
+date_end = as.Date("2024-12-01")
+period_lkp <- dplyr::tibble(
+  period = seq(
+    from = lubridate::floor_date(
+      date_start %m-% months(1), unit = "months"
+    ),
+    to = lubridate::floor_date(
+      date_end, unit = "months"
+    ),
+    by = "months"
+  )
+) |>
+  mutate(
+    period_id = dplyr::row_number() - 1
+  )
+
+max_months <- 12
+
+sample_data <- purrr::map(
+  .x = c("referral", "incomplete", "complete"),
+  .f = ~ NHSRtt::create_dummy_data(
+      type = .x,
+      max_months_waited = max_months,
+      number_periods = max(period_lkp$period_id),
+      seed  = 444
+    )
+  ) |>
+  purrr::list_rbind() |>
+  dplyr::mutate(
+    months_waited_id = case_when(
+      !is.na(referrals) ~ 0L,
+      .default = months_waited_id
+    ),
+    value = case_when(
+      !is.na(referrals) ~ referrals,
+      !is.na(incompletes) ~ incompletes,
+      !is.na(treatments) ~ treatments,
+      .default = NA_real_
+    ),
+    type = case_when(
+      !is.na(referrals) ~ "Referrals",
+      !is.na(incompletes) ~ "Incomplete",
+      !is.na(treatments) ~ "Complete",
+      .default = NA_character_
+    )
+  ) |>
+  left_join(
+    period_lkp,
+    by = join_by(period_id)
+  ) |>
+  dplyr::relocate(
+    period, .before = dplyr::everything()
+  ) |>
+  dplyr::relocate(
+    value, .after = dplyr::everything()
+  ) |>
+  select(
+    !c(
+      "referrals",
+      "incompletes",
+      "treatments",
+      "period_id"
+    )
+  )
+
+# results data
+example_chart_data <- read.csv(
+  "tests/testthat/test_data_results.csv"
+) |>
+  mutate(
+    period = as.Date(period, format = "%d/%m/%Y")
+  )
+
 usethis::use_data(
   org_lkp,
   trust_lkp,
   treatment_function_codes,
   specialty_lkp,
+  sample_data,
+  example_chart_data,
   internal = TRUE,
   overwrite = TRUE
 )

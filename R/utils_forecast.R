@@ -4,7 +4,7 @@
 #'   column
 #' @param number_timesteps integer; number of time steps to forecast
 #' @param method string; "Uniform" or "Linear"
-#' @param percent_change numeric vector; if method is "Linear" thepercent_change
+#' @param percent_change numeric vector; if method is "Linear" the percent_change
 #'   is the annual percentage change required relative to the extrapolated first
 #'   time step (where 1 is a 1% annual uplift by time step 13)
 #' @importFrom dplyr tibble mutate case_when summarise
@@ -134,7 +134,7 @@ calculate_t1_value <- function(monthly_rtt) {
         pval <= 0.05 ~ as.numeric(.data$lm_val),
         .default = .data$mean_val
       ),
-      # capacity can't be less than zero, so it is fixed to zero if so
+      # treatment capacity can't be less than zero, so it is fixed to zero if so
       t_1_val = case_when(
         .data$t_1_val < 0 ~ 0,
         .default = .data$t_1_val

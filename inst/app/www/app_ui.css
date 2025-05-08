@@ -1,0 +1,36 @@
+
+.accordion-title {
+  font-size: 1em;
+}
+
+.accordion-button {
+  padding-top: 0;
+  padding-bottom: 0;
+  /*padding-right: 0;
+  flex-direction: row-reverse;
+  justify-content: padding-left;*/
+}
+
+.accordion-body {
+  font-size: 1em;
+  text-align: right;
+}
+
+.accordion-header {
+  padding: 4px;
+}
+
+#performance .value-box-value {
+  font-size: 1.2em !important;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#performance .value-box-title {
+  font-size: 1em !important;
+  font-weight: normal;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+p {
+  font-family: Arial, Helvetica, sans-serif;
+}

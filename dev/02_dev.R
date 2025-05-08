@@ -23,6 +23,10 @@ attachment::att_amend_desc()
 golem::add_module(name = "01_introduction", with_test = TRUE) # Name of the module
 golem::add_module(name = "02_planner", with_test = TRUE) # Name of the module
 golem::add_module(name = "03_results", with_test = TRUE) # Name of the module
+golem::add_module(name = "04_downloads", with_test = TRUE) # Name of the module
+golem::add_module(name = "05_definitions", with_test = FALSE) # Name of the module
+golem::add_module(name = "06_how_tos", with_test = FALSE) # Name of the module
+golem::add_module(name = "07_stories", with_test = FALSE) # Name of the module
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
@@ -36,7 +40,7 @@ golem::add_utils("general", with_test = TRUE)
 ## Creates .js and .css files at inst/app/www
 golem::add_js_file("script")
 golem::add_js_handler("handlers")
-golem::add_css_file("custom")
+golem::add_css_file("mod_05_definitions")
 golem::add_sass_file("custom")
 
 ## Add internal datasets ----

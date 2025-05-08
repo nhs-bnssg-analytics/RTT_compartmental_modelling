@@ -13,8 +13,8 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 The goal of RTTshiny is to provide an interface to a stock-and-flow
 model on NHS Referral to Treatment data, to allow planners to understand
-how changes in future clock stops can effect the waiting list size and
-knock on performance.
+how changes in future treatment capacity can effect the waiting list
+size and knock on performance.
 
 ## Run without installing
 
@@ -23,7 +23,7 @@ to run the application without installing the package:
 
 ``` r
 # install.packages("shiny")
-shiny::runGitHub("RTT_compartmental_modelling", "nhsengland")
+shiny::runGitHub("RTT_compartmental_modelling", "nhs-bnssg-analytics")
 ```
 
 ## Installation
@@ -34,7 +34,7 @@ You can install the development version of RTTshiny from
 ``` r
 # install.packages("devtools")
 devtools::install_github(
-  "nhsengland/RTT_compartmental_modelling@dev",
+  "nhs-bnssg-analytics/RTT_compartmental_modelling",
   dependencies = "Suggests"
 )
 ```
@@ -51,3 +51,4 @@ RTTshiny::run_app()
 
 See more information about the model on the [pkgdown
 website](https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/).
+

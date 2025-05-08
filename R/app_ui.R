@@ -1,9 +1,9 @@
 #' The application User-Interface
 #'
-#' @param request Internal parameter for `{shiny}`.
-#'     DO NOT REMOVE.
+#' @param request Internal parameter for `{shiny}`. DO NOT REMOVE.
 #' @import shiny
 #' @importFrom bslib navset_tab nav_panel nav_spacer nav_menu nav_item
+#'   page_fillable page_navbar accordion accordion_panel layout_columns
 #' @importFrom utils packageVersion
 #' @noRd
 app_ui <- function(request) {
@@ -35,39 +35,78 @@ app_ui <- function(request) {
     target = "_blank"
   )
 
-  tagList(
+  theme_selection <- "litera"
+
+  page_fillable(
     # Leave this function for adding external resources
     golem_add_external_resources(),
+    theme = bs_theme(bootswatch = theme_selection),
     # Your application UI logic
-    h1(
-      paste0(
-        "RTT planner (version ",
+
+    page_navbar(
+      title = HTML(
+        paste0(
+        'RTT Planner ',
+        '<span style="font-size: 0.7rem;">(v',
         packageVersion("RTTshiny"),
-        ")"
-      )
-    ),
-    p("A tool to help the NHS plan to reduce waiting times"),
-    tagList(
-      navset_tab(
-        nav_panel(
-          title = "How to use the tool",
-          mod_01_introduction_ui("01_introduction_1")
-        ),
-        nav_panel(
-          title = "Scenario planner",
-          mod_02_planner_ui("02_planner_1")
-        ),
-        nav_panel(
-          title = "Results",
-          mod_03_results_ui("03_results_1")
-        ),
-        nav_spacer(),
-        nav_menu(
-          title = "Links",
-          nav_item(github_shiny),
-          nav_item(github_RTT_package),
-          nav_item(github_analysis),
-          nav_item(email)
+        ') </span>'
+        )
+      ),
+      bg = "#0072CE",
+      theme = bs_theme(bootswatch = theme_selection),
+      nav_panel(
+        title = "How to use the tool",
+        value = "tab_intro",
+        mod_01_introduction_ui("01_introduction_1")
+      ),
+      nav_panel(
+        title = "Scenario planner",
+        value = "tab_configuration",
+        mod_02_planner_ui("02_planner_1")
+      ),
+      nav_panel(
+        title = "Results",
+        value = "tab_results",
+        mod_03_results_ui("03_results_1")
+      ),
+      nav_spacer(),
+      nav_panel(
+        title = "Definitions",
+        value = "tab_definitions",
+        mod_04_definitions_ui("04_definitions_1")
+      ),
+      nav_panel(
+        title = "Tutorials",
+        value = "tab_tutorials",
+        mod_05_tutorials_ui("05_tutorials_1")
+      ),
+      nav_panel(
+        title = "Acknowledgements",
+        value = "tab_acknowledgements",
+        mod_06_acknowledgements_ui("06_acknowledgements_1")
+      ),
+      nav_menu(
+        title = "Links",
+        nav_item(github_shiny),
+        nav_item(github_RTT_package),
+        nav_item(github_analysis),
+        nav_item(email),
+        align = "right"
+      ),
+      footer = card_footer(
+        layout_columns(
+          col_widths = c(12),
+          p(
+            HTML(
+              paste0(
+              "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a> or send feedback to
+             <a href='mailto:sebastian.fox3@nhs.net?subject=RTT planning tool (version ",
+              packageVersion("RTTshiny"),
+              ")'>sebastian.fox3@nhs.net</a>"
+              )
+            ),
+            class = "text-center text-muted"
+          )
         )
       )
     )
@@ -89,7 +128,7 @@ golem_add_external_resources <- function() {
   )
 
   tags$head(
-    favicon(),
+    favicon(ext = 'png'),
     bundle_resources(
       path = app_sys("app/www"),
       app_title = "RTTshiny"

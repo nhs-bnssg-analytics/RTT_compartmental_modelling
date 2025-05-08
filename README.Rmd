@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 [![codecov](https://codecov.io/gh/nhs-bnssg-analytics/RTT_compartmental_modelling/graph/badge.svg?token=O2KBKLVUOD)](https://codecov.io/gh/nhs-bnssg-analytics/RTT_compartmental_modelling)
 <!-- badges: end -->
 
-The goal of RTTshiny is to provide an interface to a stock-and-flow model on NHS Referral to Treatment data, to allow planners to understand how changes in future clock stops can effect the waiting list size and knock on performance.
+The goal of RTTshiny is to provide an interface to a stock-and-flow model on NHS Referral to Treatment data, to allow planners to understand how changes in future treatment capacity can effect the waiting list size and knock on performance.
 
 ## Run without installing
 
@@ -29,7 +29,7 @@ If you have R installed on your machine, the following command may work to run t
 
 ``` r
 # install.packages("shiny")
-shiny::runGitHub("RTT_compartmental_modelling", "nhsengland")
+shiny::runGitHub("RTT_compartmental_modelling", "nhs-bnssg-analytics")
 ```
 
 ## Installation
@@ -39,7 +39,7 @@ You can install the development version of RTTshiny from [GitHub](https://github
 ``` r
 # install.packages("devtools")
 devtools::install_github(
-  "nhsengland/RTT_compartmental_modelling@dev",
+  "nhs-bnssg-analytics/RTT_compartmental_modelling",
   dependencies = "Suggests"
 )
 ```
@@ -54,7 +54,7 @@ To launch the Shiny app following installation:
 RTTshiny::run_app()
 ```
 
-
 ## Web pages
 
 See more information about the model on the [pkgdown website](https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/).
+

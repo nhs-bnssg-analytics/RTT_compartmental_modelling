@@ -1,6 +1,6 @@
 Package: RTTshiny
 Title: A Shiny App to support teams to plan to reduce waiting list times
-Version: 0.0.2
+Version: 0.0.2.9000
 Authors@R: c(
     person("Seb", "Fox", , "sebastian.fox3@nhs.net", role = c("aut", "cre")),
     person("Simon", "Wellesley-Miller", , "simon.wellesley-miller@nhs.net", role = "aut")
@@ -23,14 +23,17 @@ Imports:
     pkgload,
     purrr,
     rlang,
+    rmarkdown,
     scales,
     shiny (>= 1.8.1.1),
     stats,
     tidyr,
     utils
 Suggests: 
+    flextable,
     spelling,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    vdiffr
 Remotes:
     nhs-bnssg-analytics/NHSRtt
 Config/testthat/edition: 3

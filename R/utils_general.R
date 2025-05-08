@@ -116,6 +116,10 @@ extract_percent <- function(text) {
   }
 }
 
+extract_first_number <- function(text) {
+  start_month <- sub("[+\\-].*", "", text)
+  return(as.integer(start_month))
+}
 
 #' Replaces values in a string vector with corresponding values from a named
 #' vector
@@ -211,12 +215,53 @@ org_name_lkp <- function(names = NULL, type) {
 #' @param comm_parents character; vector of full names for commissioner parents
 #' @param comms character; vector of full names for commissioners
 #' @param spec character; vector of full names for specialties
+#'
+#' @returns a nested list with five nests. The five nests are named
+#'   trust_parents, trusts, commissioner_parents, commissioners, and
+#'   specialties. Within each of these there are 3 items; selected_name,
+#'   selected_code and display.
+#'
+#'   selected_name can be a vector of length one or more, and will contain the
+#'   names based on the selected items in the UI. If no items are selected, then
+#'   this value will be NULL.
+#'
+#'   selected_code can be a vector of length one or more, and will contain the
+#'   equivalent codes based on the selected items in the UI. If no items are
+#'   selected, then this value will be NULL.
+#'
+#'   display is a vector of length one, and will contain the name that is
+#'   subsequently displayed in the chart titles. If multiple or no selections
+#'   are made, then this will take the value 'Aggregated'.
 #' @noRd
-filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
+filters_displays <- function(nhs_regions, nhs_only, trust_parents, trusts, comm_parents, comms, spec) {
+
   selected_trust_parents <- org_name_lkp(
     names = trust_parents,
     type = "Provider Parent"
   )
+
+  if (all(is.null(trusts), is.null(trust_parents), is.null(comm_parents), is.null(comms))) {
+
+    data_table <- org_lkp
+
+    if (isTRUE(nhs_only)) {
+      data_table <- data_table |>
+        dplyr::filter(
+          grepl("NHS", .data$`Provider Org Name`)
+        )
+    }
+
+    if (!is.null(nhs_regions)) {
+      data_table <- data_table |>
+        dplyr::filter(
+          .data$`NHS Region Name` %in% nhs_regions
+        )
+    }
+
+    trusts <- data_table |>
+      dplyr::pull(.data$`Provider Org Name`) |>
+      unique()
+  }
 
   selected_trusts <- org_name_lkp(
     names = trusts,
@@ -232,7 +277,9 @@ filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
     names = comms,
     type = "Commissioner Org"
   )
-  selected_specialties <- spec
+  selected_specialties <- specialty_lkp |>
+    filter(.data$Treatment.Function.Name %in% spec) |>
+    pull(.data$Treatment.Function.Code)
 
   spec <- replace_fun(
       spec,
@@ -243,36 +290,37 @@ filters_displays <- function(trust_parents, trusts, comm_parents, comms, spec) {
       is.null(selected_trust_parents)) {
     display_trust_parents <- "Aggregated"
   } else {
-    display_trust_parents <- selected_trust_parents
+    display_trust_parents <- trust_parents
   }
 
   if (length(selected_trusts) > 1 |
       is.null(selected_trusts)) {
     display_trusts <- "Aggregated"
   } else {
-    display_trusts <- selected_trusts
+    display_trusts <- trusts
   }
 
   if (length(selected_commissioner_parents) > 1 |
       is.null(selected_commissioner_parents)) {
     display_commissioner_parents <- "Aggregated"
   } else {
-    display_commissioner_parents <- selected_commissioner_parents
+    display_commissioner_parents <- comm_parents
   }
 
   if (length(selected_commissioners) > 1 |
       is.null(selected_commissioners)) {
     display_commissioners <- "Aggregated"
   } else {
-    display_commissioners <- selected_commissioners
+    display_commissioners <- comms
   }
 
   if (length(selected_specialties) > 1 |
-      is.null(selected_specialties)) {
+      length(selected_specialties) == 0) {
     display_specialties <- "Aggregated"
   } else {
-    display_specialties <- selected_specialties
+    display_specialties <- spec
   }
+
 
   return(
     list(
@@ -319,4 +367,74 @@ local_enframe <- function(named_vector, name, value_name) {
 
   return(df)
 
+}
+
+
+value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NA) {
+
+  x_val <- format(x_val, "%b %Y")
+
+  y_val_type <- match.arg(
+    y_val_type,
+    c("number", "percent")
+  )
+
+  if (y_val_type == "number") {
+    y_val <- format(
+      round(
+        y_val,
+        1
+      ),
+      big.mark = ",",
+      scientific = FALSE
+    )
+  } else if (y_val_type == "percent") {
+    y_val <- paste0(
+      formatC(
+        100 * y_val,
+        format = "f",
+        digits = 1
+      ),
+      "%"
+    )
+  }
+
+  if (is.na(facet)) {
+    out <- p(
+      HTML(
+        paste0(
+          "<strong>Month:</strong> ",
+          x_val,
+          "<br>",
+          "<strong>",
+          y_title,
+          ":</strong> ",
+          y_val
+        )
+      )
+    )
+  } else {
+
+    months_waited <- facet
+
+    out <- p(
+      HTML(
+        paste0(
+          "<strong>Month:</strong> ",
+          x_val,
+          "<br>",
+          "<strong>",
+          y_title,
+          ":</strong> ",
+          y_val,
+          "<br>",
+          "<strong>Months waited: </strong>",
+          months_waited
+        )
+      )
+    )
+  }
+
+
+  return(out)
 }

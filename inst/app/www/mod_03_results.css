@@ -1,0 +1,69 @@
+.dtButton {
+  background-color: rgb(102, 157, 211);
+  color: white;
+  border-color: rgb(0, 94, 184);
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 6px;
+  margin: 6px;
+}
+
+
+.results_button {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.9em !important;
+  text-align: left;
+  background: none;
+  border: none;
+  color: black;
+  padding: 0;
+  border-radius: 0;
+  margin: 0;
+}
+
+.results_subbutton {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.9em !important;
+  text-align: left;
+  text-indent: 10px;
+  background: none;
+  border: none;
+  color: black;
+  padding: 0;
+  border-radius: 0;
+}
+
+p.description_text {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.65em !important;
+  text-align: left
+}
+
+p.sidebar_header {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+}
+
+
+.label-left .form-group {
+  display: flex;              /* Use flexbox for positioning children */
+  flex-direction: row;        /* Place children on a row (default) */
+  width: 100%;                /* Set width for container */
+  max-width: 400px;
+}
+
+.label-left label {
+  margin-right: 2rem;         /* Add spacing between label and slider */
+  align-self: center;         /* Vertical align in center of row */
+  text-align: right;
+  flex-basis: 200px;          /* Target width for label */
+  font-size: 0.8em;
+}
+
+.label-left .irs {
+  flex-basis: 300px;          /* Target width for slider */
+}
+
+.form-group {
+  margin-bottom: 0;
+}
