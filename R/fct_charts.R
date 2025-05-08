@@ -36,6 +36,7 @@
 #'   'months_waited_id'.
 #' @param p_target_line A logical value indicating whether to include target
 #'   line and change colour of "target" in subheading
+#' @param date_input date for chart caption
 #'
 #' @importFrom dplyr filter distinct rename left_join join_by tibble cross_join
 #' @importFrom ggtext element_markdown
@@ -59,7 +60,8 @@ plot_output <- function(data,
                         p_referrals_change_type,
                         p_perc,
                         p_facet = F,
-                        p_target_line = F) {
+                        p_target_line = F,
+                        date_input = Sys.Date()) {
 
   p <- ggplot2::ggplot() +
     geom_vline(
@@ -103,7 +105,7 @@ plot_output <- function(data,
           "<br>Performance based on a ", p_cap_change_type, " treatment capacity change of ", p_cap_change, "% with a utilisation skew factor of ", p_cap_skew,
           "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "% </span>"
         ),
-        caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ", format(Sys.Date(), "%d/%m/%Y"))
+        caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ", format(date_input, "%d/%m/%Y"))
       ) +
       theme(
         plot.title = ggtext::element_markdown(),

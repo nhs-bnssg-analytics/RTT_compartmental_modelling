@@ -32,7 +32,8 @@ test_that("plot_output function", {
       p_referrals_change_type = "linear",
       p_perc = FALSE,
       p_facet = FALSE,
-      p_target_line = FALSE
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
     )
   )
 
@@ -57,7 +58,8 @@ test_that("plot_output function", {
       p_referrals_change_type = "linear",
       p_perc = FALSE,
       p_facet = FALSE,
-      p_target_line = FALSE
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
     )
   )
 
@@ -80,7 +82,8 @@ test_that("plot_output function", {
       p_referrals_change_type = "linear",
       p_perc = FALSE,
       p_facet = TRUE,
-      p_target_line = FALSE
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
     )
   )
 
@@ -104,7 +107,8 @@ test_that("plot_output function", {
       p_referrals_change_type = "linear",
       p_perc = FALSE,
       p_facet = FALSE,
-      p_target_line = FALSE
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
     )
   )
 
@@ -127,7 +131,8 @@ test_that("plot_output function", {
       p_referrals_change_type = "uniform",
       p_perc = FALSE,
       p_facet = TRUE,
-      p_target_line = FALSE
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
     )
   )
 
@@ -151,7 +156,8 @@ test_that("plot_output function", {
       p_referrals_change_type = "linear",
       p_perc = FALSE,
       p_facet = FALSE,
-      p_target_line = FALSE
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
     )
   )
 
@@ -173,7 +179,8 @@ test_that("plot_output function", {
       p_referrals_change_type = "uniform",
       p_perc = FALSE,
       p_facet = TRUE,
-      p_target_line = FALSE
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
     )
   )
 
@@ -205,7 +212,8 @@ test_that("plot_output function", {
       p_referrals_change_type = "uniform",
       p_perc = TRUE,
       p_facet = FALSE,
-      p_target_line = TRUE
+      p_target_line = TRUE,
+      date_input = as.Date("2025-05-08")
     )
   )
 
