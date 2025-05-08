@@ -20,6 +20,7 @@ Imports:
     golem (>= 0.4.1),
     lubridate,
     NHSRtt (>= 0.2.3),
+    pkgload,
     purrr,
     rlang,
     rmarkdown,
@@ -40,3 +41,4 @@ Encoding: UTF-8
 Language: en-US
 LazyData: true
 RoxygenNote: 7.3.2
+URL: https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/

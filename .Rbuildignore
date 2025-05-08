@@ -11,3 +11,8 @@ $run_dev.*
 OPEN_CODE_CHECKLIST.md
 rds$
 CODE_OF_CONDUCT.md
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^app\.R$
+^rsconnect$
