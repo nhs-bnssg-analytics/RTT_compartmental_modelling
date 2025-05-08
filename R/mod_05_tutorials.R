@@ -10,6 +10,7 @@
 mod_05_tutorials_ui <- function(id){
   ns <- NS(id)
   page_fluid(
+    p("This page will contain some short tutorial videos shortly."),
     layout_column_wrap(
       width = 1 / 5,
       card(
