@@ -95,7 +95,7 @@ app_ui <- function(request) {
       ),
       footer = card_footer(
         layout_columns(
-          col_widths = c(10, 2),
+          col_widths = c(12),
           p(
             HTML(
               paste0(
