@@ -11,8 +11,8 @@ mod_04_definitions_ui <- function(id){
   ns <- NS(id)
 
   definitions <- list(
-    "Treatment capacity" = "A 'clock stop' as a result of leaving the RTT pathway due to treatment.",
-    "Renege" = "A 'clock stop' as a result of leaving the RTT pathway for reasons other than treatment. This could be because of taking private treatment, moving to another pathway, or dying, for example.",
+    "Treatment capacity" = "A 'clock stop' as a result of leaving the RTT pathway due to treatment, or for other reasons as described by section 4 of the document linked to at the top of this page.",
+    "Renege" = "A 'clock stop' as a result of leaving the RTT pathway for reasons other than treatment. This could be because of inter-provider transfers, or a clock stop that was not captured in the data submissions, for example.",
     "Referral" = "A 'clock start', when an RTT pathway begins.",
     "RTT" = "Referral to Treatment. Here an RTT pathway specifies a time from clock start to clock stop.",
     "Performance" = "The proportion of the RTT waiting list that have been waiting less than 18 weeks (four months).",

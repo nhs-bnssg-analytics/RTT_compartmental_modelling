@@ -76,18 +76,16 @@ mod_02_planner_ui <- function(id){
       label = "Show NHS providers only",
       value = TRUE,
     ),
-    sliderInput(
-      inputId = ns("calibration_months"),
-      label = "Select number of months to calibrate data on:",
-      min = 2,
-      max = 24,
-      value = 12
-    ),
-    bslib::input_task_button(
-      id = ns("dwnld_rtt_data"),
-      label = "Download RTT data",
-      label_busy = "Downloading...",
-      type = "dark"
+    uiOutput(ns("calibration_months_ui")),
+    layout_columns(
+      col_widths = c(11, 1),
+      bslib::input_task_button(
+        id = ns("dwnld_rtt_data"),
+        label = "Download RTT data",
+        label_busy = "Downloading...",
+        type = "dark"
+      ),
+      uiOutput(ns("tick_mark_dwnld"))
     ),
     card(
       bslib::accordion(
@@ -128,13 +126,17 @@ mod_02_planner_ui <- function(id){
             )
           ),
           hr(),
-          fileInput(
-            inputId = ns("fileInput"),
-            label = "Upload your CSV file",
-            accept = c("text/csv", ".csv"),
-            placeholder = "Only CSV files are accepted"
-          ),
-          textOutput(ns("validation_message"))
+          layout_columns(
+            col_widths = c(11, 1),
+            fileInput(
+              inputId = ns("fileInput"),
+              label = "Upload your CSV file",
+              accept = c("text/csv", ".csv"),
+              placeholder = "Only CSV files are accepted"
+            ),
+            uiOutput(ns("tick_mark_import"))
+          )
+
         )
       )
     )
@@ -266,6 +268,13 @@ mod_02_planner_server <- function(id, r){
     reactive_values$default_target <- NULL
     reactive_values$referrals_uplift <- NULL
     reactive_values$optimise_status_card_visible <- NULL
+    reactive_values$performance_calculated <- FALSE
+    reactive_values$latest_date <- lubridate::floor_date(
+      NHSRtt::latest_rtt_date(),
+      unit = "months"
+    )
+    reactive_values$import_success <- NULL
+
 
     r$chart_specification <- list(
       trust = NULL,
@@ -375,6 +384,50 @@ mod_02_planner_server <- function(id, r){
         )
       })
 
+
+# calibration months slider -----------------------------------------------
+
+    output$calibration_months_ui <- renderUI({
+      # Initial rendering or subsequent updates based on input$slider value
+      current_value <- input$calibration_months
+
+      # Handle the initial NULL value when the app first loads
+      if(is.null(current_value)) {
+        current_value <- 12  # Default starting value
+      }
+
+      date_text <- paste0(
+        "(",
+        format(
+          reactive_values$latest_date %m-% months(current_value - 1),
+          format = "%b %Y"
+        ),
+        " to ",
+        format(
+          reactive_values$latest_date,
+          format = "%b %Y"
+        ),
+        ")"
+      )
+
+      # Create label that includes the current value
+      label_text <- paste0(
+        "Select number of months to calibrate data on ",
+        date_text,
+        ":"
+      )
+
+      # Return the slider with the dynamic label
+      sliderInput(
+        inputId = ns("calibration_months"),
+        label = label_text,
+        min = 2,
+        max = 24,
+        value = current_value
+      )
+    })
+
+
     # download data button ----------------------------------------------------
     observeEvent(
       input$dwnld_rtt_data, {
@@ -410,6 +463,8 @@ mod_02_planner_server <- function(id, r){
                      detail = 'This is used for calibrating the model')
 
         selections_labels <- filters_displays(
+          nhs_regions = input$region,
+          nhs_only = input$nhs_only,
           trust_parents = input$trust_parent_codes,
           trusts = input$trust_codes,
           comm_parents = input$commissioner_parent_codes,
@@ -531,6 +586,7 @@ mod_02_planner_server <- function(id, r){
 
         reactive_values$data_downloaded <- TRUE
 
+
         # calculate unadjusted referrals
         unadjusted_referrals <- r$all_data |>
           filter(
@@ -640,6 +696,23 @@ mod_02_planner_server <- function(id, r){
     )
 
 
+# download complete symbol ------------------------------------------------
+
+
+    # Output the tick mark when the process is complete
+    output$tick_mark_dwnld <- renderUI({
+
+      if (isTRUE(reactive_values$data_downloaded)) {
+        shiny::icon(
+          "check",
+          class = "green-tick"
+        )
+      } else {
+
+        NULL
+      }
+    })
+
     # bring your own data -----------------------------------------------------
 
 
@@ -714,6 +787,8 @@ mod_02_planner_server <- function(id, r){
                      detail = 'This will be included in template csv file')
 
         selections_labels <- filters_displays(
+          nhs_regions = input$region,
+          nhs_only = input$nhs_only,
           trust_parents = input$trust_parent_codes,
           trusts = input$trust_codes,
           comm_parents = input$commissioner_parent_codes,
@@ -763,178 +838,201 @@ mod_02_planner_server <- function(id, r){
       # Read the file
 
       imported_data <- utils::read.csv(
-        input$fileInput$datapath,
-        colClasses = c(
-          period = "Date"
+        input$fileInput$datapath
+      ) |>
+        mutate(
+          period = convert_to_date(.data$period)
         )
-      ) #|>
-        # mutate(
-        #   period = case_when(
-        #     grepl("-", .data$period) ~ as.Date(.data$period),
-        #     grepl("/", .data$period) ~ as.Date(.data$period, format = "%d/%m/%Y"),
-        #     .default = NA
-        #   )
-        # )
 
       # expected fields are "period", "type", "value", "months_waited_id" but
       # lots of other checks performed
       check_data <- check_imported_data(imported_data)
 
-      import_msg <- output$validation_message <- renderText({
-        check_data$msg
-      })
+      if (check_data$msg == "Data successfully loaded!") {
+        notification_type <- "message"
+        reactive_values$import_success <- TRUE
 
-      if (!is.null(check_data$imported_data_checked)) {
         imported_data <- check_data$imported_data_checked
-      }
-      # browser()
-      # create period lookup, but append the imported data to the start of the
-      # horizon period so the start point of the projections begin at the end of
-      # the imported period
-      r$period_lkp <- imported_data |>
-        # filter(.data$type == "Complete") |>
-        distinct(.data$period) |>
-        arrange(.data$period) |>
-        bind_rows(
-          dplyr::tibble(
-            period = seq(
-              from = forecast_dates()$start,
-              to = forecast_dates()$end,
-              by = "months"
+
+        # create period lookup, but append the imported data to the start of the
+        # horizon period so the start point of the projections begin at the end of
+        # the imported period
+        r$period_lkp <- imported_data |>
+          # filter(.data$type == "Complete") |>
+          distinct(.data$period) |>
+          arrange(.data$period) |>
+          bind_rows(
+            dplyr::tibble(
+              period = seq(
+                from = forecast_dates()$start,
+                to = forecast_dates()$end,
+                by = "months"
+              )
+            )
+          ) |>
+          mutate(
+            period_id = dplyr::row_number() - 1 # minus 1 because the first month in the imported data is the t0 incompletes
+          )
+
+        selections_labels <- filters_displays(
+          nhs_regions = input$region,
+          nhs_only = input$nhs_only,
+          trust_parents = input$trust_parent_codes,
+          trusts = input$trust_codes,
+          comm_parents = input$commissioner_parent_codes,
+          comms = input$commissioner_org_codes,
+          spec = input$specialty_codes
+        )
+
+        # pass some values to the charting module
+        r$chart_specification$trust <- selections_labels$trusts$display
+        r$chart_specification$specialty <- selections_labels$specialties$display
+        r$chart_specification$observed_start <- min(imported_data[["period"]])
+        r$chart_specification$observed_end <- max(imported_data[["period"]])
+
+        r$all_data <- imported_data |>
+          mutate(
+            trust = selections_labels$trusts$display,
+            specialty = selections_labels$specialties$display
+          ) |>
+          arrange(
+            .data$trust,
+            .data$specialty,
+            .data$type,
+            .data$months_waited_id,
+            .data$period
+          ) |>
+          left_join(
+            r$period_lkp,
+            by = join_by(
+              period
             )
           )
-        ) |>
-        mutate(
-          period_id = dplyr::row_number() - 1 # minus 1 because the first month in the imported data is the t0 incompletes
+
+        reactive_values$data_downloaded <- TRUE
+
+        # calculate "unadjusted" referrals (though referrals aren't being
+        # adjusted here but the value is being passed through to the 3rd module
+        # for transparency)
+        unadjusted_referrals <- r$all_data |>
+          filter(
+            .data$type == "Referrals"
+          ) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            unadjusted_referrals = "value"
+          )
+
+        # there is no uplift to referrals when bringing own data
+        reactive_values$referrals_uplift <- 0
+
+        # calculate the modelling parameters assuming referrals don't need to be
+        # uplifted
+        reactive_values$params <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12,
+          referrals_uplift = NULL,
+          redistribute_m0_reneges = FALSE
         )
 
-      selections_labels <- filters_displays(
-        trust_parents = input$trust_parent_codes,
-        trusts = input$trust_codes,
-        comm_parents = input$commissioner_parent_codes,
-        comms = input$commissioner_org_codes,
-        spec = input$specialty_codes
+        # data frame of counts by period which get supplied to the 3rd module
+        # for charting
+        reactive_values$calibration_data <- calibrate_parameters(
+          r$all_data,
+          max_months_waited = 12,
+          full_breakdown = TRUE,
+          referrals_uplift = NULL,
+          redistribute_m0_reneges = FALSE
+        ) |>
+          select(
+            "params"
+          ) |>
+          tidyr::unnest(.data$params) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            calculated_treatments = "treatments",
+            "reneges",
+            incompletes = "waiting_same_node"
+          ) |>
+          left_join(
+            unadjusted_referrals,
+            by = join_by(
+              period_id, months_waited_id
+            )
+          ) |>
+          dplyr::mutate(
+            # we assume the referral inputs are the correct number if they aren't using the public data
+            adjusted_referrals = .data$unadjusted_referrals +
+              (.data$unadjusted_referrals * reactive_values$referrals_uplift),
+            capacity_skew = 1,
+            period_type = "Observed"
+          )
+
+        reactive_values$latest_performance <- r$all_data |>
+          filter(
+            .data$type == "Incomplete",
+            .data$period == max(.data$period)
+          ) |>
+          calc_performance(
+            target_bin = 4
+          ) |>
+          mutate(
+            text = paste0(
+              "The performance at ",
+              format(.data$period, '%b %y'),
+              " was ",
+              format(
+                100 * .data$prop,
+                format = "f",
+                digits = 2,
+                nsmall = 1
+              ),
+              "%"
+            )
+          ) |>
+          pull(.data$text)
+
+        reactive_values$default_target <- min(
+          extract_percent(reactive_values$latest_performance) + 5,
+          100
+        )
+
+        reactive_values$optimise_status_card_visible <- FALSE
+
+      } else {
+        notification_type <- "error"
+        reactive_values$import_success <- FALSE
+      }
+
+      showNotification(
+        ui = check_data$msg,
+        duration = 10,
+        type = notification_type
       )
 
-      # pass some values to the charting module
-      r$chart_specification$trust <- selections_labels$trusts$display
-      r$chart_specification$specialty <- selections_labels$specialties$display
-      r$chart_specification$observed_start <- min(imported_data[["period"]])
-      r$chart_specification$observed_end <- max(imported_data[["period"]])
-
-      r$all_data <- imported_data |>
-        mutate(
-          trust = selections_labels$trusts$display,
-          specialty = selections_labels$specialties$display
-        ) |>
-        arrange(
-          .data$trust,
-          .data$specialty,
-          .data$type,
-          .data$months_waited_id,
-          .data$period
-        ) |>
-        left_join(
-          r$period_lkp,
-          by = join_by(
-            period
-          )
-        )
-
-      reactive_values$data_downloaded <- TRUE
-
-      # calculate "unadjusted" referrals (though referrals aren't being
-      # adjusted here but the value is being passed through to the 3rd module
-      # for transparency)
-      unadjusted_referrals <- r$all_data |>
-        filter(
-          .data$type == "Referrals"
-        ) |>
-        dplyr::select(
-          "period_id",
-          "months_waited_id",
-          unadjusted_referrals = "value"
-        )
-
-      # there is no uplift to referrals when bringing own data
-      reactive_values$referrals_uplift <- 0
-
-      # calculate the modelling parameters assuming referrals don't need to be
-      # uplifted
-      reactive_values$params <- calibrate_parameters(
-        r$all_data,
-        max_months_waited = 12,
-        referrals_uplift = NULL,
-        redistribute_m0_reneges = FALSE
-      )
-
-      # data frame of counts by period which get supplied to the 3rd module
-      # for charting
-      reactive_values$calibration_data <- calibrate_parameters(
-        r$all_data,
-        max_months_waited = 12,
-        full_breakdown = TRUE,
-        referrals_uplift = NULL,
-        redistribute_m0_reneges = FALSE
-      ) |>
-        select(
-          "params"
-        ) |>
-        tidyr::unnest(.data$params) |>
-        dplyr::select(
-          "period_id",
-          "months_waited_id",
-          calculated_treatments = "treatments",
-          "reneges",
-          incompletes = "waiting_same_node"
-        ) |>
-        left_join(
-          unadjusted_referrals,
-          by = join_by(
-            period_id, months_waited_id
-          )
-        ) |>
-        dplyr::mutate(
-          # we assume the referral inputs are the correct number if they aren't using the public data
-          adjusted_referrals = .data$unadjusted_referrals +
-            (.data$unadjusted_referrals * reactive_values$referrals_uplift),
-          capacity_skew = 1,
-          period_type = "Observed"
-        )
-
-      reactive_values$latest_performance <- r$all_data |>
-        filter(
-          .data$type == "Incomplete",
-          .data$period == max(.data$period)
-        ) |>
-        calc_performance(
-          target_bin = 4
-        ) |>
-        mutate(
-          text = paste0(
-            "The performance at ",
-            format(.data$period, '%b %y'),
-            " was ",
-            format(
-              100 * .data$prop,
-              format = "f",
-              digits = 2,
-              nsmall = 1
-            ),
-            "%"
-          )
-        ) |>
-        pull(.data$text)
-
-      reactive_values$default_target <- min(
-        extract_percent(reactive_values$latest_performance) + 5,
-        100
-      )
-
-      reactive_values$optimise_status_card_visible <- FALSE
 
     })
 
+    # tick mark for data import
+    # Output the tick mark when the process is complete
+    output$tick_mark_import <- renderUI({
+
+      if (isTRUE(reactive_values$import_success)) {
+        shiny::icon(
+          "check",
+          class = "green-tick-larger"
+        )
+      } else if (isFALSE(reactive_values$import_success)) {
+        shiny::icon(
+          "xmark",
+          class = "red-xmark-larger"
+        )
+      } else {
+        NULL
+      }
+    })
 
     # calculate and populate forecast dates -----------------------------------
 
@@ -1244,26 +1342,34 @@ mod_02_planner_server <- function(id, r){
 
     output$optimise_capacity_ui <- renderUI({
       if (isTRUE(reactive_values$data_downloaded)) {
-        bslib::input_task_button(
-          id = ns("optimise_capacity"),
-          label = "Optimise treatment capacity",
-          label_busy = "Forecasting...",
-          type = "dark",
-          class = "model_button",
-          icon = shiny::icon("calculator")
+        layout_columns(
+          col_widths = c(11, 1),
+          bslib::input_task_button(
+            id = ns("optimise_capacity"),
+            label = "Optimise treatment capacity",
+            label_busy = "Forecasting...",
+            type = "dark",
+            class = "model_button",
+            icon = shiny::icon("calculator")
+          ),
+          uiOutput(ns("tick_mark_optimise"))
         )
       }
     })
 
     output$calculate_performance_ui <- renderUI({
       if (isTRUE(reactive_values$data_downloaded)) {
-        bslib::input_task_button(
-          id = ns("calculate_performance"),
-          label = "Calculate future performance",
-          label_busy = "Forecasting...",
-          type = "dark",
-          class = "model_button",
-          icon = shiny::icon("calculator")
+        layout_columns(
+          col_widths = c(11, 1),
+          bslib::input_task_button(
+            id = ns("calculate_performance"),
+            label = "Calculate future performance",
+            label_busy = "Forecasting...",
+            type = "dark",
+            class = "model_button",
+            icon = shiny::icon("calculator")
+          ),
+          uiOutput(ns("tick_mark_performance"))
         )
       }
     })
@@ -1589,6 +1695,20 @@ mod_02_planner_server <- function(id, r){
 
         if (input$calculate_performance >= 1) {
 
+          selections_labels <- filters_displays(
+            nhs_regions = input$region,
+            nhs_only = input$nhs_only,
+            trust_parents = input$trust_parent_codes,
+            trusts = input$trust_codes,
+            comm_parents = input$commissioner_parent_codes,
+            comms = input$commissioner_org_codes,
+            spec = input$specialty_codes
+          )
+
+          # pass some values to the charting module
+          r$chart_specification$trust <- selections_labels$trusts$display
+          r$chart_specification$specialty <- selections_labels$specialties$display
+
           forecast_months <- lubridate::interval(
             as.Date(input$forecast_date[[1]]),
             as.Date(input$forecast_date[[2]])
@@ -1724,11 +1844,28 @@ mod_02_planner_server <- function(id, r){
             Target_performance = as.numeric()
           )
           r$chart_specification$optimise_status <- NULL
+
+          reactive_values$performance_calculated <- TRUE
         }
       },
       ignoreInit = TRUE
     )
 
+# capacity calculation complete symbol ------------------------------------------------
+
+
+    # Output the tick mark when the process is complete
+    output$tick_mark_performance <- renderUI({
+
+      if (isTRUE(reactive_values$performance_calculated)) {
+        shiny::icon(
+          "check",
+          class = "green-tick-larger"
+        )
+      } else {
+        NULL
+      }
+    })
 
     # optimising treatment capacity based on performance inputs -------------------------
 
@@ -1737,6 +1874,20 @@ mod_02_planner_server <- function(id, r){
         r$chart_specification$optimise_status <- NULL
 
         if (input$optimise_capacity >= 1) {
+
+          selections_labels <- filters_displays(
+            nhs_regions = input$region,
+            nhs_only = input$nhs_only,
+            trust_parents = input$trust_parent_codes,
+            trusts = input$trust_codes,
+            comm_parents = input$commissioner_parent_codes,
+            comms = input$commissioner_org_codes,
+            spec = input$specialty_codes
+          )
+
+          # pass some values to the charting module
+          r$chart_specification$trust <- selections_labels$trusts$display
+          r$chart_specification$specialty <- selections_labels$specialties$display
 
           skew <- dplyr::tibble(
             skew_param = seq(
@@ -2227,6 +2378,22 @@ mod_02_planner_server <- function(id, r){
         }
       }
     )
+
+# optimisation complete symbol ------------------------------------------------
+
+
+    # Output the tick mark when the process is complete
+    output$tick_mark_optimise <- renderUI({
+
+      if (isTRUE(reactive_values$optimise_status_card_visible)) {
+        shiny::icon(
+          "check",
+          class = "green-tick-larger"
+        )
+      } else {
+        NULL
+      }
+    })
 
   })
 }

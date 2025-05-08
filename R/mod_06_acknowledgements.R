@@ -112,7 +112,7 @@ mod_06_acknowledgements_ui <- function(id){
             "Claire Rudler",
             "Nick Cooper",
             "",
-            "And input from Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
+            "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
             sep = "<br>"
           )
         )

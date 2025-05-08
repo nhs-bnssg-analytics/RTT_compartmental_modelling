@@ -280,4 +280,21 @@ test_that("filters_displays works", {
     specs,
     info = "selected specialties remain unchanged"
   )
+
+  sw_trusts <- filters_displays(
+    nhs_only = TRUE,
+    nhs_regions = "South West",
+    trusts = NULL,
+    trust_parents = NULL,
+    comm_parents = NULL,
+    comms = NULL,
+    spec = specs
+  ) |>
+    purrr::pluck("trusts", "selected_code")
+
+  expect_equal(
+    sw_trusts,
+    c("RA9", "RH8", "RK9", "RD1", "RN3", "RNZ", "RTE", "RH5", "REF", "RJ8", "RA7", "RVJ", "R0D", "RBD"),
+    info = "Trusts in SW are identified when region and NHS only are provieded"
+  )
 })

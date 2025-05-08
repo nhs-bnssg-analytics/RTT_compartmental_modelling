@@ -61,11 +61,6 @@ plot_output <- function(data,
                         p_facet = F,
                         p_target_line = F) {
 
-  if (is.null(data)) {
-    p <- holding_chart()
-    return(p)
-  }
-
   p <- ggplot2::ggplot() +
     geom_vline(
       data = dplyr::filter(
@@ -169,14 +164,15 @@ plot_output <- function(data,
   if (p_facet == T ) {
     p <- p +
       facet_wrap(~months_waited_id, ncol = 4) +
-      scale_x_date(breaks = "6 month",
-                   minor_breaks = "2 month",
-                   date_labels = "%b %y")
+      scale_x_date(
+        breaks = january_breaks_facetted,
+        date_labels = "%b\n%Y")
   } else {
     p <- p +
-      scale_x_date(breaks = "3 month",
-                   minor_breaks = "1 month",
-                   date_labels = "%b %y")
+      scale_x_date(
+        breaks = january_breaks,
+        date_labels = "%b\n%Y"
+      )
   }
 
   if (p_target_line == T & p_scenario == 'Estimate treatment capacity (from performance targets)') {
@@ -236,23 +232,38 @@ plot_output <- function(data,
           yintercept = .data$Target_percentage / 100
         ),
         colour = 'red',
-        linetype = 'dotted')
+        linetype = 'dotted'
+      )
   }
 
-
-  p
+  return(p)
 }
 
+#' @param type one of "model" (advising user to return to modelling page) or
+#'   "select_chart" (advising user to select the chart)
 #' @importFrom dplyr tibble
 #' @importFrom rlang .data
 #' @import ggplot2
-holding_chart <- function() {
+#' @noRd
+holding_chart <- function(type) {
+
+  type <- match.arg(
+    type,
+    c("model", "select_chart")
+  )
+
+  if (type == "model") {
+    holding_text <- "Please return to the 'Scenario planner' tab to create some modelled data"
+  } else if (type == "select_chart") {
+    holding_text <- "Please make chart selection on the sidebar"
+  }
+
   ggplot() +
     geom_text(
       data = dplyr::tibble(
         x = 1,
         y = 1,
-        label = "Please return to the 'Scenario planner' tab to create some modelled data"
+        label = holding_text
       ),
       aes(
         x = .data$x,
@@ -375,6 +386,76 @@ extend_period_type_data <- function(plot_data) {
     )
 
   return(plot_data)
+}
+
+calc_breaks <- function(limits, facetted) {
+  years_in_data <- length(
+    seq(
+      from = limits[1],
+      to = limits[2],
+      by = "year"
+    )
+  ) - 1
+
+  if (years_in_data <= 4) {
+    labels_per_year <- 4
+  } else if (years_in_data <= 8) {
+    labels_per_year <- 2
+  } else {
+    labels_per_year <- 1
+  }
+
+  if (isTRUE(facetted)) {
+    labels_per_year <- labels_per_year / 2
+  }
+
+  # Use pretty to generate similar breaks
+  approx_breaks <- pretty(
+    limits,
+    n = labels_per_year * years_in_data # n is approximate number of breaks
+  )
+
+  return(approx_breaks)
+}
+
+january_breaks <- function(limits) {
+
+  approx_breaks <- calc_breaks(
+    limits = limits,
+    facetted = FALSE
+  )
+
+  # compare month of all labels with january
+  label_months <- lubridate::month(approx_breaks)
+
+  earliest_month <- min(label_months)
+
+  # calc difference in months from january
+  difference_in_months <- earliest_month - 1
+
+  new_breaks <- approx_breaks %m+% months(difference_in_months)
+
+  return(new_breaks)
+}
+
+january_breaks_facetted <- function(limits) {
+
+  approx_breaks <- calc_breaks(
+    limits = limits,
+    facetted = TRUE
+  )
+
+  # compare month of all labels with january
+  label_months <- lubridate::month(approx_breaks)
+
+  earliest_month <- min(label_months)
+
+  # calc difference in months from january
+  difference_in_months <- earliest_month - 1
+
+  new_breaks <- approx_breaks %m+% months(difference_in_months)
+
+  return(new_breaks)
 }
 
 #' function to return the data behind where the user has clicked

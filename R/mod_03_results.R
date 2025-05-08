@@ -18,102 +18,7 @@ mod_03_results_ui <- function(id){
 
   page_sidebar(
     sidebar = sidebar(
-      p("INPUTS",
-        class = "sidebar_header"),
-      actionButton(
-        inputId = ns("btn_referrals"),
-        label = "Referrals",
-        title = "Referral counts over the period",
-        `data-bs-trigger` = "hover",
-        icon = shiny::icon("star"),
-        class = "results_button"
-      ),
-      p("Treatment capacity",
-        class = "results_button",
-        title = "Treatment capacity counts over the period",
-        `data-bs-trigger` = "hover",
-      ),
-
-      actionButton(
-        inputId = ns("btn_capacity_ttl"),
-        label = "Total",
-        icon = shiny::icon("star"),
-        class = "results_subbutton",
-        `data-bs-trigger` = "hover",
-        title = "Total counts of treatment capacity"
-      ),
-      actionButton(
-        inputId = ns("btn_capacity_mnth"),
-        label = "Distribution",
-        icon = shiny::icon("star"),
-        class = "results_subbutton",
-        `data-bs-trigger` = "hover",
-        title = "Treatment capacity distributed by number of months waited"
-      ),
-      p("Reneges",
-        class = "results_button",
-        `data-bs-trigger` = "hover",
-        title = "Number of reneges over the period"
-      ),
-      actionButton(
-        inputId = ns("btn_reneges_ttl"),
-        label = "Total",
-        icon = shiny::icon("star"),
-        class = "results_subbutton",
-        `data-bs-trigger` = "hover",
-        title = "The total number of reneges each month"
-      ),
-      actionButton(
-        inputId = ns("btn_reneges_mnth"),
-        label = "Distribution",
-        icon = shiny::icon("star"),
-        class = "results_subbutton",
-        `data-bs-trigger` = "hover",
-        title = "Reneges distributed by number of months waited"
-      ),
-      hr(),
-      p("OUTPUTS",
-        class = "sidebar_header"),
-      p("Waiting list size",
-        class = "results_button",
-        `data-bs-trigger` = "hover",
-        title = "The size of the waiting list over the period"
-      ),
-      actionButton(
-        inputId = ns("btn_waiting_list_ttl"),
-        label = "Total",
-        icon = shiny::icon("star"),
-        class = "results_subbutton",
-        `data-bs-trigger` = "hover",
-        title = "Total size of the waiting list"
-      ),
-      actionButton(
-        inputId = ns("btn_waiting_list_mnth"),
-        label = "Distribution",
-        icon = shiny::icon("star"),
-        class = "results_subbutton",
-        `data-bs-trigger` = "hover",
-        title = "Size of the waiting list by the number of months waited"
-      ),
-      actionButton(
-        inputId = ns("btn_performance"),
-        label = "18 week performance",
-        icon = shiny::icon("star"),
-        class = "results_button",
-        `data-bs-trigger` = "hover",
-        title = "The 18 week performance over the period"
-      ),
-      hr(),
-
-      actionButton(
-        inputId = ns("btn_data"),
-        label = "Data table",
-        icon = shiny::icon("star"),
-        class = "results_button",
-        `data-bs-trigger` = "hover",
-        title = "View the data in a table"
-      ),
-      uiOutput(ns("btn_report_ui"))
+      uiOutput(ns("dynamic_sidebar_ui"))
     ),
     card(
       card_body(
@@ -135,8 +40,9 @@ mod_03_results_ui <- function(id){
 #' @importFrom DT renderDT formatRound datatable
 #' @importFrom dplyr group_by rename summarise tribble
 #' @importFrom rlang .data
-#' @importFrom bslib value_box
+#' @importFrom bslib value_box layout_column_wrap
 #' @importFrom shiny updateActionButton showModal modalDialog downloadHandler
+#'   actionButton p hr uiOutput
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r){
@@ -151,6 +57,223 @@ mod_03_results_server <- function(id, r){
     reactive_data$show_plot <- FALSE
     reactive_data$show_table <- FALSE
 
+
+
+# dynamic sidebar ---------------------------------------------------------
+
+    output$dynamic_sidebar_ui <- renderUI({
+
+      if (is.null(r$chart_specification$scenario_type)) {
+        tagList()
+      } else if (r$chart_specification$scenario_type == "Estimate performance (from treatment capacity inputs)") {
+
+        layout_column_wrap(
+          width = 1,
+          gap = 0,
+          p("INPUTS",
+            class = "sidebar_header"),
+          actionButton(
+            inputId = ns("btn_referrals"),
+            label = "Referrals",
+            title = "Referral counts over the period",
+            `data-bs-trigger` = "hover",
+            icon = shiny::icon("star"),
+            class = "results_button"
+          ),
+          p("Treatment capacity",
+            class = "results_button",
+            title = "Treatment capacity counts over the period",
+            `data-bs-trigger` = "hover",
+          ),
+
+          actionButton(
+            inputId = ns("btn_capacity_ttl"),
+            label = "Total",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Total counts of treatment capacity"
+          ),
+          actionButton(
+            inputId = ns("btn_capacity_mnth"),
+            label = "Distribution",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Treatment capacity distributed by number of months waited"
+          ),
+          hr(),
+          p("OUTPUTS",
+            class = "sidebar_header"),
+          p("Waiting list size",
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "The size of the waiting list over the period"
+          ),
+          actionButton(
+            inputId = ns("btn_waiting_list_ttl"),
+            label = "Total",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Total size of the waiting list"
+          ),
+          actionButton(
+            inputId = ns("btn_waiting_list_mnth"),
+            label = "Distribution",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Size of the waiting list by the number of months waited"
+          ),
+          actionButton(
+            inputId = ns("btn_performance"),
+            label = "18 week performance",
+            icon = shiny::icon("star"),
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "The 18 week performance over the period"
+          ),
+          p("Reneges",
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "Number of reneges over the period"
+          ),
+          actionButton(
+            inputId = ns("btn_reneges_ttl"),
+            label = "Total",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "The total number of reneges each month"
+          ),
+          actionButton(
+            inputId = ns("btn_reneges_mnth"),
+            label = "Distribution",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Reneges distributed by number of months waited"
+          ),
+          hr(),
+
+          actionButton(
+            inputId = ns("btn_data"),
+            label = "Data table",
+            icon = shiny::icon("star"),
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "View the data in a table"
+          ),
+          uiOutput(ns("btn_report_ui"))
+        )
+
+
+      } else if (r$chart_specification$scenario_type == "Estimate treatment capacity (from performance targets)") {
+
+        layout_column_wrap(
+          width = 1,
+          gap = 0,
+          p("INPUTS",
+            class = "sidebar_header"),
+          actionButton(
+            inputId = ns("btn_referrals"),
+            label = "Referrals",
+            title = "Referral counts over the period",
+            `data-bs-trigger` = "hover",
+            icon = shiny::icon("star"),
+            class = "results_button"
+          ),
+          actionButton(
+            inputId = ns("btn_performance"),
+            label = "18 week performance",
+            icon = shiny::icon("star"),
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "The 18 week performance over the period"
+          ),
+          hr(),
+          p("OUTPUTS",
+            class = "sidebar_header"),
+          p("Treatment capacity",
+            class = "results_button",
+            title = "Treatment capacity counts over the period",
+            `data-bs-trigger` = "hover",
+          ),
+
+          actionButton(
+            inputId = ns("btn_capacity_ttl"),
+            label = "Total",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Total counts of treatment capacity"
+          ),
+          actionButton(
+            inputId = ns("btn_capacity_mnth"),
+            label = "Distribution",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Treatment capacity distributed by number of months waited"
+          ),
+          p("Reneges",
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "Number of reneges over the period"
+          ),
+          actionButton(
+            inputId = ns("btn_reneges_ttl"),
+            label = "Total",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "The total number of reneges each month"
+          ),
+          actionButton(
+            inputId = ns("btn_reneges_mnth"),
+            label = "Distribution",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Reneges distributed by number of months waited"
+          ),
+          p("Waiting list size",
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "The size of the waiting list over the period"
+          ),
+          actionButton(
+            inputId = ns("btn_waiting_list_ttl"),
+            label = "Total",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Total size of the waiting list"
+          ),
+          actionButton(
+            inputId = ns("btn_waiting_list_mnth"),
+            label = "Distribution",
+            icon = shiny::icon("star"),
+            class = "results_subbutton",
+            `data-bs-trigger` = "hover",
+            title = "Size of the waiting list by the number of months waited"
+          ),
+          hr(),
+
+          actionButton(
+            inputId = ns("btn_data"),
+            label = "Data table",
+            icon = shiny::icon("star"),
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "View the data in a table"
+          ),
+          uiOutput(ns("btn_report_ui"))
+        )
+
+      }
+    })
 # report download ---------------------------------------------------------
 
     output$btn_report_ui <- renderUI({
@@ -176,7 +299,14 @@ mod_03_results_server <- function(id, r){
 
 
     output$btn_report <- downloadHandler(
-      filename <-  "Trust planning report.docx",
+      filename <-  paste0(
+        r$chart_specification$trust,
+        " ",
+        r$chart_specification$specialty,
+        " ",
+        format(Sys.time(), format = "%Y%m%d %H%M%S"),
+        ".docx"
+      ),
       content = function(file) {
 
         tempReport <- file.path(tempdir(), "skeleton.Rmd")
@@ -327,7 +457,14 @@ mod_03_results_server <- function(id, r){
                 list(
                   extend = 'csv',
                   className = 'dtButton',
-                  text = "Download table to csv"
+                  text = "Download table to csv",
+                  title = paste0(
+                    r$chart_specification$trust,
+                    " ",
+                    r$chart_specification$specialty,
+                    " ",
+                    format(Sys.time(), format = "%Y%m%d %H%M%S")
+                  )
                 )
               )
             ),
@@ -369,8 +506,12 @@ mod_03_results_server <- function(id, r){
           calc_res <- input$chart_res
         }
         output$results_plot <- renderPlot({
-          if (is.null(r$waiting_list) | is.null(reactive_data$btn_val)) {
-            holding_chart()
+
+          # browser()
+          if (is.null(r$waiting_list) | identical(r$waiting_list, tibble())) {
+            holding_chart(type = "model")
+          } else if (is.null(reactive_data$btn_val)) {
+            holding_chart(type = "select_chart")
           } else {
             if (reactive_data$btn_val == "btn_referrals") {
               reactive_data$plot_data <- r$waiting_list |>
@@ -499,7 +640,11 @@ mod_03_results_server <- function(id, r){
 
 # dynamic ui --------------------------------------------------------------
     output$results_ui <- renderUI({
-      if (reactive_data$show_plot == TRUE) {
+       if (reactive_data$show_table ==  TRUE) {
+        DTOutput(
+          ns("results_table")
+        )
+      } else {
         div(
           plotOutput(
             ns("results_plot"),
@@ -519,10 +664,6 @@ mod_03_results_server <- function(id, r){
               step = 8
             )
           )
-        )
-      } else if (reactive_data$show_table ==  TRUE) {
-        DTOutput(
-          ns("results_table")
         )
       }
     })

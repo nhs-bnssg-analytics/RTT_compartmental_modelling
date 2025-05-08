@@ -42,13 +42,6 @@ mod_01_introduction_ui <- function(id){
           layout_column_wrap(
             width = 1 / 3,
             min_height = "600px",
-            # fill = TRUE,
-            # fillable = FALSE,
-            # layout_column_wrap(
-            #   width = 1,
-            #   fill = FALSE,
-            #   fillable = FALSE,
-
             # First column with title above card
             div(
               h5("Step 1"),
@@ -140,7 +133,7 @@ mod_01_introduction_ui <- function(id){
           tags$ul(
             tags$li(tags$strong("Translate treatment capacity to activity:"), " Apply national analaysis of pathways data to provide an estimate of the numbers and types of activity per treatment."),
             tags$li(tags$strong("Post-optimisation adjustments:"), " Feed the projection data back into the scenario section to make minor, more custom adjustments."),
-            tags$li(tags$strong("Data inputs:"), " Provide visualisations of the downloaded data one the data are downloaded."),
+            tags$li(tags$strong("Data inputs:"), " Provide visualisations of the downloaded data once the data are downloaded."),
             tags$li(tags$strong("Other:"), HTML(" View the issues backlog <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>here</a>."))
           ),
 

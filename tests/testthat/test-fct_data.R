@@ -308,4 +308,44 @@ test_that("Test check_imported_data", {
     info = "Empty dataframe returns NULL dataset"
   )
 
+  # Test case 7: NA in period field
+  invalid_data <- sample_data
+  invalid_data$period[10] <- NA
+  result <- check_imported_data(invalid_data)
+
+  expect_match(
+    result$msg,
+    "Data not loaded. An ambiguous date format was used in the provided file. Accepted date formats are 'dd/mm/yyyy' and 'yyyy-mm-dd'.",
+    info = "NA in period field of imported data"
+  )
+  expect_null(
+    result$imported_data_checked,
+    info = "NA in period field of imported data return NULL data"
+  )
+})
+
+
+test_that("convert_to_date works", {
+
+
+  dts1 <- c("2022-04-01", "2021-04-05", "2012-12-12", "2000-01-01")
+
+  expect_false(
+    any(is.na(convert_to_date(dts1))),
+    info = "all dates with format yyyy-mm-dd are converted successfully"
+  )
+
+
+  dts2 <- c("12/12/2022", "24/05/2021", "25/12/2022", "01/01/2019")
+  expect_false(
+    any(is.na(convert_to_date(dts2))),
+    info = "all dates with format dd/mm/yyyy are converted successfully"
+  )
+
+  dts3 <- c("12/12/2022", "24/05/2021", "25/12/2022", "01-01-2019")
+  expect_true(
+    any(is.na(convert_to_date(dts3))),
+    info = "string vetor with multiple date formats produce NAs"
+  )
+
 })
