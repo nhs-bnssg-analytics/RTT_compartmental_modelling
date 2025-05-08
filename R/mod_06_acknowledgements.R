@@ -81,7 +81,7 @@ mod_06_acknowledgements_server <- function(id){
         "NHS BNSSG ICB, in collaboration with Lancaster University develop multi-stock model using public NHS RTT statistics at England geography. At the time of writing, the associated research paper is in review (URL to be shared once published).",
         "NHS BNSSG ICB and NHS Devon ICB, who have also been working on stock-and-flow models, agree to develop common RTT model to reduce multiplication. This is facilitated by the South West Decision Support Network's 'At Scale Analytics' workstream.",
         "Collaboration expands to include NHS England South West team and NHS Gloucestershire ICB, and the development of the interactive online tool begins.",
-        "In collaboration with the Midlands Strategy Unit, the first release of the online tool occurs."
+        "First release of the online tool occurs."
       ),
       colour = c("#330072", "#AE2573", "#8A1538", "#ED8B00", "#FFB81C")
     )
@@ -141,13 +141,13 @@ mod_06_acknowledgements_server <- function(id){
     output$card_container_ui <- renderUI({
       layout_column_wrap(
         width = 1 / nrow(timeline_data),
-        # col_widths = rep(nrow(timeline_data) / 12, nrow(timeline_data)),
         gap = "10px",
         card_list[[1]],
         card_list[[2]],
         card_list[[3]],
         card_list[[4]],
         card_list[[5]]
+        # card_list
       )
 
     })
