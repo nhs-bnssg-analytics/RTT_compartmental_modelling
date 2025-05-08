@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">RTTshiny</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,10 +49,28 @@
         <dd>NHSRtt: A golem shiny app for modelling waiting times using a stock and flow method</dd>
       </dl><dl><dt>
 
+          <code><a href="check_imported_data.html">check_imported_data()</a></code>
+
+        </dt>
+        <dd>check the data imported into the app</dd>
+      </dl><dl><dt>
+
+          <code><a href="click_info.html">click_info()</a></code>
+
+        </dt>
+        <dd>function to return the data behind where the user has clicked</dd>
+      </dl><dl><dt>
+
           <code><a href="create_modelling_data.html">create_modelling_data()</a></code>
 
         </dt>
         <dd>Create the calibration dataset from the main data table</dd>
+      </dl><dl><dt>
+
+          <code><a href="extend_period_type_data.html">extend_period_type_data()</a></code>
+
+        </dt>
+        <dd>geom_step in the charts do not display the final observed or projected months well because the stepped line terminates at the start of the month. This function adds an artificial month onto the observed and projected period_types so they are displayed better on the visualisations</dd>
       </dl><dl><dt>
 
           <code><a href="run_app.html">run_app()</a></code>
