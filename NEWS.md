@@ -1,9 +1,16 @@
-# RTTshiny 0.0.2.9000
+# RTTshiny 1.0.0
+
+* First release of the tool
 
 ## Enhancements
 
 * includes status of optimisation process
+* option to put multiple performance targets
+* report download feature included
 * makes clickable charts, returning information about where the user has clicked
+* includes history of the project and acknowledgements
+* landing page includes tool information, how to use the tool, and key future developments
+
 
 ## Bug fixes
 
