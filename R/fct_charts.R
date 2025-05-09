@@ -125,7 +125,7 @@ plot_output <- function(data,
           "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
         ),
         caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
-                         format(Sys.Date(), "%d/%m/%Y"))
+                         format(date_input, "%d/%m/%Y"))
       ) +
       theme(
         plot.title = ggtext::element_markdown(),
@@ -144,7 +144,7 @@ plot_output <- function(data,
           "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
         ),
         caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
-                         format(Sys.Date(), "%d/%m/%Y"))
+                         format(date_input, "%d/%m/%Y"))
       ) +
       theme(
         plot.title = ggtext::element_markdown(),
