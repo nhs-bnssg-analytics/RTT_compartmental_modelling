@@ -11,24 +11,10 @@
 mod_06_acknowledgements_ui <- function(id){
   ns <- NS(id)
 
-
-
   page_fluid(
     h2("Timeline of RTT Planner", class = "text-left"),
     p("The story of how this tool unfolded", class = "text-left text-muted"),
-    # do.call(
-    #   layout_column_wrap,
-    #   c(
-    #     list(
-    #       width = 1 / nrow(timeline_data),
-    #       gap = "10px"
-    #     ),
-    #     generate_cards(timeline_data)
-    #   )
-    # ),
-    # div(
-      uiOutput(ns("card_container_ui")), # Placeholder for the generated cards
-    # ),
+    uiOutput(ns("card_container_ui")), # Placeholder for the generated cards
     card(
       card_header(
         "Specific acknowledgements"
@@ -87,23 +73,27 @@ mod_06_acknowledgements_server <- function(id){
         "First release of the online tool occurs."
       ),
       colour = c("#330072", "#AE2573", "#8A1538", "#ED8B00", "#FFB81C")
-    )
+    ) |>
+      mutate(
+        final = case_when(
+          id == max(id) ~ TRUE,
+          .default = FALSE
+        )
+      )
 
-    generate_cards <- function(id, content, date, description, colour) {
-      # cards_list <- list()
+    generate_cards <- function(id, content, date, description, colour, final) {
 
-      # for (i in 1:nrow(data)) {
       output <- card(
         style = paste0("border-radius: 5px; border-left: 4px solid ", colour, ";"),
         card_header(content),
         card_body(
           div(
             class = "timeline-item mb-4",
-            style = #if(i < nrow(data)) {
-              "border-left: 2px solid #dee2e6; padding-left: 20px; position: relative;",
-            # } else {
-            #   "padding-left: 20px; position: relative;"
-            # },
+            style = if (isFALSE(final)) {
+              "border-left: 2px solid #dee2e6; padding-left: 20px; position: relative;"
+            } else {
+              "padding-left: 20px; position: relative;"
+            },
 
             # Date marker
             div(
@@ -145,12 +135,7 @@ mod_06_acknowledgements_server <- function(id){
       layout_column_wrap(
         width = 1 / nrow(timeline_data),
         gap = "10px",
-        card_list[[1]],
-        card_list[[2]],
-        card_list[[3]],
-        card_list[[4]],
-        card_list[[5]]
-        # card_list
+        !!!card_list
       )
 
     })
