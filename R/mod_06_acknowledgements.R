@@ -66,7 +66,7 @@ mod_06_acknowledgements_server <- function(id){
         ),
         paste0(
           "NHS BNSSG ICB, in collaboration with Lancaster University, develop multi-stock model using public NHS RTT statistics at England geography. ",
-          "Full details of the model can be found <a href='https://link.springer.com/article/10.1007/s10729-025-09709-7'>here</a>, (a publicly accessible version of this can be found <a href='https://www.researchgate.net/publication/391698682_A_compartmental_modelling_methodology_to_support_strategic_decision_making_for_managing_the_elective_hospital_waiting_list_application_in_England%27s_NHS'>here</a>)."
+          "Full details of the model can be found <a href='https://rdcu.be/elVEq'>here</a>."
         ),
         "NHS BNSSG ICB and NHS Devon ICB, who have also been working on stock-and-flow models, agree to develop common RTT model to reduce multiplication. This is facilitated by the South West Decision Support Network's 'At Scale Analytics' workstream.",
         "Collaboration expands to include NHS England South West team and NHS Gloucestershire ICB, and the development of the interactive online tool begins.",
