@@ -689,7 +689,17 @@ mod_02_planner_server <- function(id, r){
           100
         )
 
+        # reset statuses for the tick marks and status cards
         reactive_values$optimise_status_card_visible <- FALSE
+        reactive_values$performance_calculated <- FALSE
+
+        # set waiting_list to NULL to reset the charts
+        r$waiting_list <- NULL
+
+        # remove any tick/cross marks for imported data
+        reactive_values$import_success <- NULL
+
+
 
       },
       ignoreInit = TRUE
@@ -697,7 +707,6 @@ mod_02_planner_server <- function(id, r){
 
 
 # download complete symbol ------------------------------------------------
-
 
     # Output the tick mark when the process is complete
     output$tick_mark_dwnld <- renderUI({
@@ -2252,18 +2261,19 @@ mod_02_planner_server <- function(id, r){
           projection_calcs <- projection_calcs |>
             dplyr::filter(
               .data$total_capacity == min(.data$total_capacity)
+            ) |>
+            filter(
+              # if there are multiple records that have the same capacity
+              # uplift, select the record that has the smallest change from the
+              # calibrated period's capacity utilisation profile (eg, the one
+              # closest to 1)
+              abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
             )
 
           # filter(
           #   .data$uplift == min(.data$uplift)
           # ) |>
-          # filter(
-          #   # if there are multiple records that have the same capacity
-          #   # uplift, select the record that has the smallest change from the
-          #   # calibrated period's capacity utilisation profile (eg, the one
-          #   # closest to 1)
-          #   abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
-          # )
+
 
           # create treatment capacity projections profile
           projections_capacity <- projection_calcs |>
