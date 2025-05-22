@@ -1273,6 +1273,9 @@ mod_02_planner_server <- function(id, r){
         })
       }
 
+      current_data <- current_data |>
+        dplyr::arrange(.data$Target_date)
+
       target_data(current_data)
     })
 
@@ -2051,7 +2054,7 @@ mod_02_planner_server <- function(id, r){
             )
 
           for (i in seq_len(nrow(target_data()))) {
-
+# browser()
             i_target_data <- target_data() |>
               dplyr::slice(i)
 
@@ -2132,6 +2135,7 @@ mod_02_planner_server <- function(id, r){
                         percent_change = (y - 1) * 100 # convert the uplift value into a percent
                       )
 
+                    cap_projections[cap_projections < 0] <- 0
                     x[[j]] <- cap_projections
                     x
                   }
