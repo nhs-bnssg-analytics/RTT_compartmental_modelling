@@ -134,6 +134,7 @@ mod_03_results_server <- function(id, r){
             `data-bs-trigger` = "hover",
             title = "The 18 week performance over the period"
           ),
+          ## NC - need to make action button here for the shortfall chart
           p("Reneges",
             class = "results_button",
             `data-bs-trigger` = "hover",
@@ -351,6 +352,8 @@ mod_03_results_server <- function(id, r){
         "waiting_list_ttl",
         "waiting_list_mnth",
         "performance",
+        ## NC - add in shortfall button name here to identify when it has been clicked
+
         "data",
         "report_ui"
       ),
@@ -371,7 +374,6 @@ mod_03_results_server <- function(id, r){
               session = session,
               inputId = reactive_data$btn_val,
               icon = shiny::icon("star", class = "fa-solid fa-star")
-              # icon = shiny::icon("calendar")
             )
           }
           reactive_data$plot_clicked <- FALSE
@@ -499,6 +501,8 @@ mod_03_results_server <- function(id, r){
         input$btn_performance,
         input$btn_data,
         input$btn_report_ui
+        ## NC - add in the shortfall button here
+
       ), {
         if (is.null(input$chart_res)) {
           calc_res <- 96
@@ -507,7 +511,6 @@ mod_03_results_server <- function(id, r){
         }
         output$results_plot <- renderPlot({
 
-          # browser()
           if (is.null(r$waiting_list) | identical(r$waiting_list, tibble())) {
             holding_chart(type = "model")
           } else if (is.null(reactive_data$btn_val)) {
@@ -610,7 +613,8 @@ mod_03_results_server <- function(id, r){
               percentage_axis <- TRUE
               include_target_line <- TRUE
 
-            }
+            } ## NC - will need another "else if" statement here to calculate the data for the plot
+
 
             if (!(reactive_data$btn_val %in% c("btn_data", "btn_report_ui"))) {
               plot_output(data = reactive_data$plot_data,
@@ -700,6 +704,10 @@ mod_03_results_server <- function(id, r){
            "btn_waiting_list_ttl",             "Waiting list information",  "Waiting list size",    "number",
           "btn_waiting_list_mnth",             "Waiting list information",  "Waiting list size",    "number",
                 "btn_performance",              "Performance information",        "Performance",   "percent"
+          ## NC - add another line onto this "tribble" above. This gets passed into the value box that pops up when the charts are clicked
+          ## NC - the information passed to the "value_box" is created from the "click_info()" function on line 684 (which is in the fct_charts.R script)
+
+
           ) |>
           dplyr::filter(
             .data$button == reactive_data$btn_val
