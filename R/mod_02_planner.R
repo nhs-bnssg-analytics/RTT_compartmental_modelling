@@ -734,7 +734,11 @@ mod_02_planner_server <- function(id, r){
       },
       content = function(file) {
         # sample_data is an internal data object
-        final_month <- NHSRtt::latest_rtt_date()
+        final_month <- lubridate::floor_date(
+          NHSRtt::latest_rtt_date(),
+          unit = "months"
+        )
+
         sample_data_mnths <- unique(sample_data[["period"]]) |>
           sort()
         months_in_sample_data <- length(sample_data_mnths)
