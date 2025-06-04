@@ -62,7 +62,8 @@ plot_output <- function(data,
                         p_facet = F,
                         p_target_line = F,
                         date_input = Sys.Date()) {
-  ## NC - need to work through this function (based on the data that you pass into it from line 620 on module 3) to make it work for the shortfall chart
+ 
+   ## NC (WIP) - need to work through this function (based on the data that you pass into it from line 620 on module 3) to make it work for the shortfall chart
 
   p <- ggplot2::ggplot() +
     geom_vline(

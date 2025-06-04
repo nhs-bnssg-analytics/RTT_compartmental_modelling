@@ -134,7 +134,15 @@ mod_03_results_server <- function(id, r){
             `data-bs-trigger` = "hover",
             title = "The 18 week performance over the period"
           ),
-          ## NC - need to make action button here for the shortfall chart
+          actionButton(
+            inputId = ns("btn_shortfall"),
+            label = "Performance shortfall",
+            icon = shiny::icon("star"),
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "18 week performance shortfall against a specified target"
+          ),## NC (COMPLETE) - need to make action button here for the shortfall chart
+          
           p("Reneges",
             class = "results_button",
             `data-bs-trigger` = "hover",
@@ -352,8 +360,7 @@ mod_03_results_server <- function(id, r){
         "waiting_list_ttl",
         "waiting_list_mnth",
         "performance",
-        ## NC - add in shortfall button name here to identify when it has been clicked
-
+        "shortfall", ## NC (COMPLETE) - add in shortfall button name here to identify when it has been clicked
         "data",
         "report_ui"
       ),
@@ -499,9 +506,9 @@ mod_03_results_server <- function(id, r){
         input$btn_waiting_list_ttl,
         input$btn_waiting_list_mnth,
         input$btn_performance,
+        input$btn_shortfall, ## NC (COMPLETE) - add in the shortfall button here
         input$btn_data,
         input$btn_report_ui
-        ## NC - add in the shortfall button here
 
       ), {
         if (is.null(input$chart_res)) {
@@ -607,13 +614,31 @@ mod_03_results_server <- function(id, r){
                 rename(p_var = "prop") |>
                 extend_period_type_data()
 
-
               chart_type <- "18 weeks performance"
               include_facets <- FALSE
               percentage_axis <- TRUE
               include_target_line <- TRUE
 
-            } ## NC - will need another "else if" statement here to calculate the data for the plot
+            } else if (reactive_data$btn_val == "btn_shortfall") {
+              reactive_data$plot_data <- r$waiting_list |>
+                dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
+                                 .by = c("period", "period_type")) |>
+                
+                ## waitlist*(1-perf/Tperf)
+                
+                ## How to extend this to do calculation
+                ## Waitlist size(1-performance/target)
+                ## calc_performance()
+                extend_period_type_data()
+              
+              chart_type <- "Performance shortfall"
+              include_facets <- FALSE
+              percentage_axis <- FALSE
+              include_target_line <- FALSE
+            ## NC (WIP) - will need another "else if" statement here to calculate the data for the plot
+            } 
+            
+            
 
 
             if (!(reactive_data$btn_val %in% c("btn_data", "btn_report_ui"))) {
@@ -703,8 +728,9 @@ mod_03_results_server <- function(id, r){
                "btn_reneges_mnth",             "Renege count information",            "Reneges",    "number",
            "btn_waiting_list_ttl",             "Waiting list information",  "Waiting list size",    "number",
           "btn_waiting_list_mnth",             "Waiting list information",  "Waiting list size",    "number",
-                "btn_performance",              "Performance information",        "Performance",   "percent"
-          ## NC - add another line onto this "tribble" above. This gets passed into the value box that pops up when the charts are clicked
+                "btn_performance",              "Performance information",        "Performance",   "percent",
+                  "btn_shortfall",    "Performance shortfall information",          "Shortfall",    "number"
+          ## NC (COMPLETE?) - add another line onto this "tribble" above. This gets passed into the value box that pops up when the charts are clicked
           ## NC - the information passed to the "value_box" is created from the "click_info()" function on line 684 (which is in the fct_charts.R script)
 
 
