@@ -1,3 +1,7 @@
+# RTTshiny 1.0.1
+
+* Fixes minor bug when some data are downloaded, which occurred when referrals exceeded treatments in the first compartment in the calibration period
+
 # RTTshiny 1.0.0
 
 * First release of the tool
