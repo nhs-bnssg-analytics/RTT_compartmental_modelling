@@ -9,7 +9,7 @@ Description: Ingests public NHS Referral to Treatment data and models
     historic relationships, allowing users to forecast future scenarios.
 License: MIT + file LICENSE
 Depends: 
-    R (>= 4.10)
+    R (>= 4.1)
 Imports: 
     bslib,
     config (>= 0.3.2),
