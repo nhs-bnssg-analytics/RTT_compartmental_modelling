@@ -616,7 +616,7 @@ mod_02_planner_server <- function(id, r){
         if (reactive_values$referrals_uplift < 0) {
           reactive_values$referrals_uplift <- abs(reactive_values$referrals_uplift)
         } else {
-          reactive_values$referrals_uplift <- 1
+          reactive_values$referrals_uplift <- 0
         }
 
         # calculate the modelling parameters using the uplifted referrals
