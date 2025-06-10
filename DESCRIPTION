@@ -1,6 +1,6 @@
 Package: RTTshiny
 Title: A Shiny App to support teams to plan to reduce waiting list times
-Version: 1.0.0.9000
+Version: 1.0.2
 Authors@R: c(
     person("Seb", "Fox", , "sebastian.fox3@nhs.net", role = c("aut", "cre")),
     person("Simon", "Wellesley-Miller", , "simon.wellesley-miller@nhs.net", role = "aut")
