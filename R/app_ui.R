@@ -4,6 +4,7 @@
 #' @import shiny
 #' @importFrom bslib navset_tab nav_panel nav_spacer nav_menu nav_item
 #'   page_fillable page_navbar accordion accordion_panel layout_columns
+#'   navbar_options
 #' @importFrom utils packageVersion
 #' @noRd
 app_ui <- function(request) {
@@ -52,7 +53,9 @@ app_ui <- function(request) {
         ') </span>'
         )
       ),
-      bg = "#0072CE",
+      navbar_options = navbar_options(
+        bg = "#0072CE"
+      ),
       theme = bs_theme(bootswatch = theme_selection),
       nav_panel(
         title = "How to use the tool",

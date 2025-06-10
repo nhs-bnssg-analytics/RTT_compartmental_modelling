@@ -689,7 +689,17 @@ mod_02_planner_server <- function(id, r){
           100
         )
 
+        # reset statuses for the tick marks and status cards
         reactive_values$optimise_status_card_visible <- FALSE
+        reactive_values$performance_calculated <- FALSE
+
+        # set waiting_list to NULL to reset the charts
+        r$waiting_list <- NULL
+
+        # remove any tick/cross marks for imported data
+        reactive_values$import_success <- NULL
+
+
 
       },
       ignoreInit = TRUE
@@ -697,7 +707,6 @@ mod_02_planner_server <- function(id, r){
 
 
 # download complete symbol ------------------------------------------------
-
 
     # Output the tick mark when the process is complete
     output$tick_mark_dwnld <- renderUI({
@@ -725,7 +734,11 @@ mod_02_planner_server <- function(id, r){
       },
       content = function(file) {
         # sample_data is an internal data object
-        final_month <- NHSRtt::latest_rtt_date()
+        final_month <- lubridate::floor_date(
+          NHSRtt::latest_rtt_date(),
+          unit = "months"
+        )
+
         sample_data_mnths <- unique(sample_data[["period"]]) |>
           sort()
         months_in_sample_data <- length(sample_data_mnths)
@@ -1263,6 +1276,9 @@ mod_02_planner_server <- function(id, r){
           return()
         })
       }
+
+      current_data <- current_data |>
+        dplyr::arrange(.data$Target_date)
 
       target_data(current_data)
     })
@@ -2042,7 +2058,7 @@ mod_02_planner_server <- function(id, r){
             )
 
           for (i in seq_len(nrow(target_data()))) {
-
+# browser()
             i_target_data <- target_data() |>
               dplyr::slice(i)
 
@@ -2123,6 +2139,7 @@ mod_02_planner_server <- function(id, r){
                         percent_change = (y - 1) * 100 # convert the uplift value into a percent
                       )
 
+                    cap_projections[cap_projections < 0] <- 0
                     x[[j]] <- cap_projections
                     x
                   }
@@ -2252,18 +2269,19 @@ mod_02_planner_server <- function(id, r){
           projection_calcs <- projection_calcs |>
             dplyr::filter(
               .data$total_capacity == min(.data$total_capacity)
+            ) |>
+            filter(
+              # if there are multiple records that have the same capacity
+              # uplift, select the record that has the smallest change from the
+              # calibrated period's capacity utilisation profile (eg, the one
+              # closest to 1)
+              abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
             )
 
           # filter(
           #   .data$uplift == min(.data$uplift)
           # ) |>
-          # filter(
-          #   # if there are multiple records that have the same capacity
-          #   # uplift, select the record that has the smallest change from the
-          #   # calibrated period's capacity utilisation profile (eg, the one
-          #   # closest to 1)
-          #   abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
-          # )
+
 
           # create treatment capacity projections profile
           projections_capacity <- projection_calcs |>
