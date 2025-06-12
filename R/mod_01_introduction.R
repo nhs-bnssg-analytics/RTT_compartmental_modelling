@@ -40,8 +40,9 @@ mod_01_introduction_ui <- function(id){
           p("Navigate through the following sections using the tabs at the top of each page:"),
 
           layout_column_wrap(
+            # gap = "100px",
             width = 1 / 3,
-            min_height = "600px",
+            min_height = "800px",
             # First column with title above card
             div(
               h5("Step 1"),

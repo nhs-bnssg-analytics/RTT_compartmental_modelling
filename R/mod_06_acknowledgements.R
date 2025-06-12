@@ -11,29 +11,35 @@
 mod_06_acknowledgements_ui <- function(id){
   ns <- NS(id)
 
-  page_fluid(
-    h2("Timeline of RTT Planner", class = "text-left"),
+  page_fillable(
+    title = "Timeline of RTT Planner",
+    h1("Timeline of RTT Planner"),
     p("The story of how this tool unfolded", class = "text-left text-muted"),
-    uiOutput(ns("card_container_ui")), # Placeholder for the generated cards
     card(
-      card_header(
-        "Specific acknowledgements"
-      ),
       card_body(
-        HTML(
-          paste(
-            "The RTT Planner was a collaboration driven by the SW Decision Support Network.",
-            "",
-            "Many thanks to the collaborators:",
-            "Sebastian Fox",
-            "Simon Wellesley-Miller",
-            "Richard Wood",
-            "Richard Blackwell",
-            "Claire Rudler",
-            "Nick Cooper",
-            "",
-            "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
-            sep = "<br>"
+        uiOutput(ns("card_container_ui")), # Placeholder for the generated cards
+        card(
+          min_height = "400px",
+          card_header(
+            "Specific acknowledgements"
+          ),
+          card_body(
+            HTML(
+              paste(
+                "The RTT Planner was a collaboration driven by the SW Decision Support Network.",
+                "",
+                "Many thanks to the collaborators:",
+                "Sebastian Fox",
+                "Simon Wellesley-Miller",
+                "Richard Wood",
+                "Richard Blackwell",
+                "Claire Rudler",
+                "Nick Cooper",
+                "",
+                "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
+                sep = "<br>"
+              )
+            )
           )
         )
       )
@@ -64,36 +70,29 @@ mod_06_acknowledgements_server <- function(id){
           "<br><br>",
           "Research continues along with more associated publications."
         ),
-        paste0(
-          "NHS BNSSG ICB, in collaboration with Lancaster University, develop multi-stock model using public NHS RTT statistics at England geography. ",
-          "Full details of the model can be found <a href='https://rdcu.be/elVEq'>here</a>."
-        ),
+        "NHS BNSSG ICB, in collaboration with Lancaster University develop multi-stock model using public NHS RTT statistics at England geography. At the time of writing, the associated research paper is in review (URL to be shared once published).",
         "NHS BNSSG ICB and NHS Devon ICB, who have also been working on stock-and-flow models, agree to develop common RTT model to reduce multiplication. This is facilitated by the South West Decision Support Network's 'At Scale Analytics' workstream.",
         "Collaboration expands to include NHS England South West team and NHS Gloucestershire ICB, and the development of the interactive online tool begins.",
         "First release of the online tool occurs."
       ),
       colour = c("#330072", "#AE2573", "#8A1538", "#ED8B00", "#FFB81C")
-    ) |>
-      mutate(
-        final = case_when(
-          id == max(id) ~ TRUE,
-          .default = FALSE
-        )
-      )
+    )
 
-    generate_cards <- function(id, content, date, description, colour, final) {
+    generate_cards <- function(id, content, date, description, colour) {
+      # cards_list <- list()
 
+      # for (i in 1:nrow(data)) {
       output <- card(
         style = paste0("border-radius: 5px; border-left: 4px solid ", colour, ";"),
         card_header(content),
         card_body(
           div(
             class = "timeline-item mb-4",
-            style = if (isFALSE(final)) {
-              "border-left: 2px solid #dee2e6; padding-left: 20px; position: relative;"
-            } else {
-              "padding-left: 20px; position: relative;"
-            },
+            style = #if(i < nrow(data)) {
+              "border-left: 2px solid #dee2e6; padding-left: 20px; position: relative;",
+            # } else {
+            #   "padding-left: 20px; position: relative;"
+            # },
 
             # Date marker
             div(
@@ -135,7 +134,12 @@ mod_06_acknowledgements_server <- function(id){
       layout_column_wrap(
         width = 1 / nrow(timeline_data),
         gap = "10px",
-        !!!card_list
+        card_list[[1]],
+        card_list[[2]],
+        card_list[[3]],
+        card_list[[4]],
+        card_list[[5]]
+        # card_list
       )
 
     })
