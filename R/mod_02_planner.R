@@ -1058,6 +1058,8 @@ mod_02_planner_server <- function(id, r){
           inputId = ns("forecast_date"),
           label = NULL,
           min = "2016-05-01",
+          format = "dd-mm-yyyy",
+          weekstart = 1,
           start = forecast_dates()$start,
           end = forecast_dates()$end
         ),
