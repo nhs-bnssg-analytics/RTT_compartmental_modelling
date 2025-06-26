@@ -35,15 +35,26 @@ mod_08_batch_ui <- function(id){
       ),
       multiple = TRUE # Enabled
     ),
-    tagList(
+    layout_columns(
+      col_widths = c(8, 4),
+      helpText("Low Referral Scenario"),
       numericInput(
-        inputId = ns("referral_bin"),
-        label = "Select a referral scenario (enter -1, 0, or 1)",
-        value = 0,
-        min = -1,
-        max = 1
+        inputId = ns("referral_bin_low"),
+        label = NULL,
+        value = -1
       ),
-      helpText("Enter -1 for 'Low', 0 for 'Medium', or 1 for 'High'.")
+      helpText("Medium Referral Scenario"),
+      numericInput(
+        inputId = ns("referral_bin_medium"),
+        label = NULL,
+        value = 0
+      ),
+      helpText("High Referral Scenario"),
+      numericInput(
+        inputId = ns("referral_bin_high"),
+        label = NULL,
+        value = 1
+      )
     ),
     dateInput(
       inputId = ns("target_date"),
