@@ -18,7 +18,7 @@ mod_08_batch_ui <- function(id){
     width = '25%',
     selectizeInput(
       inputId = ns("trust_codes"),
-      label = "Select Trust(s)",
+      label = "Select provider(s)",
       choices = sort(unique(org_lkp$`Provider Org Name`)),
       options = list(
         placeholder = "Select one or more"
