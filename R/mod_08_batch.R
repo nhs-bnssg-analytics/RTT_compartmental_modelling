@@ -35,15 +35,15 @@ mod_08_batch_ui <- function(id){
       ),
       multiple = TRUE # Enabled
     ),
-    tagList(
-      numericInput(
-        inputId = ns("referral_bin"),
-        label = "Select a referral scenario (enter -1, 0, or 1)",
-        value = 0,
-        min = -1,
-        max = 1
+    radioButtons(
+      inputId = ns("referral_bin"),
+      label = "Select a referral scenario:",
+      choices = c(
+        "Low (-1)" = -1,
+        "Medium (0)" = 0,
+        "High (1)" = 1
       ),
-      helpText("Enter -1 for 'Low', 0 for 'Medium', or 1 for 'High'.")
+      selected = 0 # Default
     ),
     dateInput(
       inputId = ns("target_date"),
@@ -60,7 +60,7 @@ mod_08_batch_ui <- function(id){
       inputId = ns("target_bin"),
       label = "Target proportion",
       min = 0,
-      max = 100,
+      max = 200,
       value = 92,
       step = 1,
       post = "%",
