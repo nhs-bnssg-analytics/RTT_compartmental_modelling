@@ -27,7 +27,6 @@ golem::add_module(name = "04_downloads", with_test = TRUE) # Name of the module
 golem::add_module(name = "05_definitions", with_test = FALSE) # Name of the module
 golem::add_module(name = "06_how_tos", with_test = FALSE) # Name of the module
 golem::add_module(name = "07_stories", with_test = FALSE) # Name of the module
-golem::add_module(name = "08_batch", with_test = FALSE) # Name of the module
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
