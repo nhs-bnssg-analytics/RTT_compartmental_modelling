@@ -23,8 +23,9 @@ mod_04_definitions_ui <- function(id){
   ) |>
     (\(x) x[sort(names(x))])()
 
-  page_fillable(
+  page_fluid(
     title = "RTT Planner definitions",
+    # theme = bs_theme(bootswatch = "flatly"),
 
     h1("RTT Planner terminology glossary"),
     p(HTML("A quick reference guide to the terms used within this tool.
