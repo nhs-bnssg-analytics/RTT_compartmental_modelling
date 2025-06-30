@@ -11,43 +11,35 @@
 mod_06_acknowledgements_ui <- function(id){
   ns <- NS(id)
 
-
-
-  page_fluid(
-    h2("Timeline of RTT Planner", class = "text-left"),
+  page_fillable(
+    title = "Timeline of RTT Planner",
+    h1("Timeline of RTT Planner"),
     p("The story of how this tool unfolded", class = "text-left text-muted"),
-    # do.call(
-    #   layout_column_wrap,
-    #   c(
-    #     list(
-    #       width = 1 / nrow(timeline_data),
-    #       gap = "10px"
-    #     ),
-    #     generate_cards(timeline_data)
-    #   )
-    # ),
-    # div(
-      uiOutput(ns("card_container_ui")), # Placeholder for the generated cards
-    # ),
     card(
-      card_header(
-        "Specific acknowledgements"
-      ),
       card_body(
-        HTML(
-          paste(
-            "The RTT Planner was a collaboration driven by the SW Decision Support Network.",
-            "",
-            "Many thanks to the collaborators:",
-            "Sebastian Fox",
-            "Simon Wellesley-Miller",
-            "Richard Wood",
-            "Richard Blackwell",
-            "Claire Rudler",
-            "Nick Cooper",
-            "",
-            "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
-            sep = "<br>"
+        uiOutput(ns("card_container_ui")), # Placeholder for the generated cards
+        card(
+          min_height = "400px",
+          card_header(
+            "Specific acknowledgements"
+          ),
+          card_body(
+            HTML(
+              paste(
+                "The RTT Planner was a collaboration driven by the SW Decision Support Network.",
+                "",
+                "Many thanks to the collaborators:",
+                "Sebastian Fox",
+                "Simon Wellesley-Miller",
+                "Richard Wood",
+                "Richard Blackwell",
+                "Claire Rudler",
+                "Nick Cooper",
+                "",
+                "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
+                sep = "<br>"
+              )
+            )
           )
         )
       )
