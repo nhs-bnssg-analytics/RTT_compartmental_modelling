@@ -1983,7 +1983,7 @@ mod_02_planner_server <- function(id, r){
             )
 
           for (i in seq_len(nrow(target_data()))) {
-# browser()
+
             i_target_data <- target_data() |>
               dplyr::slice(i)
 
