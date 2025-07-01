@@ -142,13 +142,15 @@ mod_08_batch_server <- function(id){
     ns <- session$ns
 
     reactive_values <- reactiveValues()
-    reactive_values$show_results <- FALSE
-    reactive_values$optimised_projections <- NULL
+    reactive_values$show_results <- FALSE # determines whether outputs are shown
+    reactive_values$optimised_projections <- NULL # these are the outputs
 
     # trust selection filtering based on other NHS only checkbox ----------------------
     reactive_org_tbl <- reactiveVal(org_lkp)
 
     observeEvent(
+      # reactively choose which trusts are displayed depending on whether the
+      # checkbox is ticked or not
       c(input$ss_nhs_only), {
 
         reactive_org_tbl <- org_lkp
@@ -160,7 +162,7 @@ mod_08_batch_server <- function(id){
             )
         }
 
-                # provider current selections
+        # trust current selections
         current_provider <- dplyr::intersect(
           input$ss_trust_codes,
           unique(reactive_org_tbl[["Provider Org Name"]])
@@ -174,27 +176,31 @@ mod_08_batch_server <- function(id){
         )
       })
 
-    # modelling when batch run selected
+
+# perform modelling when batch run selected -------------------------------
+
     observeEvent(
 
       c(input$batch_run_rtt_data), {
 
         if (input$batch_run_rtt_data > 0) {
-          # browser()
-          # dummy trust names instead of input$ss_trust_codes
+
+          # dummy trust names instead of input$ss_trust_codes to demonstrate
+          # what the code does in a reasonable time
           dummy_trust_names <- c(
             "UNIVERSITY HOSPITALS DORSET NHS FOUNDATION TRUST",
             "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST"
           )
 
-          # dummy specialty names instead of input$specialty_codes
+          # dummy specialty names instead of input$specialty_codes to
+          # demonstrate what the code does in a reasonable time
           dummy_specialty_names <- c(
             "General Surgery",
             "Total"
           )
 
 
-          # translate input text into codes
+          # translate input values into codes for subsequent functions
           selections_labels <- filters_displays(
             nhs_regions = NA,
             nhs_only = input$ss_nhs_only,
@@ -208,15 +214,17 @@ mod_08_batch_server <- function(id){
           # the latest month of data to use for calibrating the models
           max_download_date <- NHSRtt::latest_rtt_date()
 
-          # min date is the 13th month prior to the latest month of data
+          # min date is the 12th month prior to the latest month of data
           min_download_date <- lubridate::floor_date(
             max_download_date,
             unit = "months"
           ) %m-% months(12)
 
           # pass codes into download function. AIM TO MAKE THIS PART SIMPLY LOOK
-          # UP THE DATA FROM A TABLE STORED ON THE SERVER. THE DATA ON THE SERVER
-          # SHOULD BE STRUCTURED LIKE raw_data
+          # UP THE DATA FROM A TABLE STORED ON THE SERVER. THE DATA ON THE
+          # SERVER SHOULD BE STRUCTURED LIKE raw_data FOLLOWING THIS CHUNK OF
+          # CODE (action: EI). The data on the server here will also be used in
+          # module 2.
           raw_data <- seq(
             from = lubridate::floor_date(
               min_download_date, unit = "months"
@@ -244,7 +252,12 @@ mod_08_batch_server <- function(id){
               max_date = max_download_date
             )
 
-          # calculate the referrals uplift value per specialty/trust
+          # calculate the referrals uplift value per specialty/trust (remember,
+          # the uplift to the number of referrals is due to the under-reporting
+          # of referrals in the published data - we need referrals to at least
+          # equal the number of treatments for patients waiting up to a month,
+          # otherwise we are treating more people than are being referred, which
+          # doesn't make sense)
           referrals_uplift <- calibrate_parameters(
             raw_data,
             max_months_waited = 12,
@@ -264,6 +277,8 @@ mod_08_batch_server <- function(id){
             select("trust", "specialty", "referrals_uplift")
 
           # calculate the modelling parameters using the uplifted referrals
+          # (here we are uplifting the referrals based on the previous step, and
+          # recalculating the modelling parameters)
           params <- calibrate_parameters(
             raw_data,
             max_months_waited = 12,
@@ -271,7 +286,7 @@ mod_08_batch_server <- function(id){
             referrals_uplift = referrals_uplift
           )
 
-          # number of months for forecasting
+          # calculate the number of months for projection period
           forecast_months <- lubridate::interval(
             lubridate::floor_date(
               max_download_date,
@@ -281,14 +296,14 @@ mod_08_batch_server <- function(id){
           ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
 
           # calculate referrals for the three future referral scenarios
-
           projection_referrals <- raw_data |>
             filter(
               type == "Referrals",
               .data$period != min(.data$period)
             ) |>
             select(!c("type", "months_waited_id")) |>
-            # uplift referrals based on underreporting of referrals in published data
+            # uplift referrals based on under-reporting of referrals in
+            # published data
             left_join(
               referrals_uplift,
               by = join_by(
@@ -356,7 +371,6 @@ mod_08_batch_server <- function(id){
             )
 
           # calculate the capacity for the first projected timestep
-
           projection_capacity <- raw_data |>
             filter(
               type == "Complete",
@@ -384,10 +398,8 @@ mod_08_batch_server <- function(id){
 
           # INCOMPLETES at t = 0
 
-          # Need to use the latest observed waiting list as the starting point for the
-          # projections
-
-          # observed incompletes at the end of the calibration period
+          # Here we use the latest observed waiting list as the starting point
+          # for the projections
           incompletes_at_t0 <- raw_data |>
             filter(
               .data$type == "Incomplete",
@@ -407,8 +419,9 @@ mod_08_batch_server <- function(id){
               incompletes_t0 = c("months_waited_id", "incompletes")
             )
 
-          # COMBINING DATA
-
+          # combine referral, t1 capacity, t0 incompletes, and params into one
+          # dataset where each row is a different trust, specialty and referral
+          # scenario
           all_projection_data <- projection_capacity |>
             left_join(
               projection_referrals,
@@ -432,7 +445,7 @@ mod_08_batch_server <- function(id){
               relationship = "many-to-one"
             )
 
-          # create period lookup
+          # create period to period_id lookup
           period_lkp <- dplyr::tibble(
             period_id = seq_len(max(raw_data$period_id) + forecast_months),
             period = seq(
@@ -467,7 +480,13 @@ mod_08_batch_server <- function(id){
             select("trust", "specialty") |>
             mutate(status = "low_completed_pathways_in_calibration_period")
 
-          # optimise capacity to achieve target
+          # optimise capacity to achieve target - NOTE, THIS IS THE OTHER PART
+          # WHERE THE RESULTS CAN BE STORED ON THE SERVER. PREFERABLY, THE USER
+          # WOULD SELECT ALL OF THEIR PREFERRED INPUTS, AND THEN THE MODULE
+          # WOULD LOOK TO A DATABASE OF RESULTS AND IF THERE ARE RESULTS FOR
+          # THAT COMBINATION OF TRUST/SPECIALTY/REFERRAL SCENARIO/TARGET AND
+          # TARGET DATE, IT WOULD PRESENT THE RESULTS IMMEDIATELY, OTHERWISE IT
+          # WOULD CALCULATE THEM (action: EI)
           reactive_values$optimised_projections <- all_projection_data |>
             left_join(
               poor_calibration,
