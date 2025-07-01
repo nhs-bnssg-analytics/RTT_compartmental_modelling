@@ -73,7 +73,7 @@ app_ui <- function(request) {
         mod_03_results_ui("03_results_1")
       ),
       nav_panel(
-        title = "Batch",
+        title = "Steady state",
         value = "tab_batch",
         mod_08_batch_ui("08_batch_1")
       ),

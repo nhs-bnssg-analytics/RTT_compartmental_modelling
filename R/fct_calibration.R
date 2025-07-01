@@ -107,9 +107,16 @@ create_modelling_data <- function(data, max_months_waited = 12, referrals_uplift
 
 
     referrals <- referrals |>
+      left_join(
+        referrals_uplift,
+        by = join_by(
+          trust, specialty
+        )
+      ) |>
       dplyr::mutate(
-        referrals = referrals + (referrals * referrals_uplift)
-      )
+        referrals = .data$referrals + (.data$referrals * .data$referrals_uplift)
+      ) |>
+      select(!c("referrals_uplift"))
   }
 
   referrals <- referrals |>

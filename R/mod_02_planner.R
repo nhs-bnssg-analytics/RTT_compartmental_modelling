@@ -489,99 +489,12 @@ mod_02_planner_server <- function(id, r){
           specialty_codes = selections_labels$specialties$selected_code,
           progress = progress
         ) |>
-          summarise(
-            value = sum(.data$value),
-            .by = c(
-              "trust", "specialty", "period", "months_waited", "type"
-            )
-          ) |>
-          mutate(
-            months_waited_id = NHSRtt::convert_months_waited_to_id(
-              .data$months_waited,
-              12 # this pools the data at 12+ months (this can be a user input in the future)
-            )
-          )
-
-        if (selections_labels$trusts$display == "Aggregated") {
-          r$all_data <- r$all_data |>
-            mutate(
-              trust = "Aggregated"
-            )
-        } else {
-          r$all_data <- r$all_data |>
-            mutate(
-              trust = replace_fun(
-                .data$trust,
-                trust_lkp
-              )
-            )
-        }
-
-        if (selections_labels$specialties$display == "Aggregated") {
-          r$all_data <- r$all_data |>
-            mutate(
-              specialty = "Aggregated"
-            )
-        } else {
-          r$all_data <- r$all_data |>
-            mutate(
-              specialty = replace_fun(
-                .data$specialty,
-                treatment_function_codes
-              )
-            )
-        }
-
-        r$all_data <- r$all_data |>
-          summarise(
-            value = sum(.data$value),
-            .by = c(
-              "trust",
-              "specialty",
-              "period",
-              "type",
-              "months_waited_id"
-            )
-          ) |>
-          arrange(
-            .data$trust,
-            .data$specialty,
-            .data$type,
-            .data$months_waited_id,
-            .data$period
-          ) |>
-          tidyr::complete(
-            specialty = input$specialty_codes,
-            type = c("Complete", "Incomplete"),
-            .data$months_waited_id,
-            period = seq(
-              from = min_download_date,
-              to = lubridate::floor_date(max_download_date, unit = "months"),
-              by = "months"
-            ),
-            .data$trust,
-            fill = list(value = 0)
-          ) |>
-          tidyr::complete(
-            specialty = input$specialty_codes,
-            type = "Referrals",
-            months_waited_id = 0,
-            period = seq(
-              from = min_download_date,
-              to = lubridate::floor_date(max_download_date, unit = "months"),
-              by = "months"
-            ),
-            .data$trust,
-            fill = list(value = 0)
-          ) |>
-          mutate(
-            period_id = dplyr::row_number(), # we need period_id for later steps
-            .by = c(
-              .data$trust,
-              .data$specialty,
-              .data$type,
-              .data$months_waited_id
-            )
+          aggregate_and_format_raw_data(
+            specialty_aggregate = selections_labels$specialties$display,
+            trust_aggregate = selections_labels$trusts$display,
+            selected_specialties = input$specialty_codes,
+            min_date = min_download_date,
+            max_date = max_download_date
           )
 
         reactive_values$data_downloaded <- TRUE
@@ -610,14 +523,20 @@ mod_02_planner_server <- function(id, r){
           dplyr::filter(
             .data$months_waited_id == 0
           ) |>
-          dplyr::pull(.data$renege_param)
+          dplyr::mutate(
+            referrals_uplift = case_when(
+              .data$renege_param < 0 ~ abs(.data$renege_param),
+              .default = 0
+            )
+          ) |>
+          select("trust", "specialty", "referrals_uplift")
 
-        # check whether the referrals uplift value is negative
-        if (reactive_values$referrals_uplift < 0) {
-          reactive_values$referrals_uplift <- abs(reactive_values$referrals_uplift)
-        } else {
-          reactive_values$referrals_uplift <- 0
-        }
+        # # check whether the referrals uplift value is negative
+        # if (reactive_values$referrals_uplift < 0) {
+        #   reactive_values$referrals_uplift <- abs(reactive_values$referrals_uplift)
+        # } else {
+        #   reactive_values$referrals_uplift <- 0
+        # }
 
         # calculate the modelling parameters using the uplifted referrals
         reactive_values$params <- calibrate_parameters(
@@ -655,7 +574,7 @@ mod_02_planner_server <- function(id, r){
           ) |>
           dplyr::mutate(
             adjusted_referrals = .data$unadjusted_referrals +
-              (.data$unadjusted_referrals * reactive_values$referrals_uplift),
+              (.data$unadjusted_referrals * reactive_values$referrals_uplift$referrals_uplift),
             capacity_skew = 1,
             period_type = "Observed"
           )
@@ -938,7 +857,11 @@ mod_02_planner_server <- function(id, r){
           )
 
         # there is no uplift to referrals when bringing own data
-        reactive_values$referrals_uplift <- 0
+        reactive_values$referrals_uplift <- dplyr::tibble(
+          trust = selections_labels$trusts$display,
+          specialty = selections_labels$specialties$display,
+          referrals_uplift = 0
+        )
 
         # calculate the modelling parameters assuming referrals don't need to be
         # uplifted
@@ -978,7 +901,7 @@ mod_02_planner_server <- function(id, r){
           dplyr::mutate(
             # we assume the referral inputs are the correct number if they aren't using the public data
             adjusted_referrals = .data$unadjusted_referrals +
-              (.data$unadjusted_referrals * reactive_values$referrals_uplift),
+              (.data$unadjusted_referrals * reactive_values$referrals_uplift$referrals_uplift),
             capacity_skew = 1,
             period_type = "Observed"
           )
@@ -1746,7 +1669,7 @@ mod_02_planner_server <- function(id, r){
 
           if (!is.null(reactive_values$referrals_uplift)) {
             projections_referrals <- unadjusted_projections_referrals +
-              (unadjusted_projections_referrals * reactive_values$referrals_uplift)
+              (unadjusted_projections_referrals * reactive_values$referrals_uplift$referrals_uplift)
           } else {
             projections_referrals <- unadjusted_projections_referrals
           }
@@ -1810,7 +1733,7 @@ mod_02_planner_server <- function(id, r){
             ) |>
             mutate(
               adjusted_referrals = .data$unadjusted_referrals +
-                (.data$unadjusted_referrals * reactive_values$referrals_uplift),
+                (.data$unadjusted_referrals * reactive_values$referrals_uplift$referrals_uplift),
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = input$capacity_skew,
               period_type = "Projected"
@@ -1936,7 +1859,7 @@ mod_02_planner_server <- function(id, r){
             baseline_referrals <- unadjusted_baseline_referrals |>
               mutate(
                 value = .data$value +
-                  (.data$value * reactive_values$referrals_uplift)
+                  (.data$value * reactive_values$referrals_uplift$referrals_uplift)
               )
           } else {
             baseline_referrals <- unadjusted_baseline_referrals
@@ -2326,7 +2249,7 @@ mod_02_planner_server <- function(id, r){
             ) |>
             dplyr::mutate(
               adjusted_referrals = .data$unadjusted_referrals +
-                (.data$unadjusted_referrals * reactive_values$referrals_uplift),
+                (.data$unadjusted_referrals * reactive_values$referrals_uplift$referrals_uplift),
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = projection_calcs$skew_param,
               period_type = "Projected"
