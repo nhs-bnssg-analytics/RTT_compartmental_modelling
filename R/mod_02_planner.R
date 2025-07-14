@@ -169,7 +169,7 @@ mod_02_planner_ui <- function(id) {
         ns("forecast_horizon")
       ),
       layout_columns(
-        col_widths = c(3, 4),
+        col_widths = c(3, 1),
         span("Percentage change in referrals (between -20% and 200%):"),
         numericInput(
           inputId = ns("referral_growth"),
@@ -295,12 +295,18 @@ mod_02_planner_server <- function(id, r) {
 
     reactive_values$forecast_start_date <- final_data_period %m+%
       months(1)
-    reactive_values$forecast_end_date <- lubridate::ceiling_date(
-      final_data_period,
-      unit = "months"
-    ) %m+%
+    reactive_values$forecast_end_date <- final_data_period %m+%
       months(36)
 
+    reactive_values$forecast_end_date_label <- paste0(
+      "Forecast end date (start date - ",
+      format(
+        final_data_period %m+%
+          months(1),
+        "%b %Y"
+      ),
+      ")"
+    )
     reactive_values$import_success <- NULL
 
     r$chart_specification <- list(
@@ -461,19 +467,6 @@ mod_02_planner_server <- function(id, r) {
           unit = "months"
         ) %m-%
           months(input$calibration_months)
-
-        # create period_lkp table from the first time period in the calibration data
-        # to the final time period in the projection period
-        r$period_lkp <- dplyr::tibble(
-          period = seq(
-            from = min_download_date,
-            to = reactive_values$forecast_end_date,
-            by = "months"
-          )
-        ) |>
-          mutate(
-            period_id = dplyr::row_number()
-          )
 
         # create progress bar
         progress <- Progress$new(
@@ -731,10 +724,37 @@ mod_02_planner_server <- function(id, r) {
         # remove any tick/cross marks for imported data
         reactive_values$import_success <- NULL
 
-        # update start date in forecast_dates ui
+        # update start date for forecast period
         reactive_values$forecast_start_date <- lubridate::floor_date(
           max(r$all_data[["period"]]) %m+% months(1)
         )
+
+        # update label for ui
+        reactive_values$forecast_end_date_label <- paste0(
+          "Forecast end date (start date - ",
+          format(
+            reactive_values$forecast_start_date,
+            "%b %Y"
+          ),
+          ")"
+        )
+
+        # update default forecast end date
+        reactive_values$forecast_end_date <- reactive_values$forecast_start_date %m+%
+          months(35)
+
+        # create period_lkp table from the first time period in the calibration data
+        # to the final time period in the projection period
+        r$period_lkp <- dplyr::tibble(
+          period = seq(
+            from = min_download_date,
+            to = reactive_values$forecast_end_date,
+            by = "months"
+          )
+        ) |>
+          mutate(
+            period_id = dplyr::row_number()
+          )
       },
       ignoreInit = TRUE
     )
@@ -902,11 +922,25 @@ mod_02_planner_server <- function(id, r) {
 
         imported_data <- check_data$imported_data_checked
 
-        # update start date for forecast_dates ui
+        # update start date for projection period
         reactive_values$forecast_start_date <- lubridate::floor_date(
           max(imported_data[["period"]]) %m+% months(1)
         ) |>
           as.Date()
+
+        # update label for ui
+        reactive_values$forecast_end_date_label <- paste0(
+          "Forecast end date (start date - ",
+          format(
+            reactive_values$forecast_start_date,
+            "%b %Y"
+          ),
+          ")"
+        )
+
+        # update default forecast end date
+        reactive_values$forecast_end_date <- reactive_values$forecast_start_date %m+%
+          months(35)
 
         # create period lookup, but append the imported data to the start of the
         # horizon period so the start point of the projections begin at the end of
@@ -1087,25 +1121,25 @@ mod_02_planner_server <- function(id, r) {
 
     output$forecast_horizon <- shiny::renderUI(
       layout_columns(
-        col_widths = c(3, 4),
-        span("Forecast horizon date range:"),
-        dateRangeInput(
+        col_widths = c(3, 1),
+        span(reactive_values$forecast_end_date_label),
+        dateInput(
           inputId = ns("forecast_date"),
           label = NULL,
-          min = "2016-05-01",
-          start = reactive_values$forecast_start_date,
-          end = reactive_values$forecast_end_date
+          value = reactive_values$forecast_end_date,
+          min = reactive_values$forecast_start_date,
+          format = "mm-yyyy"
         ),
         fill = FALSE
       )
     )
 
-    # calculate possible target dates from forecast horizone dates ----------------
+    # calculate possible target dates from forecast horizon dates ----------------
 
     # here, we force the target achievement date to fit into the forecast time period
     target_dates <- reactive({
-      min_date <- as.Date(input$forecast_date[[1]]) %m+% months(1)
-      max_date <- as.Date(input$forecast_date[[2]])
+      min_date <- reactive_values$forecast_start_date
+      max_date <- as.Date(input$forecast_date)
 
       if (dplyr::between(as.Date("2026-03-01"), min_date, max_date)) {
         default_date <- as.Date("2026-03-01")
@@ -1129,7 +1163,7 @@ mod_02_planner_server <- function(id, r) {
           "Select date to achieve target by:",
           tooltip(
             shiny::icon("info-circle"),
-            "Restricted to the 'Forecast horizon date range' this is the date that the optimiser will use to achieve the 'Target percentage' on",
+            "Restricted to the 'Forecast end date' this is the date that the optimiser will use to achieve the 'Target percentage' on",
             placement = "right"
           )
         ),
@@ -1769,8 +1803,8 @@ mod_02_planner_server <- function(id, r) {
           r$chart_specification$specialty <- selections_labels$specialties$display
 
           forecast_months <- lubridate::interval(
-            as.Date(input$forecast_date[[1]]),
-            as.Date(input$forecast_date[[2]])
+            as.Date(reactive_values$forecast_start_date),
+            as.Date(input$forecast_date)
           ) %/%
             months(1) +
             1
@@ -1878,10 +1912,10 @@ mod_02_planner_server <- function(id, r) {
                 period_id
               )
             )
-
+          browser()
           # pass information to charting module
-          r$chart_specification$forecast_start <- min(input$forecast_date)
-          r$chart_specification$forecast_end <- max(input$forecast_date)
+          r$chart_specification$forecast_start <- reactive_values$forecast_start_date
+          r$chart_specification$forecast_end <- input$forecast_date
           r$chart_specification$referrals_percent_change <- input$referral_growth
           r$chart_specification$referrals_change_type <- input$referral_growth_type
           r$chart_specification$scenario_type <- "Estimate performance (from treatment capacity inputs)"
@@ -1995,8 +2029,8 @@ mod_02_planner_server <- function(id, r) {
           # referrals for planning horizon (based on uplifted numbers)
 
           forecast_months <- lubridate::interval(
-            as.Date(input$forecast_date[[1]]),
-            as.Date(input$forecast_date[[2]])
+            as.Date(reactive_values$forecast_start_date),
+            as.Date(input$forecast_date)
           ) %/%
             months(1) +
             1 # the plus 1 makes is inclusive of the final month
@@ -2093,10 +2127,10 @@ mod_02_planner_server <- function(id, r) {
             detail = 'This may take a while...'
           )
 
-          interval_start_date <- input$forecast_date[[1]]
+          interval_start_date <- reactive_values$forecast_start_date
           forecast_dates <- seq(
-            from = input$forecast_date[[1]],
-            to = input$forecast_date[[2]],
+            from = reactive_values$forecast_start_date,
+            to = input$forecast_date,
             by = "months"
           )
 
@@ -2425,8 +2459,8 @@ mod_02_planner_server <- function(id, r) {
             )
 
           # pass information to charting module
-          r$chart_specification$forecast_start <- min(input$forecast_date)
-          r$chart_specification$forecast_end <- max(input$forecast_date)
+          r$chart_specification$forecast_start <- reactive_values$forecast_start_date
+          r$chart_specification$forecast_end <- input$forecast_date
           r$chart_specification$referrals_percent_change <- input$referral_growth
           r$chart_specification$referrals_change_type <- input$referral_growth_type
           r$chart_specification$scenario_type <- "Estimate treatment capacity (from performance targets)"
