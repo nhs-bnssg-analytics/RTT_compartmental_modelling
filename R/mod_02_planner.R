@@ -285,10 +285,22 @@ mod_02_planner_server <- function(id, r) {
     reactive_values$referrals_uplift <- NULL
     reactive_values$optimise_status_card_visible <- NULL
     reactive_values$performance_calculated <- FALSE
-    reactive_values$latest_date <- lubridate::floor_date(
+
+    final_data_period <- lubridate::floor_date(
       NHSRtt::latest_rtt_date(),
       unit = "months"
     )
+
+    reactive_values$latest_date <- final_data_period
+
+    reactive_values$forecast_start_date <- final_data_period %m+%
+      months(1)
+    reactive_values$forecast_end_date <- lubridate::ceiling_date(
+      final_data_period,
+      unit = "months"
+    ) %m+%
+      months(36)
+
     reactive_values$import_success <- NULL
 
     r$chart_specification <- list(
@@ -455,7 +467,7 @@ mod_02_planner_server <- function(id, r) {
         r$period_lkp <- dplyr::tibble(
           period = seq(
             from = min_download_date,
-            to = forecast_dates()$end,
+            to = reactive_values$forecast_end_date,
             by = "months"
           )
         ) |>
@@ -718,6 +730,11 @@ mod_02_planner_server <- function(id, r) {
 
         # remove any tick/cross marks for imported data
         reactive_values$import_success <- NULL
+
+        # update start date in forecast_dates ui
+        reactive_values$forecast_start_date <- lubridate::floor_date(
+          max(r$all_data[["period"]]) %m+% months(1)
+        )
       },
       ignoreInit = TRUE
     )
@@ -886,17 +903,10 @@ mod_02_planner_server <- function(id, r) {
         imported_data <- check_data$imported_data_checked
 
         # update start date for forecast_dates ui
-
-        new_projection_start_date <- lubridate::floor_date(
+        reactive_values$forecast_start_date <- lubridate::floor_date(
           max(imported_data[["period"]]) %m+% months(1)
-        )
-
-        shiny::updateDateRangeInput(
-          inputId = ns("forecast_date"),
-          min = "2016-05-01",
-          start = new_projection_start_date,
-          end = forecast_dates()$end
-        )
+        ) |>
+          as.Date()
 
         # create period lookup, but append the imported data to the start of the
         # horizon period so the start point of the projections begin at the end of
@@ -908,8 +918,8 @@ mod_02_planner_server <- function(id, r) {
           bind_rows(
             dplyr::tibble(
               period = seq(
-                from = forecast_dates()$start,
-                to = forecast_dates()$end,
+                from = reactive_values$forecast_start_date,
+                to = reactive_values$forecast_end_date,
                 by = "months"
               )
             )
@@ -1075,22 +1085,6 @@ mod_02_planner_server <- function(id, r) {
       }
     })
 
-    # calculate and populate forecast dates -----------------------------------
-
-    forecast_dates <- reactive({
-      start_date <- NHSRtt::latest_rtt_date() + 1
-      end_date <- lubridate::ceiling_date(
-        start_date,
-        unit = "months"
-      ) %m+%
-        months(35)
-
-      forecast_dates <- list(
-        start = start_date,
-        end = end_date
-      )
-    })
-
     output$forecast_horizon <- shiny::renderUI(
       layout_columns(
         col_widths = c(3, 4),
@@ -1099,8 +1093,8 @@ mod_02_planner_server <- function(id, r) {
           inputId = ns("forecast_date"),
           label = NULL,
           min = "2016-05-01",
-          start = forecast_dates()$start,
-          end = forecast_dates()$end
+          start = reactive_values$forecast_start_date,
+          end = reactive_values$forecast_end_date
         ),
         fill = FALSE
       )
