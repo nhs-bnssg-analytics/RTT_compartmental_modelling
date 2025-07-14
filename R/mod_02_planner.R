@@ -10,11 +10,10 @@
 #'   dateRangeInput dateInput selectInput icon downloadLink downloadButton hr br
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   bs_theme page_fluid card_body layout_columns tooltip
-mod_02_planner_ui <- function(id){
+mod_02_planner_ui <- function(id) {
   ns <- NS(id)
 
   filters_sidebar <- sidebar(
-
     # card_header("Select filters on data"),
     open = TRUE,
     width = '35%',
@@ -94,22 +93,43 @@ mod_02_planner_ui <- function(id){
           title = "Upload your own data...",
           p("Your CSV file must contain these columns:"),
           tags$ul(
-            tags$li(strong("period"), "- date; the first day of each month the data represent"),
-            tags$li(strong("type"), "- accepted values: Referrals, Incomplete, Complete"),
-            tags$li(strong("months_waited_id"), "- integers (0 to 12); the compartments waited
-                    ('0' is the number of people waiting 0-1 months, and '12' is the number of people waiting 12+ months)"),
+            tags$li(
+              strong("period"),
+              "- date; the first day of each month the data represent"
+            ),
+            tags$li(
+              strong("type"),
+              "- accepted values: Referrals, Incomplete, Complete"
+            ),
+            tags$li(
+              strong("months_waited_id"),
+              "- integers (0 to 12); the compartments waited
+                    ('0' is the number of people waiting 0-1 months, and '12' is the number of people waiting 12+ months)"
+            ),
             tags$li(strong("value"), "- the counts for each compartment")
           ),
-          p("More info can be found",
+          p(
+            "More info can be found",
             tooltip(
               span(
                 "here.",
                 style = "text-decoration: underline; cursor: help;"
               ),
-              p(strong("Referrals:"), "one record per period, with months_waited_id equal to 0."),
-              p(strong("Incomplete:"),  "a record for each compartment for each period."),
-              p(strong("Complete:"), "a record for each compartment for each period."),
-              p("Note, only incompletes are used for the first period to provide the starting waiting list.")
+              p(
+                strong("Referrals:"),
+                "one record per period, with months_waited_id equal to 0."
+              ),
+              p(
+                strong("Incomplete:"),
+                "a record for each compartment for each period."
+              ),
+              p(
+                strong("Complete:"),
+                "a record for each compartment for each period."
+              ),
+              p(
+                "Note, only incompletes are used for the first period to provide the starting waiting list."
+              )
             )
           ),
           hr(),
@@ -136,13 +156,10 @@ mod_02_planner_ui <- function(id){
             ),
             uiOutput(ns("tick_mark_import"))
           )
-
         )
       )
     )
-
   )
-
 
   scenario_card <- card(
     card_header("Select dates for analysis and forecasting"),
@@ -180,7 +197,7 @@ mod_02_planner_ui <- function(id){
           inputId = ns("referral_growth_type"),
           label = NULL,
           choices = c("Uniform", "Linear"),
-          selected = "Linear"#,
+          selected = "Linear" #,
           # choiceNames = c("Uplift referrals uniformly", "Uplift referrals to change by a percentage (linearly) by the end of the time period"),
           # choiceValues = c("uniform", "linear")
         ),
@@ -252,9 +269,8 @@ mod_02_planner_ui <- function(id){
 #' @importFrom bslib tooltip value_box value_box_theme
 #' @importFrom rlang .data
 #' @noRd
-mod_02_planner_server <- function(id, r){
-  moduleServer( id, function(input, output, session){
-
+mod_02_planner_server <- function(id, r) {
+  moduleServer(id, function(input, output, session) {
     # initial set up ----------------------------------------------------------
 
     ns <- session$ns
@@ -275,7 +291,6 @@ mod_02_planner_server <- function(id, r){
     )
     reactive_values$import_success <- NULL
 
-
     r$chart_specification <- list(
       trust = NULL,
       specialty = NULL,
@@ -291,9 +306,9 @@ mod_02_planner_server <- function(id, r){
       capacity_skew = NULL,
       target_date = NULL,
       target_performance = NULL,
-      optimise_status = NULL
+      optimise_status = NULL,
+      params = NULL
     )
-
 
     # tooltip plots -----------------------------------------------------------
 
@@ -309,10 +324,8 @@ mod_02_planner_server <- function(id, r){
     data_table <- reactiveVal(org_lkp)
 
     observeEvent(
-      c(input$region,
-        input$nhs_only
-      ), {
-
+      c(input$region, input$nhs_only),
+      {
         data_table <- org_lkp
 
         if (isTRUE(input$nhs_only)) {
@@ -342,7 +355,6 @@ mod_02_planner_server <- function(id, r){
           choices = sort(unique(data_table[["Provider Parent Name"]])),
           selected = current_provider_parent
         )
-
 
         # commissioner_parent current selections
         current_commissioner_parent <- dplyr::intersect(
@@ -382,18 +394,18 @@ mod_02_planner_server <- function(id, r){
           choices = sort(unique(data_table[["Provider Org Name"]])),
           selected = current_provider
         )
-      })
+      }
+    )
 
-
-# calibration months slider -----------------------------------------------
+    # calibration months slider -----------------------------------------------
 
     output$calibration_months_ui <- renderUI({
       # Initial rendering or subsequent updates based on input$slider value
       current_value <- input$calibration_months
 
       # Handle the initial NULL value when the app first loads
-      if(is.null(current_value)) {
-        current_value <- 12  # Default starting value
+      if (is.null(current_value)) {
+        current_value <- 12 # Default starting value
       }
 
       date_text <- paste0(
@@ -427,16 +439,16 @@ mod_02_planner_server <- function(id, r){
       )
     })
 
-
     # download data button ----------------------------------------------------
     observeEvent(
-      input$dwnld_rtt_data, {
-
+      input$dwnld_rtt_data,
+      {
         max_download_date <- NHSRtt::latest_rtt_date()
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        ) %m-% months(input$calibration_months)
+        ) %m-%
+          months(input$calibration_months)
 
         # create period_lkp table from the first time period in the calibration data
         # to the final time period in the projection period
@@ -459,8 +471,10 @@ mod_02_planner_server <- function(id, r){
         )
 
         on.exit(progress$close())
-        progress$set(message = 'Downloading public data from RTT statistics',
-                     detail = 'This is used for calibrating the model')
+        progress$set(
+          message = 'Downloading public data from RTT statistics',
+          detail = 'This is used for calibrating the model'
+        )
 
         selections_labels <- filters_displays(
           nhs_regions = input$region,
@@ -492,7 +506,11 @@ mod_02_planner_server <- function(id, r){
           summarise(
             value = sum(.data$value),
             .by = c(
-              "trust", "specialty", "period", "months_waited", "type"
+              "trust",
+              "specialty",
+              "period",
+              "months_waited",
+              "type"
             )
           ) |>
           mutate(
@@ -586,7 +604,6 @@ mod_02_planner_server <- function(id, r){
 
         reactive_values$data_downloaded <- TRUE
 
-
         # calculate unadjusted referrals
         unadjusted_referrals <- r$all_data |>
           filter(
@@ -614,7 +631,9 @@ mod_02_planner_server <- function(id, r){
 
         # check whether the referrals uplift value is negative
         if (reactive_values$referrals_uplift < 0) {
-          reactive_values$referrals_uplift <- abs(reactive_values$referrals_uplift)
+          reactive_values$referrals_uplift <- abs(
+            reactive_values$referrals_uplift
+          )
         } else {
           reactive_values$referrals_uplift <- 0
         }
@@ -650,7 +669,8 @@ mod_02_planner_server <- function(id, r){
           left_join(
             unadjusted_referrals,
             by = join_by(
-              period_id, months_waited_id
+              period_id,
+              months_waited_id
             )
           ) |>
           dplyr::mutate(
@@ -698,32 +718,25 @@ mod_02_planner_server <- function(id, r){
 
         # remove any tick/cross marks for imported data
         reactive_values$import_success <- NULL
-
-
-
       },
       ignoreInit = TRUE
     )
 
-
-# download complete symbol ------------------------------------------------
+    # download complete symbol ------------------------------------------------
 
     # Output the tick mark when the process is complete
     output$tick_mark_dwnld <- renderUI({
-
       if (isTRUE(reactive_values$data_downloaded)) {
         shiny::icon(
           "check",
           class = "green-tick"
         )
       } else {
-
         NULL
       }
     })
 
     # bring your own data -----------------------------------------------------
-
 
     # sample data -------------------------------------------------------------
 
@@ -742,7 +755,8 @@ mod_02_planner_server <- function(id, r){
         sample_data_mnths <- unique(sample_data[["period"]]) |>
           sort()
         months_in_sample_data <- length(sample_data_mnths)
-        calculated_first_month <- final_month %m-% months(months_in_sample_data - 1)
+        calculated_first_month <- final_month %m-%
+          months(months_in_sample_data - 1)
 
         mnth_lkp <- dplyr::tibble(
           period = sample_data_mnths,
@@ -773,7 +787,6 @@ mod_02_planner_server <- function(id, r){
       }
     )
 
-
     # template data -----------------------------------------------------------
 
     output$download_template <- downloadHandler(
@@ -786,7 +799,8 @@ mod_02_planner_server <- function(id, r){
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
-        ) %m-% months(input$calibration_months)
+        ) %m-%
+          months(input$calibration_months)
 
         # create progress bar
         progress <- Progress$new(
@@ -796,8 +810,10 @@ mod_02_planner_server <- function(id, r){
         )
 
         on.exit(progress$close())
-        progress$set(message = 'Downloading public data from RTT statistics',
-                     detail = 'This will be included in template csv file')
+        progress$set(
+          message = 'Downloading public data from RTT statistics',
+          detail = 'This will be included in template csv file'
+        )
 
         selections_labels <- filters_displays(
           nhs_regions = input$region,
@@ -829,7 +845,9 @@ mod_02_planner_server <- function(id, r){
           summarise(
             value = sum(.data$value),
             .by = c(
-              "period", "months_waited_id", "type"
+              "period",
+              "months_waited_id",
+              "type"
             )
           ) |>
           arrange(
@@ -866,6 +884,19 @@ mod_02_planner_server <- function(id, r){
         reactive_values$import_success <- TRUE
 
         imported_data <- check_data$imported_data_checked
+
+        # update start date for forecast_dates ui
+
+        new_projection_start_date <- lubridate::floor_date(
+          max(imported_data[["period"]]) %m+% months(1)
+        )
+
+        shiny::updateDateRangeInput(
+          inputId = ns("forecast_date"),
+          min = "2016-05-01",
+          start = new_projection_start_date,
+          end = forecast_dates()$end
+        )
 
         # create period lookup, but append the imported data to the start of the
         # horizon period so the start point of the projections begin at the end of
@@ -972,7 +1003,8 @@ mod_02_planner_server <- function(id, r){
           left_join(
             unadjusted_referrals,
             by = join_by(
-              period_id, months_waited_id
+              period_id,
+              months_waited_id
             )
           ) |>
           dplyr::mutate(
@@ -1013,7 +1045,6 @@ mod_02_planner_server <- function(id, r){
         )
 
         reactive_values$optimise_status_card_visible <- FALSE
-
       } else {
         notification_type <- "error"
         reactive_values$import_success <- FALSE
@@ -1024,14 +1055,11 @@ mod_02_planner_server <- function(id, r){
         duration = 10,
         type = notification_type
       )
-
-
     })
 
     # tick mark for data import
     # Output the tick mark when the process is complete
     output$tick_mark_import <- renderUI({
-
       if (isTRUE(reactive_values$import_success)) {
         shiny::icon(
           "check",
@@ -1054,14 +1082,14 @@ mod_02_planner_server <- function(id, r){
       end_date <- lubridate::ceiling_date(
         start_date,
         unit = "months"
-      ) %m+% months(35)
+      ) %m+%
+        months(35)
 
       forecast_dates <- list(
         start = start_date,
         end = end_date
       )
     })
-
 
     output$forecast_horizon <- shiny::renderUI(
       layout_columns(
@@ -1079,7 +1107,6 @@ mod_02_planner_server <- function(id, r){
     )
 
     # calculate possible target dates from forecast horizone dates ----------------
-
 
     # here, we force the target achievement date to fit into the forecast time period
     target_dates <- reactive({
@@ -1099,7 +1126,6 @@ mod_02_planner_server <- function(id, r){
       )
     })
 
-
     # create the dynamic ui for target achievement date -----------------------
 
     output$target_achievement_date <- shiny::renderUI(
@@ -1117,13 +1143,12 @@ mod_02_planner_server <- function(id, r){
           inputId = ns("target_achievement_date"),
           label = NULL,
           min = target_dates()$min,
-          max =  target_dates()$max,
+          max = target_dates()$max,
           value = target_dates()$default
         ),
         fill = FALSE
       )
     )
-
 
     # calculate the latest performance ui from the data -----------------------
 
@@ -1133,7 +1158,7 @@ mod_02_planner_server <- function(id, r){
         return(NULL)
       } else {
         layout_column_wrap(
-          width = 1/2,
+          width = 1 / 2,
           value_box(
             title = "Latest performance",
             value = h5(reactive_values$latest_performance),
@@ -1143,10 +1168,8 @@ mod_02_planner_server <- function(id, r){
             id = "performance"
           )
         )
-
       }
     })
-
 
     # create ui for multiple performance targets ------------------------------
 
@@ -1163,11 +1186,14 @@ mod_02_planner_server <- function(id, r){
     )
 
     # Add initial empty row
-    observe({
-      if (nrow(target_data()) == 0) {
-        add_target()
-      }
-    }, priority = 1000)
+    observe(
+      {
+        if (nrow(target_data()) == 0) {
+          add_target()
+        }
+      },
+      priority = 1000
+    )
 
     # Function to add a new target
     add_target <- function() {
@@ -1231,50 +1257,77 @@ mod_02_planner_server <- function(id, r){
     observeEvent(input$target_table_cell_edit, {
       info <- input$target_table_cell_edit
       row <- info$row
-      col <- info$col + 1  # Column indices start at 0 in JavaScript
+      col <- info$col + 1 # Column indices start at 0 in JavaScript
       value <- info$value
 
       current_data <- target_data()
 
       # Validation for Target date
       if (colnames(current_data)[col] == "Target_date") {
-        tryCatch({
-          date_value <- as.Date(value)
-          if (is.na(date_value)) {
-            showNotification("Please enter a valid date (YYYY-MM-DD)", type = "error")
+        tryCatch(
+          {
+            date_value <- as.Date(value)
+            if (is.na(date_value)) {
+              showNotification(
+                "Please enter a valid date (YYYY-MM-DD)",
+                type = "error"
+              )
+              return()
+            }
+            date_value <- lubridate::floor_date(
+              date_value,
+              unit = "months"
+            )
+            if (
+              !dplyr::between(
+                date_value,
+                target_dates()$min,
+                target_dates()$max
+              )
+            ) {
+              showNotification(
+                "Selected date must be at least one month after the start of the planning horizon",
+                type = "error"
+              )
+              return()
+            } else if (date_value %in% current_data[["Target_date"]]) {
+              showNotification(
+                "Only one date per month allowed",
+                type = "error"
+              )
+              return()
+            }
+            current_data[row, col] <- date_value
+          },
+          error = function(e) {
+            showNotification("Unknown error", type = "error")
             return()
           }
-          date_value <- lubridate::floor_date(
-            date_value,
-            unit = "months"
-          )
-          if (!dplyr::between(date_value, target_dates()$min, target_dates()$max)) {
-            showNotification("Selected date must be at least one month after the start of the planning horizon", type = "error")
-            return()
-          } else if (date_value %in% current_data[["Target_date"]]) {
-            showNotification("Only one date per month allowed", type = "error")
-            return()
-          }
-          current_data[row, col] <- date_value
-        }, error = function(e) {
-          showNotification("Unknown error", type = "error")
-          return()
-        })
+        )
       }
 
       # Validation for Target percentage
       if (colnames(current_data)[col] == "Target_percentage") {
-        tryCatch({
-          pct_value <- as.numeric(value)
-          if (is.na(pct_value) || pct_value < 0 || pct_value > 100) {
-            showNotification("Percentage must be between 0 and 100", type = "error")
+        tryCatch(
+          {
+            pct_value <- as.numeric(value)
+            if (is.na(pct_value) || pct_value < 0 || pct_value > 100) {
+              showNotification(
+                "Percentage must be between 0 and 100",
+                type = "error"
+              )
+              return()
+            }
+            current_data[row, col] <- pct_value
+          },
+          error = function(e) {
+            showNotification(
+              "Percentage must be between 0 and 100",
+              type = "error"
+            )
             return()
           }
-          current_data[row, col] <- pct_value
-        }, error = function(e) {
-          showNotification("Percentage must be between 0 and 100", type = "error")
-          return()
-        })
+        )
       }
 
       current_data <- current_data |>
@@ -1286,7 +1339,8 @@ mod_02_planner_server <- function(id, r){
     # dynamic ui based on single or multiple targets --------------------------
 
     observeEvent(
-      c(input$target_type), {
+      c(input$target_type),
+      {
         if (input$target_type == "Single target") {
           output$target_type_input_ui <- shiny::renderUI({
             tagList(
@@ -1317,7 +1371,6 @@ mod_02_planner_server <- function(id, r){
                 fill = FALSE
               )
             )
-
           })
         } else if (input$target_type == "Multiple targets") {
           output$target_type_input_ui <- shiny::renderUI({
@@ -1390,11 +1443,9 @@ mod_02_planner_server <- function(id, r){
       }
     })
 
-
     # dynamic ui card based on result of optimisation -------------------------
 
     output$optimisation_results_ui <- renderUI({
-
       if (isTRUE(reactive_values$optimise_status_card_visible)) {
         if (r$chart_specification$optimise_status == "waitlist_cleared") {
           val <- "Waitlist cleared"
@@ -1418,7 +1469,6 @@ mod_02_planner_server <- function(id, r){
         )
       }
     })
-
 
     # dynamic ui for advanced skew manipulation -------------------------------
 
@@ -1482,7 +1532,6 @@ mod_02_planner_server <- function(id, r){
       if (input$interface_choice == "select") {
         tagList()
       } else if (input$interface_choice == "performance_inputs") {
-
         # Numeric interface
         tagList(
           layout_columns(
@@ -1592,12 +1641,13 @@ mod_02_planner_server <- function(id, r){
           )
         )
       } else if (input$interface_choice == "capacity_inputs") {
-
         # Text interface
         tagList(
           layout_columns(
             col_widths = c(3, 4),
-            span("Percentage change for treatment capacity (between -20% and 20%):"),
+            span(
+              "Percentage change for treatment capacity (between -20% and 20%):"
+            ),
             numericInput(
               inputId = ns("capacity_growth"),
               label = NULL,
@@ -1624,7 +1674,7 @@ mod_02_planner_server <- function(id, r){
               inputId = ns("capacity_growth_type"),
               label = NULL,
               choices = c("Uniform", "Linear"),
-              selected = "Linear"#,
+              selected = "Linear" #,
             ),
             fill = FALSE
           ),
@@ -1670,47 +1720,46 @@ mod_02_planner_server <- function(id, r){
       }
     })
 
-
     # change skew visual based on inputs --------------------------------------
 
     observeEvent(
-      c(input$pivot_bin,
+      c(
+        input$pivot_bin,
         input$skew_method,
         input$capacity_skew,
-        input$capacity_skew_range), {
-
-          if (input$interface_choice == "capacity_inputs") {
-            skew_values <- input$capacity_skew
-            if (!is.null(skew_values)) {
-              # user can delete value before entering it again, which causes an error
-              continue <- TRUE
-            }
-          } else if (input$interface_choice == "performance_inputs") {
-            skew_values <- input$capacity_skew_range
+        input$capacity_skew_range
+      ),
+      {
+        if (input$interface_choice == "capacity_inputs") {
+          skew_values <- input$capacity_skew
+          if (!is.null(skew_values)) {
+            # user can delete value before entering it again, which causes an error
             continue <- TRUE
           }
-
-          if (continue <- TRUE) {
-            output$skew_visual <- renderPlot({
-              plot_skew(
-                params = reactive_values$params$params[[1]],
-                skew_values = skew_values,
-                pivot_bin = input$pivot_bin,
-                skew_method = input$skew_method
-              )
-            })
-          }
-
+        } else if (input$interface_choice == "performance_inputs") {
+          skew_values <- input$capacity_skew_range
+          continue <- TRUE
         }
+
+        if (continue <- TRUE) {
+          output$skew_visual <- renderPlot({
+            plot_skew(
+              params = reactive_values$params$params[[1]],
+              skew_values = skew_values,
+              pivot_bin = input$pivot_bin,
+              skew_method = input$skew_method
+            )
+          })
+        }
+      }
     )
 
     # Forecast performance based on treatment capacity inputs ---------------------------
 
     observeEvent(
-      c(input$calculate_performance), {
-
+      c(input$calculate_performance),
+      {
         if (input$calculate_performance >= 1) {
-
           selections_labels <- filters_displays(
             nhs_regions = input$region,
             nhs_only = input$nhs_only,
@@ -1728,7 +1777,9 @@ mod_02_planner_server <- function(id, r){
           forecast_months <- lubridate::interval(
             as.Date(input$forecast_date[[1]]),
             as.Date(input$forecast_date[[2]])
-          ) %/% months(1) + 1
+          ) %/%
+            months(1) +
+            1
 
           unadjusted_projections_referrals <- r$all_data |>
             filter(
@@ -1744,7 +1795,8 @@ mod_02_planner_server <- function(id, r){
 
           if (!is.null(reactive_values$referrals_uplift)) {
             projections_referrals <- unadjusted_projections_referrals +
-              (unadjusted_projections_referrals * reactive_values$referrals_uplift)
+              (unadjusted_projections_referrals *
+                reactive_values$referrals_uplift)
           } else {
             projections_referrals <- unadjusted_projections_referrals
           }
@@ -1758,7 +1810,11 @@ mod_02_planner_server <- function(id, r){
             summarise(
               value = sum(.data$value),
               .by = c(
-                "specialty", "trust", "type", "period", "period_id"
+                "specialty",
+                "trust",
+                "type",
+                "period",
+                "period_id"
               )
             ) |>
             forecast_function(
@@ -1817,24 +1873,7 @@ mod_02_planner_server <- function(id, r){
               reactive_values$calibration_data
             ) |>
             mutate(
-              months_waited_id = case_when(
-                .data$months_waited_id < 12 ~ paste0(
-                  .data$months_waited_id,
-                  "-",
-                  .data$months_waited_id + 1,
-                  " months"
-                ),
-                .default = "12+ months"
-              ),
-              months_waited_id = factor(
-                .data$months_waited_id,
-                levels = paste(
-                  c(
-                    paste0(0:11, "-", 1:12), "12+"
-                  ),
-                  "months"
-                )
-              )
+              months_waited_id = convert_month_to_factor(.data$months_waited_id)
             ) |>
             dplyr::arrange(
               .data$period_id
@@ -1859,20 +1898,39 @@ mod_02_planner_server <- function(id, r){
             Target_date = as.Date(character()),
             Target_performance = as.numeric()
           )
+          new_capacity_params <- NHSRtt::apply_parameter_skew(
+            reactive_values$params$params[[1]]$capacity_param,
+            skew = input$capacity_skew,
+            skew_method = input$skew_method,
+            pivot_bin = input$pivot_bin
+          )
+
+          r$chart_specification$params <- reactive_values$params$params[[1]] |>
+            mutate(
+              capacity_param = new_capacity_params
+            )
           r$chart_specification$optimise_status <- NULL
 
           reactive_values$performance_calculated <- TRUE
+
+          # store original data for charts in case customisation occurs
+          r$chart_specification$original_data <- list(
+            waiting_list = r$waiting_list,
+            referrals_percent_change = r$chart_specification$referrals_percent_change,
+            referrals_change_type = r$chart_specification$referrals_change_type,
+            scenario_type = r$chart_specification$scenario_type,
+            capacity_percent_change = r$chart_specification$capacity_percent_change,
+            capacity_change_type = r$chart_specification$capacity_change_type
+          )
         }
       },
       ignoreInit = TRUE
     )
 
-# capacity calculation complete symbol ------------------------------------------------
-
+    # capacity calculation complete symbol ------------------------------------------------
 
     # Output the tick mark when the process is complete
     output$tick_mark_performance <- renderUI({
-
       if (isTRUE(reactive_values$performance_calculated)) {
         shiny::icon(
           "check",
@@ -1886,11 +1944,11 @@ mod_02_planner_server <- function(id, r){
     # optimising treatment capacity based on performance inputs -------------------------
 
     observeEvent(
-      c(input$optimise_capacity), {
+      c(input$optimise_capacity),
+      {
         r$chart_specification$optimise_status <- NULL
 
         if (input$optimise_capacity >= 1) {
-
           selections_labels <- filters_displays(
             nhs_regions = input$region,
             nhs_only = input$nhs_only,
@@ -1940,13 +1998,14 @@ mod_02_planner_server <- function(id, r){
             baseline_referrals <- unadjusted_baseline_referrals
           }
 
-
           # referrals for planning horizon (based on uplifted numbers)
 
           forecast_months <- lubridate::interval(
             as.Date(input$forecast_date[[1]]),
             as.Date(input$forecast_date[[2]])
-          ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
+          ) %/%
+            months(1) +
+            1 # the plus 1 makes is inclusive of the final month
 
           projections_referrals <- baseline_referrals |>
             filter(
@@ -1968,7 +2027,11 @@ mod_02_planner_server <- function(id, r){
             summarise(
               value = sum(.data$value),
               .by = c(
-                "specialty", "trust", "type", "period", "period_id"
+                "specialty",
+                "trust",
+                "type",
+                "period",
+                "period_id"
               )
             )
 
@@ -2002,21 +2065,21 @@ mod_02_planner_server <- function(id, r){
               params = purrr::map2(
                 .x = .data$params,
                 .y = .data$skew_param,
-                \(x, y) x |>
-                  mutate(
-                    capacity_param = NHSRtt::apply_parameter_skew(
-                      params = .data$capacity_param,
-                      skew = y,
-                      skew_method = input$skew_method,
-                      pivot_bin = input$pivot_bin
+                \(x, y) {
+                  x |>
+                    mutate(
+                      capacity_param = NHSRtt::apply_parameter_skew(
+                        params = .data$capacity_param,
+                        skew = y,
+                        skew_method = input$skew_method,
+                        pivot_bin = input$pivot_bin
+                      )
                     )
-                  )
+                }
               )
             )
 
           # create empty list for optimal skew parameters
-
-
 
           if (input$optimised_capacity_growth_type == "Uniform") {
             cap_prof <- "flat"
@@ -2027,7 +2090,8 @@ mod_02_planner_server <- function(id, r){
           progress <- Progress$new(
             session,
             min = 1,
-            max = nrow(skewed_params) * nrow(target_data()))
+            max = nrow(skewed_params) * nrow(target_data())
+          )
           on.exit(progress$close())
 
           progress$set(
@@ -2058,7 +2122,7 @@ mod_02_planner_server <- function(id, r){
             )
 
           for (i in seq_len(nrow(target_data()))) {
-# browser()
+            # browser()
             i_target_data <- target_data() |>
               dplyr::slice(i)
 
@@ -2078,10 +2142,14 @@ mod_02_planner_server <- function(id, r){
             forecast_months_to_target <- lubridate::interval(
               as.Date(interval_start_date),
               as.Date(i_target_data[["Target_date"]])
-            ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
+            ) %/%
+              months(1) +
+              1 # the plus 1 makes is inclusive of the final month
 
             # subset referrals for this interval
-            interval_projected_referrals <- projections_referrals[start_date_id:end_date_id]
+            interval_projected_referrals <- projections_referrals[
+              start_date_id:end_date_id
+            ]
 
             # set new column names
             uplift_col <- paste("uplift", i, sep = "_")
@@ -2104,7 +2172,6 @@ mod_02_planner_server <- function(id, r){
                     prog = .data[["rowid"]]
                   ),
                   .f = \(par, cap, incomp, prog) {
-
                     prog_val <- prog + ((i - 1) * nrow(projection_calcs))
 
                     progress$set(value = prog_val)
@@ -2113,7 +2180,10 @@ mod_02_planner_server <- function(id, r){
                       referrals_projections = interval_projected_referrals,
                       incomplete_pathways = incomp,
                       renege_capacity_params = par,
-                      target = paste0(100 - i_target_data[["Target_percentage"]], "%"),
+                      target = paste0(
+                        100 - i_target_data[["Target_percentage"]],
+                        "%"
+                      ),
                       target_bin = 4,
                       capacity_profile = cap_prof,
                       tolerance = 0.001,
@@ -2147,8 +2217,10 @@ mod_02_planner_server <- function(id, r){
                 # add start treatment capacity for next time period
                 !!start_capacity_tj_col := purrr::map_dbl(
                   .data$capacity_projections,
-                  \(x) unlist(x) |>
-                    tail(1)
+                  \(x) {
+                    unlist(x) |>
+                      tail(1)
+                  }
                 ),
                 # add incompletes for the start of the next time period
                 !!incompletes_tj_col := purrr::pmap(
@@ -2158,7 +2230,6 @@ mod_02_planner_server <- function(id, r){
                     par = .data[["params"]]
                   ),
                   .f = \(cap_proj, incomp, par) {
-
                     apply_params_to_projections(
                       capacity_projections = cap_proj[[j]],
                       referrals_projections = interval_projected_referrals,
@@ -2173,12 +2244,10 @@ mod_02_planner_server <- function(id, r){
                       )
                   }
                 )
-
               )
 
             # start date for next target period
             interval_start_date <- i_target_data[["Target_date"]] %m+% months(1)
-
           }
 
           # are there remaining periods between the final target and the end of
@@ -2188,11 +2257,12 @@ mod_02_planner_server <- function(id, r){
             forecast_months_to_end <- lubridate::interval(
               as.Date(interval_start_date),
               utils::tail(forecast_dates, 1)
-            ) %/% months(1) + 1 # the plus 1 makes is inclusive of the final month
+            ) %/%
+              months(1) +
+              1 # the plus 1 makes is inclusive of the final month
 
             if (isTRUE(input$capacity_track_referrals)) {
               # here we track referrals with treatment capacity following target achievement
-
 
               # calculate the change in referrals for each period
               referrals_change_by_period <- unique(
@@ -2210,15 +2280,17 @@ mod_02_planner_server <- function(id, r){
                     \(x) {
                       projections <- unlist(x) |>
                         tail(1) |>
-                        (\(y) y + (seq_len(forecast_months_to_end) * referrals_change_by_period))()
+                        (\(y) {
+                          y +
+                            (seq_len(forecast_months_to_end) *
+                              referrals_change_by_period)
+                        })()
                       x[[j + 1]] <- projections
                       x
                     }
                   )
                 )
-
             } else {
-
               # continue projecting the last treatment capacity change required to meet
               # the target onwards
               projection_calcs <- projection_calcs |>
@@ -2227,7 +2299,6 @@ mod_02_planner_server <- function(id, r){
                     .x = .data[["capacity_projections"]],
                     .y = .data[[uplift_col]],
                     \(x, y) {
-
                       projections <- dplyr::tibble(
                         value = unlist(tail(x, 1))
                       ) |>
@@ -2277,11 +2348,6 @@ mod_02_planner_server <- function(id, r){
               # closest to 1)
               abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
             )
-
-          # filter(
-          #   .data$uplift == min(.data$uplift)
-          # ) |>
-
 
           # create treatment capacity projections profile
           projections_capacity <- projection_calcs |>
@@ -2334,19 +2400,21 @@ mod_02_planner_server <- function(id, r){
             ) |>
             mutate(
               months_waited_id = case_when(
-                .data$months_waited_id < 12 ~ paste0(
-                  .data$months_waited_id,
-                  "-",
-                  .data$months_waited_id + 1,
-                  " months"
-                ),
+                .data$months_waited_id < 12 ~
+                  paste0(
+                    .data$months_waited_id,
+                    "-",
+                    .data$months_waited_id + 1,
+                    " months"
+                  ),
                 .default = "12+ months"
               ),
               months_waited_id = factor(
                 .data$months_waited_id,
                 levels = paste(
                   c(
-                    paste0(0:11, "-", 1:12), "12+"
+                    paste0(0:11, "-", 1:12),
+                    "12+"
                   ),
                   "months"
                 )
@@ -2371,7 +2439,9 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$capacity_percent_change <- "NEEDS TO BE REVIEWED FOR MULTIPLE CHANGES IN CAPACITY"
 
           r$chart_specification$capacity_change_type <- input$optimised_capacity_growth_type
-          r$chart_specification$capacity_skew <- projection_calcs$skew_param[[1]]
+          r$chart_specification$capacity_skew <- projection_calcs$skew_param[[
+            1
+          ]]
           r$chart_specification$target_data <- target_data()
 
           # calculate the convergence status
@@ -2390,19 +2460,15 @@ mod_02_planner_server <- function(id, r){
             min() |>
             (\(x) ifelse(x == 0, "waitlist_cleared", "converged"))()
 
-
           reactive_values$optimise_status_card_visible <- TRUE
-
         }
       }
     )
 
-# optimisation complete symbol ------------------------------------------------
-
+    # optimisation complete symbol ------------------------------------------------
 
     # Output the tick mark when the process is complete
     output$tick_mark_optimise <- renderUI({
-
       if (isTRUE(reactive_values$optimise_status_card_visible)) {
         shiny::icon(
           "check",
@@ -2412,6 +2478,5 @@ mod_02_planner_server <- function(id, r){
         NULL
       }
     })
-
   })
 }
