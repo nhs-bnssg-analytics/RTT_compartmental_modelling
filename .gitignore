@@ -21,6 +21,7 @@
 *.rds
 *.RData
 *.Rhistory
+*.html
 
 
 ### direnv ###

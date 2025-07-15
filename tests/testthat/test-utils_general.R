@@ -183,7 +183,6 @@ test_that("org_name_lkp errors", {
 })
 
 test_that("org_name_lkp works", {
-
   expect_equal(
     org_name_lkp(
       names = c("London", "South West"),
@@ -241,14 +240,15 @@ test_that("org_name_lkp works", {
 
 
 test_that("filters_displays works", {
-
   specs <- c("General Surgery", "Total")
 
   lbls <- filters_displays(
     trust_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
     trusts = "FULWOOD HALL HOSPITAL",
-    comm_parents = c("NHS SOUTH YORKSHIRE INTEGRATED CARE BOARD",
-                     "NHS NORTH EAST LONDON INTEGRATED CARE BOARD"),
+    comm_parents = c(
+      "NHS SOUTH YORKSHIRE INTEGRATED CARE BOARD",
+      "NHS NORTH EAST LONDON INTEGRATED CARE BOARD"
+    ),
     comms = NULL,
     spec = specs
   )
@@ -294,7 +294,53 @@ test_that("filters_displays works", {
 
   expect_equal(
     sw_trusts,
-    c("RA9", "RH8", "RK9", "RD1", "RN3", "RNZ", "RTE", "RH5", "REF", "RJ8", "RA7", "RVJ", "R0D", "RBD"),
+    c(
+      "RA9",
+      "RH8",
+      "RK9",
+      "RD1",
+      "RN3",
+      "RNZ",
+      "RTE",
+      "RH5",
+      "REF",
+      "RJ8",
+      "RA7",
+      "RVJ",
+      "R0D",
+      "RBD"
+    ),
     info = "Trusts in SW are identified when region and NHS only are provieded"
+  )
+})
+
+test_that("extract_first_number works", {
+  expect_equal(
+    extract_first_number("0-1 months"),
+    0,
+    info = "extract_first_number works"
+  )
+})
+
+test_that("convert_month_to_factor works", {
+  expect_equal(
+    convert_month_to_factor(0:12),
+    factor(
+      paste(
+        c(
+          paste0(0:11, "-", 1:12),
+          "12+"
+        ),
+        "months"
+      ),
+      levels = paste(
+        c(
+          paste0(0:11, "-", 1:12),
+          "12+"
+        ),
+        "months"
+      )
+    ),
+    info = "convert_month_to_factor works"
   )
 })
