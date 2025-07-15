@@ -1,5 +1,4 @@
 test_that("get_rtt_data_with_progress works", {
-
   # Mock the function to return the mock data
   mocked_get_rtt_data <- function(
     date_start = as.Date("2024-01-01"),
@@ -10,15 +9,17 @@ test_that("get_rtt_data_with_progress works", {
     trust_codes = NA,
     specialty_codes = NA,
     show_progress = FALSE,
-    progress) {
-
+    progress
+  ) {
     period_lkp <- dplyr::tibble(
       period = seq(
         from = lubridate::floor_date(
-          date_start %m-% months(1), unit = "months"
+          date_start %m-% months(1),
+          unit = "months"
         ),
         to = lubridate::floor_date(
-          date_end, unit = "months"
+          date_end,
+          unit = "months"
         ),
         by = "months"
       )
@@ -39,23 +40,23 @@ test_that("get_rtt_data_with_progress works", {
     max_months <- 12
 
     out <- purrr::pmap(
-        .l = df,
-        .f = \(typ, tpc, cpc, coc, tc, sc) {
-          NHSRtt::create_dummy_data(
-              type = typ,
-              max_months_waited = max_months,
-              number_periods = max(period_lkp$period_id),
-              seed  = 444
-            ) |>
-            mutate(
-              trust_parent_org_code = tpc,
-              commissioner_parent_org_code = cpc,
-              commissioner_org_code = coc,
-              trust = tc,
-              specialty = sc
-            )
-        }
-      ) |>
+      .l = df,
+      .f = \(typ, tpc, cpc, coc, tc, sc) {
+        NHSRtt::create_dummy_data(
+          type = typ,
+          max_months_waited = max_months,
+          number_periods = max(period_lkp$period_id),
+          seed = 444
+        ) |>
+          mutate(
+            trust_parent_org_code = tpc,
+            commissioner_parent_org_code = cpc,
+            commissioner_org_code = coc,
+            trust = tc,
+            specialty = sc
+          )
+      }
+    ) |>
       purrr::list_rbind() |>
       dplyr::mutate(
         months_waited = case_when(
@@ -81,10 +82,12 @@ test_that("get_rtt_data_with_progress works", {
         by = join_by(period_id)
       ) |>
       dplyr::relocate(
-        period, .before = dplyr::everything()
+        period,
+        .before = dplyr::everything()
       ) |>
       dplyr::relocate(
-        value, .after = dplyr::everything()
+        value,
+        .after = dplyr::everything()
       ) |>
       select(
         !c(
@@ -104,6 +107,18 @@ test_that("get_rtt_data_with_progress works", {
     get_rtt_data_with_progress = function(...) mocked_get_rtt_data(...)
   )
 
+  # Mock a simple progress object for testing
+  # We need to make sure 'self' refers to the mock_progress object itself
+  # in the set function for it to update correctly.
+  mock_progress <- new.env()
+  mock_progress$value <- 0
+  mock_progress$set <- function(value) {
+    mock_progress$value <- value
+  }
+
+  # Reset mock progress for each test
+  mock_progress$value <- 0
+
   specialty_codes <- c("C_100", "C_999")
   trust_codes <- c("RA7", "R0D")
 
@@ -118,7 +133,7 @@ test_that("get_rtt_data_with_progress works", {
     date_end = max(dates),
     trust_codes = trust_codes,
     specialty_codes = specialty_codes,
-    progress = list()
+    progress = mock_progress
   )
 
   # Assertions
@@ -138,7 +153,7 @@ test_that("get_rtt_data_with_progress works", {
       length(trust_codes) *
       (3 * (1 + 13 + 13)), # eg, 3 periods, where each period has 1 referral record, and 13 complete/incomplete records (as it pools at 12+ months)
     info = "correct number of rows from get_rtt_data"
-    )
+  )
 
   expect_equal(
     names(result),
@@ -171,7 +186,6 @@ test_that("get_rtt_data_with_progress works", {
 
 # Test suite for check_imported_data
 test_that("Test check_imported_data", {
-
   # Test case 1: Valid data passes without errors
   valid_data <- sample_data # sample data is an internal dataset
   result <- check_imported_data(valid_data)
@@ -294,7 +308,6 @@ test_that("Test check_imported_data", {
     info = "Incomplete data with missing periods returns NULL data"
   )
 
-
   # Test case 6: Empty Dataframe
   empty_data <- data.frame()
   result <- check_imported_data(empty_data)
@@ -326,15 +339,12 @@ test_that("Test check_imported_data", {
 
 
 test_that("convert_to_date works", {
-
-
   dts1 <- c("2022-04-01", "2021-04-05", "2012-12-12", "2000-01-01")
 
   expect_false(
     any(is.na(convert_to_date(dts1))),
     info = "all dates with format yyyy-mm-dd are converted successfully"
   )
-
 
   dts2 <- c("12/12/2022", "24/05/2021", "25/12/2022", "01/01/2019")
   expect_false(
@@ -347,5 +357,4 @@ test_that("convert_to_date works", {
     any(is.na(convert_to_date(dts3))),
     info = "string vetor with multiple date formats produce NAs"
   )
-
 })

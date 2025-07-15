@@ -288,7 +288,7 @@ test_that("filters_displays works", {
     trust_parents = NULL,
     comm_parents = NULL,
     comms = NULL,
-    spec = specs
+    spec = "Total"
   ) |>
     purrr::pluck("trusts", "selected_code")
 
@@ -310,7 +310,29 @@ test_that("filters_displays works", {
       "R0D",
       "RBD"
     ),
-    info = "Trusts in SW are identified when region and NHS only are provieded"
+    info = "Trusts in SW are identified when region and NHS only are provided"
+  )
+
+  commissioners_and_parents <- filters_displays(
+    nhs_only = TRUE,
+    nhs_regions = NULL,
+    trusts = NULL,
+    trust_parents = NULL,
+    comm_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
+    comms = "NHS BLACKBURN WITH DARWEN (SUB ICB LOCATION)",
+    spec = "Total"
+  )
+
+  expect_equal(
+    c(
+      commissioners_and_parents$commissioners$selected_code,
+      commissioners_and_parents$commissioner_parents$selected_code
+    ),
+    c(
+      "00Q",
+      "QE1"
+    ),
+    info = "Commissioners and commissioner parents are identified"
   )
 })
 
@@ -342,5 +364,41 @@ test_that("convert_month_to_factor works", {
       )
     ),
     info = "convert_month_to_factor works"
+  )
+})
+
+test_that("extract_percent works", {
+  expect_equal(
+    extract_percent("This sentence finishes with 50%"),
+    50,
+    info = "extract_percent works"
+  )
+
+  expect_equal(
+    extract_percent("This sentence finishes with 50"),
+    numeric(),
+    info = "extract_percent works"
+  )
+})
+
+test_that("value_box_text works", {
+  golem::expect_shinytag(
+    value_box_text(
+      x_val = as.Date("2023-01-01"),
+      y_title = "This is a title",
+      y_val = 0.15,
+      y_val_type = "percent",
+      facet = NA
+    )
+  )
+
+  golem::expect_shinytag(
+    value_box_text(
+      x_val = as.Date("2023-01-01"),
+      y_title = "This is a title",
+      y_val = 1050,
+      y_val_type = "number",
+      facet = 6
+    )
   )
 })
