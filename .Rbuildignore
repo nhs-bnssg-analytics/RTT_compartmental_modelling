@@ -16,3 +16,4 @@ CODE_OF_CONDUCT.md
 ^pkgdown$
 ^app\.R$
 ^rsconnect$
+\.vscode

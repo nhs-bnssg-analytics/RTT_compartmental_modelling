@@ -1912,7 +1912,7 @@ mod_02_planner_server <- function(id, r) {
                 period_id
               )
             )
-          browser()
+
           # pass information to charting module
           r$chart_specification$forecast_start <- reactive_values$forecast_start_date
           r$chart_specification$forecast_end <- input$forecast_date
@@ -2150,7 +2150,6 @@ mod_02_planner_server <- function(id, r) {
             )
 
           for (i in seq_len(nrow(target_data()))) {
-            # browser()
             i_target_data <- target_data() |>
               dplyr::slice(i)
 

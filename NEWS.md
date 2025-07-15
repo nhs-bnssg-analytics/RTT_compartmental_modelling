@@ -1,6 +1,7 @@
 
 # RTTshiny 1.0.2.9000
 
+* On the results page, following "calculating performance from capacity inputs", the user can now edit the input data for treatment capacity and referrals for the projection period to understand the impact of temporary measures on performance.
 
 # RTTshiny 1.0.2
 

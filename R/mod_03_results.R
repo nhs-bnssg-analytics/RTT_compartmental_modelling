@@ -534,7 +534,6 @@ mod_03_results_server <- function(id, r) {
         }
         output$results_plot <- renderPlot(
           {
-            # browser()
             if (
               is.null(r$waiting_list) |
                 identical(r$waiting_list, tibble())
@@ -730,7 +729,7 @@ mod_03_results_server <- function(id, r) {
         dplyr::summarise(
           across(
             c("adjusted_referrals", "calculated_treatments"),
-            ~ sum(.x, na.rm = TRUE)
+            ~ round(sum(.x, na.rm = TRUE), 2)
           ),
           .by = c("period")
         )
@@ -766,16 +765,21 @@ mod_03_results_server <- function(id, r) {
         editable = list(
           target = "cell",
           disable = list(
-            columns = 0
+            columns = 0 # indices here start at 0 for column 1
           ), # disable editing the first column
-          numeric = "all" # allow only numeric values
+          numeric = 2:3 # allow only numeric values - indices here start at 1 for column 1
         ),
         options = list(
           pageLength = 15,
           dom = 't',
           ordering = FALSE
         ),
-        rownames = FALSE
+        rownames = FALSE,
+        colnames = c(
+          "Month start date",
+          "Referrals",
+          "Treatment capacity"
+        )
       ) |>
         DT::formatRound(
           columns = 2:3
@@ -804,7 +808,6 @@ mod_03_results_server <- function(id, r) {
     # Save changes
     observeEvent(input$save_changes, {
       removeModal()
-      # browser()
 
       r$waiting_list <- calculate_customised_projections(
         original_wl_data = r$chart_specification$original_data$waiting_list,
@@ -822,33 +825,32 @@ mod_03_results_server <- function(id, r) {
 
     # Reset to original data
     observeEvent(input$reset_data, {
-      original_referrals_capacity <- r$chart_specification$original_data$waiting_list |>
+      reactive_data$temp_data <- r$chart_specification$original_data$waiting_list |>
         filter(
           .data$period_type == "Projected"
         ) |>
         summarise(
           across(
             c("adjusted_referrals", "calculated_treatments"),
-            ~ sum(.x, na.rm = TRUE)
+            ~ round(sum(.x, na.rm = TRUE), 2)
           ),
           .by = c("period")
         )
 
-      removeModal()
-      # browser()
+      # removeModal()
 
-      r$waiting_list <- calculate_customised_projections(
-        original_wl_data = r$chart_specification$original_data$waiting_list,
-        new_referrals_capacity = original_referrals_capacity,
-        original_params = r$chart_specification$params
-      )
+      # r$waiting_list <- calculate_customised_projections(
+      #   original_wl_data = r$chart_specification$original_data$waiting_list,
+      #   new_referrals_capacity = original_referrals_capacity,
+      #   original_params = r$chart_specification$params
+      # )
 
-      # pass information in the charts
-      r$chart_specification$referrals_percent_change <- r$chart_specification$original_data$referrals_percent_change
-      r$chart_specification$referrals_change_type <- r$chart_specification$original_data$referrals_change_type
-      r$chart_specification$scenario_type <- r$chart_specification$original_data$scenario_type
-      r$chart_specification$capacity_percent_change <- r$chart_specification$original_data$capacity_percent_change
-      r$chart_specification$capacity_change_type <- r$chart_specification$original_data$capacity_change_type
+      # # pass information in the charts
+      # r$chart_specification$referrals_percent_change <- r$chart_specification$original_data$referrals_percent_change
+      # r$chart_specification$referrals_change_type <- r$chart_specification$original_data$referrals_change_type
+      # r$chart_specification$scenario_type <- r$chart_specification$original_data$scenario_type
+      # r$chart_specification$capacity_percent_change <- r$chart_specification$original_data$capacity_percent_change
+      # r$chart_specification$capacity_change_type <- r$chart_specification$original_data$capacity_change_type
 
       # r$chart_specification$optimise_status <- NULL
     })
