@@ -227,6 +227,34 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
+
+  # customised referrals chart
+  vdiffr::expect_doppelganger(
+    title = "customised referrals chart",
+    plot_output(
+      data = example_chart_data |>
+        dplyr::filter(.data$months_waited_id == "0-1 months") |>
+        dplyr::mutate(
+          p_var = sum(.data$adjusted_referrals),
+          .by = c("period", "period_type")
+        ) |>
+        extend_period_type_data(),
+      p_trust = "Example trust",
+      p_speciality = "specialty selection",
+      p_chart = "referrals",
+      p_scenario = "Estimate performance (from treatment capacity inputs)",
+      p_cap_change = "",
+      p_cap_skew = 1,
+      p_cap_change_type = "manually adjusted",
+      p_target_data = NULL,
+      p_referrals_percent_change = "",
+      p_referrals_change_type = "manual",
+      p_perc = FALSE,
+      p_facet = FALSE,
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
+    )
+  )
 })
 
 

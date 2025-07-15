@@ -153,7 +153,7 @@ plot_output <- function(
       )
   } else if (
     p_target_line == F &
-      p_scenario == 'Estimate treatment capacity (from performance targets)'
+      p_scenario == 'Estimate treatment capacity (from performance inputs)'
   ) {
     txt <- performance_text(p_target_data)
 
