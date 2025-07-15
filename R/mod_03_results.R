@@ -816,43 +816,43 @@ mod_03_results_server <- function(id, r) {
       )
 
       # pass information in the charts
-      r$chart_specification$referrals_percent_change <- "a customised "
+      r$chart_specification$referrals_percent_change <- ""
       r$chart_specification$referrals_change_type <- "manual"
       r$chart_specification$scenario_type <- "Estimate performance (from treatment capacity inputs)"
-      r$chart_specification$capacity_percent_change <- "a customised "
-      r$chart_specification$capacity_change_type <- "manual"
+      r$chart_specification$capacity_percent_change <- ""
+      r$chart_specification$capacity_change_type <- "manually adjusted"
     })
 
     # Reset to original data
     observeEvent(input$reset_data, {
-      reactive_data$temp_data <- r$chart_specification$original_data$waiting_list |>
+      original_referrals_capacity <- r$chart_specification$original_data$waiting_list |>
         filter(
           .data$period_type == "Projected"
         ) |>
         summarise(
           across(
             c("adjusted_referrals", "calculated_treatments"),
-            ~ round(sum(.x, na.rm = TRUE), 2)
+            ~ sum(.x, na.rm = TRUE)
           ),
           .by = c("period")
         )
 
-      # removeModal()
+      removeModal()
 
-      # r$waiting_list <- calculate_customised_projections(
-      #   original_wl_data = r$chart_specification$original_data$waiting_list,
-      #   new_referrals_capacity = original_referrals_capacity,
-      #   original_params = r$chart_specification$params
-      # )
+      r$waiting_list <- calculate_customised_projections(
+        original_wl_data = r$chart_specification$original_data$waiting_list,
+        new_referrals_capacity = original_referrals_capacity,
+        original_params = r$chart_specification$params
+      )
 
-      # # pass information in the charts
-      # r$chart_specification$referrals_percent_change <- r$chart_specification$original_data$referrals_percent_change
-      # r$chart_specification$referrals_change_type <- r$chart_specification$original_data$referrals_change_type
-      # r$chart_specification$scenario_type <- r$chart_specification$original_data$scenario_type
-      # r$chart_specification$capacity_percent_change <- r$chart_specification$original_data$capacity_percent_change
-      # r$chart_specification$capacity_change_type <- r$chart_specification$original_data$capacity_change_type
+      # pass information in the charts
+      r$chart_specification$referrals_percent_change <- r$chart_specification$original_data$referrals_percent_change
+      r$chart_specification$referrals_change_type <- r$chart_specification$original_data$referrals_change_type
+      r$chart_specification$scenario_type <- r$chart_specification$original_data$scenario_type
+      r$chart_specification$capacity_percent_change <- r$chart_specification$original_data$capacity_percent_change
+      r$chart_specification$capacity_change_type <- r$chart_specification$original_data$capacity_change_type
 
-      # r$chart_specification$optimise_status <- NULL
+      r$chart_specification$optimise_status <- NULL
     })
 
     # plot clicks -------------------------------------------------------------
