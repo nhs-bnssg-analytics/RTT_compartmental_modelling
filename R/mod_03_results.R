@@ -779,7 +779,8 @@ mod_03_results_server <- function(id, r) {
           "Month start date",
           "Referrals",
           "Treatment capacity"
-        )
+        ),
+        caption = "Double-click on a cell to edit the value"
       ) |>
         DT::formatRound(
           columns = 2:3

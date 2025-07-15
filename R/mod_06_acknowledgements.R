@@ -33,6 +33,7 @@ mod_06_acknowledgements_ui <- function(id) {
             "Nick Cooper (Gloucestershire ICB)",
             "Euan Ives (NHSE SW)",
             "Neil Walton (Durham University)",
+            "Lucy Morgan (the Strategy Unit)",
             "",
             "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
             sep = "<br>"
