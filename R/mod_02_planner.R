@@ -169,7 +169,7 @@ mod_02_planner_ui <- function(id) {
         ns("forecast_horizon")
       ),
       layout_columns(
-        col_widths = c(3, 1),
+        col_widths = c(3, 2),
         span("Percentage change in referrals (between -20% and 200%):"),
         numericInput(
           inputId = ns("referral_growth"),
@@ -508,103 +508,12 @@ mod_02_planner_server <- function(id, r) {
           specialty_codes = selections_labels$specialties$selected_code,
           progress = progress
         ) |>
-          summarise(
-            value = sum(.data$value),
-            .by = c(
-              "trust",
-              "specialty",
-              "period",
-              "months_waited",
-              "type"
-            )
-          ) |>
-          mutate(
-            months_waited_id = NHSRtt::convert_months_waited_to_id(
-              .data$months_waited,
-              12 # this pools the data at 12+ months (this can be a user input in the future)
-            )
-          )
-
-        if (selections_labels$trusts$display == "Aggregated") {
-          r$all_data <- r$all_data |>
-            mutate(
-              trust = "Aggregated"
-            )
-        } else {
-          r$all_data <- r$all_data |>
-            mutate(
-              trust = replace_fun(
-                .data$trust,
-                trust_lkp
-              )
-            )
-        }
-
-        if (selections_labels$specialties$display == "Aggregated") {
-          r$all_data <- r$all_data |>
-            mutate(
-              specialty = "Aggregated"
-            )
-        } else {
-          r$all_data <- r$all_data |>
-            mutate(
-              specialty = replace_fun(
-                .data$specialty,
-                treatment_function_codes
-              )
-            )
-        }
-
-        r$all_data <- r$all_data |>
-          summarise(
-            value = sum(.data$value),
-            .by = c(
-              "trust",
-              "specialty",
-              "period",
-              "type",
-              "months_waited_id"
-            )
-          ) |>
-          arrange(
-            .data$trust,
-            .data$specialty,
-            .data$type,
-            .data$months_waited_id,
-            .data$period
-          ) |>
-          tidyr::complete(
-            specialty = input$specialty_codes,
-            type = c("Complete", "Incomplete"),
-            .data$months_waited_id,
-            period = seq(
-              from = min_download_date,
-              to = lubridate::floor_date(max_download_date, unit = "months"),
-              by = "months"
-            ),
-            .data$trust,
-            fill = list(value = 0)
-          ) |>
-          tidyr::complete(
-            specialty = input$specialty_codes,
-            type = "Referrals",
-            months_waited_id = 0,
-            period = seq(
-              from = min_download_date,
-              to = lubridate::floor_date(max_download_date, unit = "months"),
-              by = "months"
-            ),
-            .data$trust,
-            fill = list(value = 0)
-          ) |>
-          mutate(
-            period_id = dplyr::row_number(), # we need period_id for later steps
-            .by = c(
-              .data$trust,
-              .data$specialty,
-              .data$type,
-              .data$months_waited_id
-            )
+          process_downloaded_data(
+            trust_display = selections_labels$trusts$display,
+            specialty_display = selections_labels$specialties$display,
+            input_specialty_codes = input$specialty_codes,
+            min_download_date = min_download_date,
+            max_download_date = max_download_date
           )
 
         reactive_values$data_downloaded <- TRUE
@@ -685,29 +594,9 @@ mod_02_planner_server <- function(id, r) {
             period_type = "Observed"
           )
 
-        reactive_values$latest_performance <- r$all_data |>
-          filter(
-            .data$type == "Incomplete",
-            .data$period == max(.data$period)
-          ) |>
-          calc_performance(
-            target_bin = 4
-          ) |>
-          mutate(
-            text = paste0(
-              "The performance at ",
-              format(.data$period, '%b %y'),
-              " was ",
-              format(
-                100 * .data$prop,
-                format = "f",
-                digits = 2,
-                nsmall = 1
-              ),
-              "%"
-            )
-          ) |>
-          pull(.data$text)
+        reactive_values$latest_performance <- latest_performance_text(
+          r$all_data
+        )
 
         reactive_values$default_target <- min(
           extract_percent(reactive_values$latest_performance) + 5,
@@ -789,34 +678,7 @@ mod_02_planner_server <- function(id, r) {
           unit = "months"
         )
 
-        sample_data_mnths <- unique(sample_data[["period"]]) |>
-          sort()
-        months_in_sample_data <- length(sample_data_mnths)
-        calculated_first_month <- final_month %m-%
-          months(months_in_sample_data - 1)
-
-        mnth_lkp <- dplyr::tibble(
-          period = sample_data_mnths,
-          period_new = seq(
-            from = calculated_first_month,
-            to = final_month,
-            by = "months"
-          )
-        )
-
-        sample_data |>
-          left_join(
-            mnth_lkp,
-            by = join_by(
-              period
-            )
-          ) |>
-          dplyr::select(
-            period = "period_new",
-            "months_waited_id",
-            "type",
-            "value"
-          ) |>
+        update_sample_data(final_month) |>
           utils::write.csv(
             file,
             row.names = FALSE
@@ -1059,29 +921,9 @@ mod_02_planner_server <- function(id, r) {
             period_type = "Observed"
           )
 
-        reactive_values$latest_performance <- r$all_data |>
-          filter(
-            .data$type == "Incomplete",
-            .data$period == max(.data$period)
-          ) |>
-          calc_performance(
-            target_bin = 4
-          ) |>
-          mutate(
-            text = paste0(
-              "The performance at ",
-              format(.data$period, '%b %y'),
-              " was ",
-              format(
-                100 * .data$prop,
-                format = "f",
-                digits = 2,
-                nsmall = 1
-              ),
-              "%"
-            )
-          ) |>
-          pull(.data$text)
+        reactive_values$latest_performance <- latest_performance_text(
+          r$all_data
+        )
 
         reactive_values$default_target <- min(
           extract_percent(reactive_values$latest_performance) + 5,
@@ -1121,7 +963,7 @@ mod_02_planner_server <- function(id, r) {
 
     output$forecast_horizon <- shiny::renderUI(
       layout_columns(
-        col_widths = c(3, 1),
+        col_widths = c(3, 2),
         span(reactive_values$forecast_end_date_label),
         dateInput(
           inputId = ns("forecast_date"),

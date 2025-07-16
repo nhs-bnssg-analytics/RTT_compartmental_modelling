@@ -9,32 +9,34 @@
 #' @importFrom lubridate floor_date
 #' @noRd
 get_rtt_data_with_progress <- function(
-    date_start,
-    date_end,
-    trust_parent_codes = NULL,
-    commissioner_parent_codes = NULL,
-    commissioner_org_codes = NULL,
-    trust_codes = NULL,
-    specialty_codes = NULL,
-    progress) {
-
-
+  date_start,
+  date_end,
+  trust_parent_codes = NULL,
+  commissioner_parent_codes = NULL,
+  commissioner_org_codes = NULL,
+  trust_codes = NULL,
+  specialty_codes = NULL,
+  progress
+) {
   all_dates <- seq(
     from = lubridate::floor_date(
-      date_start, unit = "months"
+      date_start,
+      unit = "months"
     ),
     to = lubridate::floor_date(
-      date_end, unit = "months"
+      date_end,
+      unit = "months"
     ),
     by = "months"
   ) |>
-    (\(x) setNames(
-      x,
-      nm = seq_len(
-        length(x)
+    (\(x) {
+      setNames(
+        x,
+        nm = seq_len(
+          length(x)
+        )
       )
-    )
-  )()
+    })()
 
   monthly_rtt <- all_dates |>
     purrr::imap(
@@ -103,7 +105,10 @@ check_imported_data <- function(imported_data) {
   missing_cols <- setdiff(required_cols, names(imported_data))
 
   if (length(missing_cols) > 0) {
-    msg <- paste("Error: Missing required columns:", paste(missing_cols, collapse = ", "))
+    msg <- paste(
+      "Error: Missing required columns:",
+      paste(missing_cols, collapse = ", ")
+    )
     data_checked <- NULL
 
     return(
@@ -135,7 +140,8 @@ check_imported_data <- function(imported_data) {
     msg <- paste(
       "Error: Invalid values in 'type' column:",
       paste(invalid_types, collapse = ", "),
-      ". Only 'Referral', 'Incomplete', and 'Complete' are allowed.")
+      ". Only 'Referral', 'Incomplete', and 'Complete' are allowed."
+    )
     data_checked <- NULL
 
     return(
@@ -153,7 +159,8 @@ check_imported_data <- function(imported_data) {
     unique()
 
   check_referral_months <- setdiff(
-    referral_months_waited, 0
+    referral_months_waited,
+    0
   )
 
   if (length(check_referral_months) > 0) {
@@ -199,4 +206,167 @@ check_imported_data <- function(imported_data) {
   )
 
   return(check_outputs)
+}
+
+#' take the raw data from the get_rtt_data_with_progress function and process it
+#' into a format suitable for the app
+#' @param imported_data the raw data from the get_rtt_data_with_progress function
+#' @param trust_display string, the display of the trusts (either the trust name or "Aggregated")
+#' @param specialty_display string, the display of the specialties (either the specialty name or
+#' "Aggregated")
+#' @param input_specialty_codes vector of specialty codes selected by the user
+#' @param min_download_date the minimum date of the data
+#' @param max_download_date the maximum date of the data
+#' @return a tibble with the processed data
+#' @noRd
+process_downloaded_data <- function(
+  imported_data,
+  trust_display,
+  specialty_display,
+  input_specialty_codes,
+  min_download_date,
+  max_download_date
+) {
+  if (length(input_specialty_codes) > 1) {
+    stop("Only one specialty can be selected at a time")
+  }
+
+  processed_data <- imported_data |>
+    summarise(
+      value = sum(.data$value),
+      .by = c(
+        "trust",
+        "specialty",
+        "period",
+        "months_waited",
+        "type"
+      )
+    ) |>
+    mutate(
+      months_waited_id = NHSRtt::convert_months_waited_to_id(
+        .data$months_waited,
+        12 # this pools the data at 12+ months (this can be a user input in the future)
+      )
+    )
+
+  if (trust_display == "Aggregated") {
+    processed_data <- processed_data |>
+      mutate(
+        trust = "Aggregated"
+      )
+  } else {
+    processed_data <- processed_data |>
+      mutate(
+        trust = replace_fun(
+          .data$trust,
+          trust_lkp
+        )
+      )
+  }
+
+  if (specialty_display == "Aggregated") {
+    processed_data <- processed_data |>
+      mutate(
+        specialty = "Aggregated"
+      )
+  } else {
+    processed_data <- processed_data |>
+      mutate(
+        specialty = replace_fun(
+          .data$specialty,
+          treatment_function_codes
+        )
+      )
+  }
+
+  processed_data <- processed_data |>
+    summarise(
+      value = sum(.data$value),
+      .by = c(
+        "trust",
+        "specialty",
+        "period",
+        "type",
+        "months_waited_id"
+      )
+    ) |>
+    arrange(
+      .data$trust,
+      .data$specialty,
+      .data$type,
+      .data$months_waited_id,
+      .data$period
+    ) |>
+    tidyr::complete(
+      specialty = input_specialty_codes,
+      type = c("Complete", "Incomplete"),
+      .data$months_waited_id,
+      period = seq(
+        from = min_download_date,
+        to = lubridate::floor_date(max_download_date, unit = "months"),
+        by = "months"
+      ),
+      .data$trust,
+      fill = list(value = 0)
+    ) |>
+    tidyr::complete(
+      specialty = input_specialty_codes,
+      type = "Referrals",
+      months_waited_id = 0,
+      period = seq(
+        from = min_download_date,
+        to = lubridate::floor_date(max_download_date, unit = "months"),
+        by = "months"
+      ),
+      .data$trust,
+      fill = list(value = 0)
+    ) |>
+    mutate(
+      period_id = dplyr::row_number(), # we need period_id for later steps
+      .by = c(
+        .data$trust,
+        .data$specialty,
+        .data$type,
+        .data$months_waited_id
+      )
+    )
+  return(processed_data)
+}
+
+#' update the sample data to finish at the final month of the available online data
+#' @param final_month the final month of the available online data
+#' @return a tibble with the updated sample data
+#' @noRd
+update_sample_data <- function(final_month) {
+  #sample_data is an internal data object
+  sample_data_mnths <- unique(sample_data[["period"]]) |>
+    sort()
+  months_in_sample_data <- length(sample_data_mnths)
+  calculated_first_month <- final_month %m-%
+    months(months_in_sample_data - 1)
+
+  mnth_lkp <- dplyr::tibble(
+    period = sample_data_mnths,
+    period_new = seq(
+      from = calculated_first_month,
+      to = final_month,
+      by = "months"
+    )
+  )
+
+  final_sample_data <- sample_data |>
+    left_join(
+      mnth_lkp,
+      by = join_by(
+        period
+      )
+    ) |>
+    dplyr::select(
+      period = "period_new",
+      "months_waited_id",
+      "type",
+      "value"
+    )
+
+  return(final_sample_data)
 }

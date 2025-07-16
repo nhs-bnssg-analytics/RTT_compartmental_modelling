@@ -493,3 +493,35 @@ value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NA) {
 
   return(out)
 }
+
+#' Create a text string for the latest performance based on the r$all_data dataset
+#' @param data the r$all_data dataset
+#' @noRd
+#' @importFrom dplyr filter pull mutate
+latest_performance_text <- function(data) {
+  text <- data |>
+    filter(
+      .data$type == "Incomplete",
+      .data$period == max(.data$period)
+    ) |>
+    calc_performance(
+      target_bin = 4
+    ) |>
+    mutate(
+      text = paste0(
+        "The performance at ",
+        format(.data$period, '%b %y'),
+        " was ",
+        format(
+          100 * .data$prop,
+          format = "f",
+          digits = 2,
+          nsmall = 1
+        ),
+        "%"
+      )
+    ) |>
+    pull(.data$text)
+
+  return(text)
+}

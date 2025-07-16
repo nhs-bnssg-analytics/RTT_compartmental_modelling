@@ -402,3 +402,13 @@ test_that("value_box_text works", {
     )
   )
 })
+
+
+test_that("latest_performance_text works", {
+  expect_equal(
+    latest_performance_text(
+      data = sample_data
+    ),
+    "The performance at Dec 24 was 49.4%"
+  )
+})
