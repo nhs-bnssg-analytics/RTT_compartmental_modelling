@@ -238,11 +238,28 @@ test_that("org_name_lkp works", {
   )
 })
 
+test_that("filters_displays errors", {
+  expect_snapshot(
+    filters_displays(
+      nhs_only = TRUE,
+      trust_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
+      trusts = "FULWOOD HALL HOSPITAL",
+      comm_parents = c(
+        "NHS SOUTH YORKSHIRE INTEGRATED CARE BOARD",
+        "NHS NORTH EAST LONDON INTEGRATED CARE BOARD"
+      ),
+      comms = NULL,
+      spec = "Total"
+    ),
+    error = TRUE
+  )
+})
 
 test_that("filters_displays works", {
   specs <- c("General Surgery", "Total")
 
   lbls <- filters_displays(
+    nhs_only = "nhs_only",
     trust_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
     trusts = "FULWOOD HALL HOSPITAL",
     comm_parents = c(
@@ -282,7 +299,7 @@ test_that("filters_displays works", {
   )
 
   sw_trusts <- filters_displays(
-    nhs_only = TRUE,
+    nhs_only = "nhs_only",
     nhs_regions = "South West",
     trusts = NULL,
     trust_parents = NULL,
@@ -314,7 +331,7 @@ test_that("filters_displays works", {
   )
 
   commissioners_and_parents <- filters_displays(
-    nhs_only = TRUE,
+    nhs_only = "nhs_only",
     nhs_regions = NULL,
     trusts = NULL,
     trust_parents = NULL,

@@ -251,7 +251,8 @@ org_name_lkp <- function(names = NULL, type) {
 #' @param comm_parents character; vector of full names for commissioner parents
 #' @param comms character; vector of full names for commissioners
 #' @param spec character; vector of full names for specialties
-#'
+#' @param nhs_only character; one of "nhs_only", "non_nhs_only" or "all"
+#' @param nhs_regions character; vector of NHS regions
 #' @returns a nested list with five nests. The five nests are named
 #'   trust_parents, trusts, commissioner_parents, commissioners, and
 #'   specialties. Within each of these there are 3 items; selected_name,
@@ -278,6 +279,15 @@ filters_displays <- function(
   comms,
   spec
 ) {
+  nhs_only <- match.arg(
+    nhs_only,
+    c(
+      "nhs_only",
+      "non_nhs_only",
+      "all"
+    )
+  )
+
   selected_trust_parents <- org_name_lkp(
     names = trust_parents,
     type = "Provider Parent"
@@ -293,10 +303,15 @@ filters_displays <- function(
   ) {
     data_table <- org_lkp
 
-    if (isTRUE(nhs_only)) {
+    if (nhs_only == "nhs_only") {
       data_table <- data_table |>
         dplyr::filter(
           grepl("NHS", .data$`Provider Org Name`)
+        )
+    } else if (nhs_only == "non_nhs_only") {
+      data_table <- data_table |>
+        dplyr::filter(
+          !grepl("NHS", .data$`Provider Org Name`)
         )
     }
 

@@ -70,10 +70,34 @@ mod_02_planner_ui <- function(id) {
       choices = unname(treatment_function_codes),
       multiple = FALSE
     ),
-    checkboxInput(
+    # span(
+    radioButtons(
       inputId = ns("nhs_only"),
-      label = "Show NHS providers only",
-      value = TRUE,
+      label = NULL,
+      # choices = c(
+      #   "NHS providers" = "nhs_only",
+      #   "Non-NHS providers" = "non_nhs_only",
+      #   "All providers" = "all"
+      # ),
+      choiceNames = list(
+        "NHS providers",
+        span(
+          "Non-NHS providers",
+          tooltip(
+            shiny::icon("info-circle"),
+            "Includes community providers",
+            placement = "right"
+          )
+        ),
+        "All providers"
+      ),
+      choiceValues = list(
+        "nhs_only",
+        "non_nhs_only",
+        "all"
+      ),
+      selected = "nhs_only",
+      inline = TRUE
     ),
     uiOutput(ns("calibration_months_ui")),
     layout_columns(
@@ -258,7 +282,7 @@ mod_02_planner_ui <- function(id) {
 #' 02_planner Server Functions
 #'
 #' @importFrom shiny observeEvent renderUI dateInput tagList numericInput
-#'   eventReactive Progress sliderInput HTML
+#'   eventReactive Progress sliderInput HTML checkboxInput
 #' @importFrom NHSRtt get_rtt_data latest_rtt_date convert_months_waited_to_id
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
@@ -346,10 +370,15 @@ mod_02_planner_server <- function(id, r) {
       {
         data_table <- org_lkp
 
-        if (isTRUE(input$nhs_only)) {
+        if (input$nhs_only == "nhs_only") {
           data_table <- data_table |>
             dplyr::filter(
               grepl("NHS", .data$`Provider Org Name`)
+            )
+        } else if (input$nhs_only == "non_nhs_only") {
+          data_table <- data_table |>
+            dplyr::filter(
+              !grepl("NHS", .data$`Provider Org Name`)
             )
         }
 
