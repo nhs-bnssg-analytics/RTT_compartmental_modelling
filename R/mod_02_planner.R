@@ -1634,7 +1634,7 @@ mod_02_planner_server <- function(id, r){
     observeEvent(
       c(input$calculate_performance), {
 
-        if (input$calculate_performance >= 1) {
+        if(input$calculate_performance >= 1) {
 
           selections_labels <- filters_displays(
             nhs_regions = input$region,
@@ -1787,6 +1787,7 @@ mod_02_planner_server <- function(id, r){
           r$chart_specification$optimise_status <- NULL
 
           reactive_values$performance_calculated <- TRUE
+
         }
       },
       ignoreInit = TRUE

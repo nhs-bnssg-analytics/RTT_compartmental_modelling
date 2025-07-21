@@ -37,7 +37,7 @@ mod_03_results_ui <- function(id){
 }
 
 #' 03_results Server Functions
-#' @importFrom DT renderDT formatRound datatable DTOutput
+#' @importFrom DT renderDT formatRound datatable
 #' @importFrom dplyr group_by rename summarise tribble
 #' @importFrom rlang .data
 #' @importFrom bslib value_box layout_column_wrap

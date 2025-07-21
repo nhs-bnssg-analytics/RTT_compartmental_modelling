@@ -185,30 +185,30 @@ mod_08_batch_server <- function(id){
 
         if (input$batch_run_rtt_data > 0) {
 
-          # dummy trust names instead of input$ss_trust_codes to demonstrate
-          # what the code does in a reasonable time
-          dummy_trust_names <- c(
-            "UNIVERSITY HOSPITALS DORSET NHS FOUNDATION TRUST",
-            "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST"
-          )
+          if(is.null(input$ss_trust_codes) || is.null(input$specialty_codes)) {
+            # If input is empty, show a modal dialog (popup)
+            showModal(
+              modalDialog(
+                title = "Input Error",
+                "Please make a selection for both Trust & Specialty before submitting!",
+                easyClose = TRUE, # Allows closing by clicking outside the modal
+                footer = tagList(
+                  modalButton("Close")
+                  )
+                )
+              )
 
-          # dummy specialty names instead of input$specialty_codes to
-          # demonstrate what the code does in a reasonable time
-          dummy_specialty_names <- c(
-            "General Surgery",
-            "Total"
-          )
-
+        } else {
 
           # translate input values into codes for subsequent functions
           selections_labels <- filters_displays(
             nhs_regions = NA,
             nhs_only = input$ss_nhs_only,
             trust_parents = NA,
-            trusts = dummy_trust_names,
+            trusts = input$ss_trust_codes,
             comm_parents = NA,
             comms = NA,
-            spec = dummy_specialty_names
+            spec = input$specialty_codes
           )
 
           # the latest month of data to use for calibrating the models
@@ -225,32 +225,39 @@ mod_08_batch_server <- function(id){
           # SERVER SHOULD BE STRUCTURED LIKE raw_data FOLLOWING THIS CHUNK OF
           # CODE (action: EI). The data on the server here will also be used in
           # module 2.
-          raw_data <- seq(
-            from = lubridate::floor_date(
-              min_download_date, unit = "months"
-            ),
-            to = lubridate::floor_date(
-              max_download_date, unit = "months"
-            ),
-            by = "months"
-          ) |>
-            purrr::map(
-              ~ NHSRtt::get_rtt_data(
-                date_start = .x,
-                date_end = .x,
-                trust_parent_codes = NULL,
-                trust_codes = selections_labels$trusts$selected_code,
-                commissioner_parent_codes = NULL,
-                commissioner_org_codes = NULL,
-                specialty_codes = selections_labels$specialties$selected_code
-              )
-            ) |>
-            purrr::list_rbind() |>
-            aggregate_and_format_raw_data(
-              selected_specialties = selections_labels$specialties$selected_name,
-              min_date = min_download_date,
-              max_date = max_download_date
-            )
+
+          # # ORIGINAL CODE
+          # raw_data <- seq(
+          #   from = lubridate::floor_date(
+          #     min_download_date, unit = "months"
+          #   ),
+          #   to = lubridate::floor_date(
+          #     max_download_date, unit = "months"
+          #   ),
+          #   by = "months"
+          # ) |>
+          #   purrr::map(
+          #     ~ NHSRtt::get_rtt_data(
+          #       date_start = .x,
+          #       date_end = .x,
+          #       trust_parent_codes = NULL,
+          #       trust_codes = selections_labels$trusts$selected_code,
+          #       commissioner_parent_codes = NULL,
+          #       commissioner_org_codes = NULL,
+          #       specialty_codes = selections_labels$specialties$selected_code
+          #     )
+          #   ) |>
+          #   purrr::list_rbind() |>
+          #   aggregate_and_format_raw_data(
+          #     selected_specialties = selections_labels$specialties$selected_name,
+          #     min_date = min_download_date,
+          #     max_date = max_download_date
+          #   )
+
+          # RDS VERSION
+          raw_data <- read_rds("inst/extdata/rtt_12months.rds") %>%
+            filter(trust %in% input$ss_trust_codes) %>%
+            filter(specialty %in% c(input$specialty_codes, "Total"))
 
           # calculate the referrals uplift value per specialty/trust (remember,
           # the uplift to the number of referrals is due to the under-reporting
@@ -530,11 +537,9 @@ mod_08_batch_server <- function(id){
               "status"
             )
 
-
-
           reactive_values$show_results <- TRUE
         }
-
+        }
       }
     )
 
