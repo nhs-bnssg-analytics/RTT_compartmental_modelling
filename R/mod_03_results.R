@@ -37,7 +37,7 @@ mod_03_results_ui <- function(id) {
 }
 
 #' 03_results Server Functions
-#' @importFrom DT renderDT formatRound datatable
+#' @importFrom DT renderDT formatRound datatable formatDate
 #' @importFrom dplyr group_by rename summarise tribble
 #' @importFrom rlang .data
 #' @importFrom bslib value_box layout_column_wrap
@@ -56,15 +56,7 @@ mod_03_results_server <- function(id, r) {
       plot_data = NULL,
       show_plot = FALSE,
       show_table = FALSE,
-      temp_data = NULL #,
-      # chart_data = list(
-      #   waiting_list = NULL,
-      #   referrals_percent_change = NULL,
-      #   referrals_change_type = NULL,
-      #   scenario_type = NULL,
-      #   capacity_percent_change = NULL,
-      #   capacity_change_type = NULL
-      # )
+      temp_data = NULL
     )
 
     # dynamic sidebar ---------------------------------------------------------
@@ -76,17 +68,6 @@ mod_03_results_server <- function(id, r) {
         r$chart_specification$scenario_type ==
           "Estimate performance (from treatment capacity inputs)"
       ) {
-        # store original data for charts in case customisation occurs
-        # r$chart_specification$original_data
-        # reactive_data$chart_data <- list(
-        #   waiting_list = r$waiting_list,
-        #   referrals_percent_change = r$chart_specification$referrals_percent_change,
-        #   referrals_change_type = r$chart_specification$referrals_change_type,
-        #   scenario_type = r$chart_specification$scenario_type,
-        #   capacity_percent_change = r$chart_specification$capacity_percent_change,
-        #   capacity_change_type = r$chart_specification$capacity_change_type
-        # )
-
         layout_column_wrap(
           width = 1,
           gap = 0,
@@ -784,6 +765,11 @@ mod_03_results_server <- function(id, r) {
       ) |>
         DT::formatRound(
           columns = 2:3
+        ) |>
+        DT::formatDate(
+          columns = 1,
+          method = 'toLocaleDateString',
+          params = list('fr-FR')
         )
     })
 
