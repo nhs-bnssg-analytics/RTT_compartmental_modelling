@@ -21,7 +21,10 @@
 *.rds
 *.RData
 *.Rhistory
+*.png
 
+### testing things out ###
+ad_hoc/
 
 ### direnv ###
 .direnv
