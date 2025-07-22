@@ -18,7 +18,6 @@
 *.tax2010
 *.vcf
 *.xml
-*.rds
 *.RData
 *.Rhistory
 
