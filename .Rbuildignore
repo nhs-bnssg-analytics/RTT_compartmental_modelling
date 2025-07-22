@@ -18,3 +18,4 @@ CODE_OF_CONDUCT.md
 ^rsconnect$
 \.vscode
 html$
+ad_hoc/

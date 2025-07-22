@@ -620,3 +620,40 @@ test_that("tooltip testing", {
     skew_tooltip()
   )
 })
+
+test_that("plot_error works", {
+  modified_sample_data <- sample_data |>
+    mutate(
+      trust = "ABC",
+      specialty = "DEF",
+      period_id = dplyr::row_number(),
+      .by = c("type", "months_waited_id")
+    )
+  cal_data_modelled <- split_and_model_calibration_data(
+    data = modified_sample_data,
+    referrals_uplift = TRUE
+  )
+
+  vdiffr::expect_doppelganger(
+    title = "plot_error",
+    fig = plot_error(
+      modelled_data = cal_data_modelled |>
+        left_join(
+          modified_sample_data |>
+            distinct(
+              period,
+              period_id
+            ),
+          by = join_by(
+            period_id
+          )
+        ),
+      observed_data = modified_sample_data |>
+        filter(
+          type == "Incomplete",
+          period_id < min(cal_data_modelled$period_id),
+          period_id > min(period_id)
+        )
+    )
+  )
+})
