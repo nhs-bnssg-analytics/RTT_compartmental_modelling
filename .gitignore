@@ -20,7 +20,10 @@
 *.xml
 *.RData
 *.Rhistory
+*.html
 
+### random analysis ###
+ad_hoc/
 
 ### direnv ###
 .direnv

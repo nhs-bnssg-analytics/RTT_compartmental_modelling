@@ -19,7 +19,8 @@
 #'   "Estimate performance (from capacity inputs)" or another scenario (e.g.,
 #'   "Optimise Capacity").
 #' @param p_cap_change A numeric value representing the percentage change in
-#'   capacity.
+#'   capacity. This can also take a string to accommodate a customised input
+#'  for capacity change.
 #' @param p_cap_change_type A character string describing the type of capacity
 #'   change (e.g., "linear", "uniform").
 #' @param p_cap_skew A numeric value representing the utilisation skew factor.
@@ -27,7 +28,8 @@
 #'   Target_percentage, containing entries for multiple dates and performance
 #'   targets.
 #' @param p_referrals_percent_change A numeric value representing the percentage
-#'   change in referrals.
+#'   change in referrals. This can also take a string to accommodate a customised
+#'  input for referrals change.
 #' @param p_referrals_change_type A character string describing the type of
 #'   referrals change (e.g., "linear", "uniform").
 #' @param p_perc A logical value indicating whether the y-axis should be
@@ -47,21 +49,41 @@
 #' @return A ggplot2 plot object of selected values
 #' @noRd
 
-plot_output <- function(data,
-                        p_trust,
-                        p_speciality,
-                        p_chart,
-                        p_scenario,
-                        p_cap_change = 0,
-                        p_cap_change_type,
-                        p_cap_skew,
-                        p_target_data,
-                        p_referrals_percent_change,
-                        p_referrals_change_type,
-                        p_perc,
-                        p_facet = F,
-                        p_target_line = F,
-                        date_input = Sys.Date()) {
+plot_output <- function(
+  data,
+  p_trust,
+  p_speciality,
+  p_chart,
+  p_scenario,
+  p_cap_change = 0,
+  p_cap_change_type,
+  p_cap_skew,
+  p_target_data,
+  p_referrals_percent_change,
+  p_referrals_change_type,
+  p_perc,
+  p_facet = F,
+  p_target_line = F,
+  date_input = Sys.Date()
+) {
+  if (is.numeric(p_referrals_percent_change)) {
+    p_referrals_percent_change <- paste0(
+      "by ",
+      p_referrals_percent_change,
+      "%"
+    )
+  } else {
+    p_referrals_percent_change
+  }
+  if (is.numeric(p_cap_change)) {
+    p_cap_change <- paste0(
+      "of ",
+      p_cap_change,
+      "%"
+    )
+  } else {
+    p_cap_change
+  }
 
   p <- ggplot2::ggplot() +
     geom_vline(
@@ -80,7 +102,8 @@ plot_output <- function(data,
         x = .data$period,
         y = .data$p_var,
         group = 1
-      ), colour = "black",
+      ),
+      colour = "black",
       show.legend = T
     ) +
     geom_step(
@@ -101,50 +124,96 @@ plot_output <- function(data,
       labs(
         title = paste0("<b>", p_trust, "</b> : ", p_speciality),
         subtitle = paste0(
-          "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>", p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
-          "<br>Performance based on a ", p_cap_change_type, " treatment capacity change of ", p_cap_change, "% with a utilisation skew factor of ", p_cap_skew,
-          "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "% </span>"
+          "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
+          p_chart,
+          ": ",
+          format(min(data$period), "%b %Y"),
+          "-",
+          format(max(data$period), "%b %Y"),
+          "<br>Performance based on a ",
+          p_cap_change_type,
+          " treatment capacity change ",
+          p_cap_change,
+          " with a utilisation skew factor of ",
+          p_cap_skew,
+          "<br>Referrals ",
+          p_referrals_change_type,
+          "ly adjusted ",
+          p_referrals_percent_change,
+          " </span>"
         ),
-        caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ", format(date_input, "%d/%m/%Y"))
+        caption = paste0(
+          "Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
+          format(date_input, "%d/%m/%Y")
+        )
       ) +
       theme(
         plot.title = ggtext::element_markdown(),
         plot.subtitle = ggtext::element_markdown()
       )
-  } else if (p_target_line == F & p_scenario == 'Estimate treatment capacity (from performance targets)') {
-
+  } else if (
+    p_target_line == F &
+      p_scenario == 'Estimate treatment capacity (from performance inputs)'
+  ) {
     txt <- performance_text(p_target_data)
 
     p <- p +
       labs(
-        title = paste0("<b>",p_trust, "</b> : ", p_speciality),
+        title = paste0("<b>", p_trust, "</b> : ", p_speciality),
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
-          p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
-          "<br>Optimised treatment capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a target of ", txt, " of patients seen within 18 weeks",
-          "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
+          p_chart,
+          ": ",
+          format(min(data$period), "%b %Y"),
+          "-",
+          format(max(data$period), "%b %Y"),
+          "<br>Optimised treatment capacity with a utilisation skew factor of ",
+          p_cap_skew,
+          " to achieve a target of ",
+          txt,
+          " of patients seen within 18 weeks",
+          "<br>Referrals ",
+          p_referrals_change_type,
+          "ly adjusted ",
+          p_referrals_percent_change,
+          "</span>"
         ),
-        caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
-                         format(date_input, "%d/%m/%Y"))
+        caption = paste0(
+          "Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
+          format(date_input, "%d/%m/%Y")
+        )
       ) +
       theme(
         plot.title = ggtext::element_markdown(),
         plot.subtitle = ggtext::element_markdown()
       )
   } else {
-
     txt <- performance_text(p_target_data)
     p <- p +
       labs(
-        title = paste0("<b>",p_trust, "</b> : ", p_speciality),
+        title = paste0("<b>", p_trust, "</b> : ", p_speciality),
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
-          p_chart, ": ", format(min(data$period), "%b %Y"), "-", format(max(data$period), "%b %Y"),
-          "<br>Optimised treatment capacity with a utilisation skew factor of ", p_cap_skew, " to achieve a <span style='color:red'>**target**</span> of ", txt, " of patients seen within 18 weeks",
-          "<br>Referrals ", p_referrals_change_type, "ly adjusted by ", p_referrals_percent_change, "%</span>"
+          p_chart,
+          ": ",
+          format(min(data$period), "%b %Y"),
+          "-",
+          format(max(data$period), "%b %Y"),
+          "<br>Optimised treatment capacity with a utilisation skew factor of ",
+          p_cap_skew,
+          " to achieve a <span style='color:red'>**target**</span> of ",
+          txt,
+          " of patients seen within 18 weeks",
+          "<br>Referrals ",
+          p_referrals_change_type,
+          "ly adjusted ",
+          p_referrals_percent_change,
+          "</span>"
         ),
-        caption = paste0("Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
-                         format(date_input, "%d/%m/%Y"))
+        caption = paste0(
+          "Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
+          format(date_input, "%d/%m/%Y")
+        )
       ) +
       theme(
         plot.title = ggtext::element_markdown(),
@@ -152,23 +221,23 @@ plot_output <- function(data,
       )
   }
 
-  if (p_perc == T ) {
+  if (p_perc == T) {
     p <- p +
       scale_y_continuous(labels = scales::percent) +
       ylab('Percent')
-
   } else {
     p <- p +
       scale_y_continuous(labels = scales::comma) +
       ylab('Number of patients')
   }
 
-  if (p_facet == T ) {
+  if (p_facet == T) {
     p <- p +
       facet_wrap(~months_waited_id, ncol = 4) +
       scale_x_date(
         breaks = january_breaks_facetted,
-        date_labels = "%b\n%Y")
+        date_labels = "%b\n%Y"
+      )
   } else {
     p <- p +
       scale_x_date(
@@ -177,8 +246,10 @@ plot_output <- function(data,
       )
   }
 
-  if (p_target_line == T & p_scenario == 'Estimate treatment capacity (from performance targets)') {
-
+  if (
+    p_target_line == T &
+      p_scenario == 'Estimate treatment capacity (from performance inputs)'
+  ) {
     # create the target month table
     target_month <- dplyr::tibble(
       start_date = p_target_data[["Target_date"]]
@@ -248,7 +319,6 @@ plot_output <- function(data,
 #' @import ggplot2
 #' @noRd
 holding_chart <- function(type) {
-
   type <- match.arg(
     type,
     c("model", "select_chart")
@@ -277,7 +347,6 @@ holding_chart <- function(type) {
 }
 
 plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
-
   if (is.null(params)) {
     return(ggplot())
   }
@@ -311,25 +380,24 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
       "Low skew" = "#D81B60",
       "High skew" = "#004D40"
     )
-
   } else {
     stop("skew_values must have length 1 or 2")
   }
 
-
-
   skewed <- skew_values |>
     purrr::imap(
-      \(x, idx) dplyr::tibble(
-        months_waited_id = params$months_waited_id,
-        capacity_param = NHSRtt::apply_parameter_skew(
-          params$capacity_param,
-          skew = x,
-          skew_method = skew_method,
-          pivot_bin = pivot_bin
-        ),
-        scenario = idx
-      )
+      \(x, idx) {
+        dplyr::tibble(
+          months_waited_id = params$months_waited_id,
+          capacity_param = NHSRtt::apply_parameter_skew(
+            params$capacity_param,
+            skew = x,
+            skew_method = skew_method,
+            pivot_bin = pivot_bin
+          ),
+          scenario = idx
+        )
+      }
     ) |>
     purrr::list_rbind()
 
@@ -365,6 +433,136 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
   return(p_skews)
 }
 
+#' create plot of observed and modelled performance for the calibration period
+#' @param modelled_data data frame containing the modelled and observed waiting list for the second part of the calibration period
+#' @param observed_data data frame containing the observed waiting list
+#' @importFrom dplyr bind_rows filter mutate summarise
+#' @importFrom lubridate `%m+%`
+#' @importFrom tidyr pivot_longer
+#' @importFrom rlang .data
+#' @import ggplot2
+#' @noRd
+plot_error <- function(modelled_data, observed_data) {
+  observed_dates <- range(observed_data$period)
+
+  p <- modelled_data |>
+    tidyr::pivot_longer(
+      cols = c("modelled_incompletes", "original"),
+      names_to = "type",
+      values_to = "value"
+    ) |>
+    dplyr::bind_rows(
+      observed_data
+    ) |>
+    mutate(
+      type = case_when(
+        type %in% c("original", "Incomplete") ~ "Observed",
+        type == "modelled_incompletes" ~ "Modelled"
+      ),
+      perf = case_when(
+        .data$months_waited_id < 4 ~ "Below",
+        .default = "Above"
+      )
+    ) |>
+    summarise(
+      value = sum(.data$value),
+      .by = c(
+        "period",
+        "type",
+        "perf"
+      )
+    ) |>
+    mutate(
+      prop = 100 * (.data$value / sum(.data$value)),
+      .by = c(
+        "period",
+        "type"
+      )
+    ) |>
+    filter(
+      .data$perf == "Below"
+    ) |>
+    # repeat the final period of data, but artificially apply it to the subsequent month
+    (\(x) {
+      x |>
+        filter(.data$period == max(.data$period)) |>
+        mutate(period = period %m+% months(1)) |>
+        bind_rows(x)
+    })() |>
+    ggplot2::ggplot(
+      aes(
+        x = .data$period,
+        y = .data$prop,
+        group = .data$type
+      )
+    ) +
+    geom_rect(
+      data = tibble(
+        date_start = observed_dates[1],
+        date_end = lubridate::ceiling_date(
+          observed_dates[2],
+          unit = "month"
+        )
+      ),
+      aes(
+        xmin = .data$date_start,
+        xmax = .data$date_end,
+        ymin = -Inf,
+        ymax = Inf
+      ),
+      fill = "grey",
+      alpha = 0.5,
+      inherit.aes = FALSE
+    ) +
+    geom_text(
+      x = observed_dates[1],
+      y = Inf,
+      label = "For error calculation, model calibration period is shaded in grey",
+      hjust = 0,
+      vjust = 2,
+      inherit.aes = FALSE
+    ) +
+    geom_step(
+      aes(
+        colour = .data$type,
+        linetype = .data$type
+      )
+    ) +
+    theme_minimal() +
+    # make Modelled dashed and Observed solid linetype
+    scale_linetype_manual(
+      name = "",
+      values = c(
+        "Observed" = "solid",
+        "Modelled" = "dashed"
+      )
+    ) +
+    # make Modelled and Observed colours different
+    scale_colour_manual(
+      name = "",
+      values = c(
+        "Observed" = "black",
+        "Modelled" = "blue"
+      )
+    ) +
+    labs(
+      title = "Modelled and observed 18 week performance for the calibration period",
+      y = "18 week performance (%)",
+      x = ""
+    ) +
+    # put black border around the whole plot
+    theme(
+      plot.background = element_rect(
+        fill = NA,
+        colour = "black"
+      ),
+      legend.position = "bottom"
+    )
+
+  return(p)
+}
+
+
 #' geom_step in the charts do not display the final observed or projected months
 #' well because the stepped line terminates at the start of the month. This
 #' function adds an artificial month onto the observed and projected
@@ -397,7 +595,8 @@ calc_breaks <- function(limits, facetted) {
       to = limits[2],
       by = "year"
     )
-  ) - 1
+  ) -
+    1
 
   if (years_in_data <= 4) {
     labels_per_year <- 4
@@ -421,7 +620,6 @@ calc_breaks <- function(limits, facetted) {
 }
 
 january_breaks <- function(limits) {
-
   approx_breaks <- calc_breaks(
     limits = limits,
     facetted = FALSE
@@ -441,7 +639,6 @@ january_breaks <- function(limits) {
 }
 
 january_breaks_facetted <- function(limits) {
-
   approx_breaks <- calc_breaks(
     limits = limits,
     facetted = TRUE
@@ -503,11 +700,15 @@ click_info <- function(data, click_x, facet = NULL) {
 
 #' @importFrom utils head tail
 performance_text <- function(p_target_data) {
-
   p_target_data <- p_target_data |>
     mutate(
       Target_date = format(.data$Target_date, "%b %Y"),
-      final_text = paste0(.data$Target_percentage, "% (", .data$Target_date, ")")
+      final_text = paste0(
+        .data$Target_percentage,
+        "% (",
+        .data$Target_date,
+        ")"
+      )
     )
 
   if (nrow(p_target_data) == 1) {
@@ -528,14 +729,12 @@ performance_text <- function(p_target_data) {
       tail(p_target_data[["final_text"]], 1)
     ) |>
       (\(x) gsub(", and", " and", x))()
-
   }
 
   txt <- p_out
 
   return(txt)
 }
-
 
 
 # tooltip functions -------------------------------------------------------
@@ -547,8 +746,7 @@ linear_tooltip <- function() {
     value = c(rep(1, 5), 2:6)
   ) |>
     ggplot(
-      aes(x = .data$period,
-          y = .data$value)
+      aes(x = .data$period, y = .data$value)
     ) +
     geom_line() +
     geom_vline(
@@ -575,11 +773,11 @@ linear_tooltip <- function() {
       panel.grid = element_blank(),
       panel.background = element_rect(
         fill = "#FAE100",
-        colour= "#FAE100"
+        colour = "#FAE100"
       ),
       plot.background = element_rect(
         fill = "#FAE100",
-        colour= "#FAE100"
+        colour = "#FAE100"
       )
     ) +
     ylim(0, 8)
@@ -593,8 +791,7 @@ uniform_tooltip <- function() {
     value = c(rep(1, 5), rep(4, 6))
   ) |>
     ggplot(
-      aes(x = .data$period,
-          y = .data$value)
+      aes(x = .data$period, y = .data$value)
     ) +
     geom_line() +
     geom_vline(
@@ -621,11 +818,11 @@ uniform_tooltip <- function() {
       panel.grid = element_blank(),
       panel.background = element_rect(
         fill = "#FAE100",
-        colour= "#FAE100"
+        colour = "#FAE100"
       ),
       plot.background = element_rect(
         fill = "#FAE100",
-        colour= "#FAE100"
+        colour = "#FAE100"
       )
     ) +
     ylim(0, 8)
@@ -633,7 +830,6 @@ uniform_tooltip <- function() {
 
 
 linear_uniform_tooltip <- function(uniform_id, linear_id) {
-
   div(
     shiny::HTML(
       paste0(

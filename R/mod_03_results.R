@@ -13,7 +13,7 @@
 #'   layout_column_wrap tooltip
 #' @importFrom dplyr if_else
 #' @importFrom tidyr pivot_wider
-mod_03_results_ui <- function(id){
+mod_03_results_ui <- function(id) {
   ns <- NS(id)
 
   page_sidebar(
@@ -37,41 +37,41 @@ mod_03_results_ui <- function(id){
 }
 
 #' 03_results Server Functions
-#' @importFrom DT renderDT formatRound datatable
+#' @importFrom DT renderDT formatRound datatable formatDate
 #' @importFrom dplyr group_by rename summarise tribble
 #' @importFrom rlang .data
 #' @importFrom bslib value_box layout_column_wrap
 #' @importFrom shiny updateActionButton showModal modalDialog downloadHandler
-#'   actionButton p hr uiOutput
+#'   actionButton p hr uiOutput modalButton removeModal
 #' @import ggplot2
 #' @noRd
-mod_03_results_server <- function(id, r){
-  moduleServer( id, function(input, output, session){
+mod_03_results_server <- function(id, r) {
+  moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    reactive_data <- reactiveValues()
-    reactive_data$plot_click_info <- NULL
-    reactive_data$plot_clicked <- NULL
-    reactive_data$btn_val <- NULL
-    reactive_data$plot_data <- NULL
-    reactive_data$show_plot <- FALSE
-    reactive_data$show_table <- FALSE
+    reactive_data <- reactiveValues(
+      plot_click_info = NULL,
+      plot_clicked = NULL,
+      btn_val = NULL,
+      plot_data = NULL,
+      show_plot = FALSE,
+      show_table = FALSE,
+      temp_data = NULL
+    )
 
-
-
-# dynamic sidebar ---------------------------------------------------------
+    # dynamic sidebar ---------------------------------------------------------
 
     output$dynamic_sidebar_ui <- renderUI({
-
       if (is.null(r$chart_specification$scenario_type)) {
         tagList()
-      } else if (r$chart_specification$scenario_type == "Estimate performance (from treatment capacity inputs)") {
-
+      } else if (
+        r$chart_specification$scenario_type ==
+          "Estimate performance (from treatment capacity inputs)"
+      ) {
         layout_column_wrap(
           width = 1,
           gap = 0,
-          p("INPUTS",
-            class = "sidebar_header"),
+          p("INPUTS", class = "sidebar_header"),
           actionButton(
             inputId = ns("btn_referrals"),
             label = "Referrals",
@@ -80,7 +80,8 @@ mod_03_results_server <- function(id, r){
             icon = shiny::icon("star"),
             class = "results_button"
           ),
-          p("Treatment capacity",
+          p(
+            "Treatment capacity",
             class = "results_button",
             title = "Treatment capacity counts over the period",
             `data-bs-trigger` = "hover",
@@ -103,9 +104,9 @@ mod_03_results_server <- function(id, r){
             title = "Treatment capacity distributed by number of months waited"
           ),
           hr(),
-          p("OUTPUTS",
-            class = "sidebar_header"),
-          p("Waiting list size",
+          p("OUTPUTS", class = "sidebar_header"),
+          p(
+            "Waiting list size",
             class = "results_button",
             `data-bs-trigger` = "hover",
             title = "The size of the waiting list over the period"
@@ -134,7 +135,8 @@ mod_03_results_server <- function(id, r){
             `data-bs-trigger` = "hover",
             title = "The 18 week performance over the period"
           ),
-          p("Reneges",
+          p(
+            "Reneges",
             class = "results_button",
             `data-bs-trigger` = "hover",
             title = "Number of reneges over the period"
@@ -167,15 +169,14 @@ mod_03_results_server <- function(id, r){
           ),
           uiOutput(ns("btn_report_ui"))
         )
-
-
-      } else if (r$chart_specification$scenario_type == "Estimate treatment capacity (from performance targets)") {
-
+      } else if (
+        r$chart_specification$scenario_type ==
+          "Estimate treatment capacity (from performance targets)"
+      ) {
         layout_column_wrap(
           width = 1,
           gap = 0,
-          p("INPUTS",
-            class = "sidebar_header"),
+          p("INPUTS", class = "sidebar_header"),
           actionButton(
             inputId = ns("btn_referrals"),
             label = "Referrals",
@@ -193,9 +194,9 @@ mod_03_results_server <- function(id, r){
             title = "The 18 week performance over the period"
           ),
           hr(),
-          p("OUTPUTS",
-            class = "sidebar_header"),
-          p("Treatment capacity",
+          p("OUTPUTS", class = "sidebar_header"),
+          p(
+            "Treatment capacity",
             class = "results_button",
             title = "Treatment capacity counts over the period",
             `data-bs-trigger` = "hover",
@@ -217,7 +218,8 @@ mod_03_results_server <- function(id, r){
             `data-bs-trigger` = "hover",
             title = "Treatment capacity distributed by number of months waited"
           ),
-          p("Reneges",
+          p(
+            "Reneges",
             class = "results_button",
             `data-bs-trigger` = "hover",
             title = "Number of reneges over the period"
@@ -238,7 +240,8 @@ mod_03_results_server <- function(id, r){
             `data-bs-trigger` = "hover",
             title = "Reneges distributed by number of months waited"
           ),
-          p("Waiting list size",
+          p(
+            "Waiting list size",
             class = "results_button",
             `data-bs-trigger` = "hover",
             title = "The size of the waiting list over the period"
@@ -271,10 +274,9 @@ mod_03_results_server <- function(id, r){
           ),
           uiOutput(ns("btn_report_ui"))
         )
-
       }
     })
-# report download ---------------------------------------------------------
+    # report download ---------------------------------------------------------
 
     output$btn_report_ui <- renderUI({
       if (!is.null(r$waiting_list)) {
@@ -290,16 +292,15 @@ mod_03_results_server <- function(id, r){
         } else {
           downloadButton(
             ns("btn_report"),
-            "Generate report"#,
+            "Generate report" #,
             # style = "width:25%;"
           )
         }
       }
     })
 
-
     output$btn_report <- downloadHandler(
-      filename <-  paste0(
+      filename <- paste0(
         r$chart_specification$trust,
         " ",
         r$chart_specification$specialty,
@@ -308,14 +309,21 @@ mod_03_results_server <- function(id, r){
         ".docx"
       ),
       content = function(file) {
-
         tempReport <- file.path(tempdir(), "skeleton.Rmd")
 
         file.copy(
-          system.file("rmarkdown", "templates", "scenario-report", "skeleton", "skeleton.Rmd", package = "RTTshiny"),
+          system.file(
+            "rmarkdown",
+            "templates",
+            "scenario-report",
+            "skeleton",
+            "skeleton.Rmd",
+            package = "RTTshiny"
+          ),
           tempReport,
           overwrite = TRUE
         )
+
         params <- list(
           waiting_list = r$waiting_list,
           trust = r$chart_specification$trust,
@@ -335,11 +343,10 @@ mod_03_results_server <- function(id, r){
           params = params,
           envir = new.env(parent = globalenv())
         )
-
       }
     )
 
-# identify last clicked button --------------------------------------------
+    # identify last clicked button --------------------------------------------
 
     lapply(
       X = c(
@@ -357,7 +364,6 @@ mod_03_results_server <- function(id, r){
       FUN = function(i) {
         observeEvent(input[[paste0("btn_", i)]], {
           if (input[[paste0("btn_", i)]] > 0) {
-
             if (!is.null(reactive_data$btn_val)) {
               shiny::updateActionButton(
                 session = session,
@@ -387,108 +393,109 @@ mod_03_results_server <- function(id, r){
       }
     )
 
-# DT table ----------------------------------------------------------------
+    # DT table ----------------------------------------------------------------
 
+    output$results_table <- DT::renderDT(
+      {
+        new_col_names <- c(
+          "Months waited" = "months_waited_id",
+          "Calculated treatment capacity" = "calculated_treatments",
+          Reneges = "reneges",
+          "Waiting list size (at end of month)" = "incompletes",
+          "Unadjusted referrals" = "unadjusted_referrals",
+          "Adjusted referrals" = "adjusted_referrals",
+          "Treatment capacity skew" = "capacity_skew",
+          "Measure type" = "period_type",
+          "Month start date" = "period"
+        )
 
-    output$results_table <- DT::renderDT({
-
-      new_col_names <- c(
-        "Months waited" = "months_waited_id",
-        "Calculated treatment capacity" = "calculated_treatments",
-        Reneges = "reneges",
-        "Waiting list size (at end of month)" = "incompletes",
-        "Unadjusted referrals" = "unadjusted_referrals",
-        "Adjusted referrals" = "adjusted_referrals",
-        "Treatment capacity skew" = "capacity_skew",
-        "Measure type" = "period_type",
-        "Month start date" = "period"
-      )
-
-      if (is.null(r$waiting_list)) {
-        dplyr::tibble(
-          period = NA,
-          months_waited_id = NA,
-          calculated_treatments = NA,
-          reneges = NA,
-          incompletes = NA,
-          unadjusted_referrals = NA,
-          adjusted_referrals = NA,
-          capacity_skew = NA,
-          period_type = NA
-        ) |>
-          DT::datatable(
-            colnames = new_col_names,
-            rownames = FALSE,
-            caption = "Please return to the 'Scenario planner' tab to create some modelled data",
-            options = list(
-              dom = 't', # 't' means show only the table, no other elements
-              paging = FALSE, # Disable pagination
-              searching = FALSE, # Disable search box
-              info = FALSE # Remove "Showing X of Y entries" text
+        if (is.null(r$waiting_list)) {
+          dplyr::tibble(
+            period = NA,
+            months_waited_id = NA,
+            calculated_treatments = NA,
+            reneges = NA,
+            incompletes = NA,
+            unadjusted_referrals = NA,
+            adjusted_referrals = NA,
+            capacity_skew = NA,
+            period_type = NA
+          ) |>
+            DT::datatable(
+              colnames = new_col_names,
+              rownames = FALSE,
+              caption = "Please return to the 'Scenario planner' tab to create some modelled data",
+              options = list(
+                dom = 't', # 't' means show only the table, no other elements
+                paging = FALSE, # Disable pagination
+                searching = FALSE, # Disable search box
+                info = FALSE # Remove "Showing X of Y entries" text
+              )
             )
-          )
-      } else {
-
-        r$waiting_list |>
-          dplyr::select(
-            !c("period_id")
-          ) |>
-          dplyr::relocate(
-            "period", .before = dplyr::everything()
-          ) |>
-          DT::datatable(
-            filter = "top",
-            extensions = "Buttons",
-            options = list(
-              paging = TRUE,
-              pageLength = 50,
-              lengthMenu = c(25, 50, 100),
-              searching = TRUE,
-              ordering = TRUE,
-              autoWidth = TRUE,
-              dom = 'Blrtip',
-              buttons = list(
-                list(
-                  extend = 'copy',
-                  title = NULL, # prevents the title of the app being included when copying the data
-                  className = "dtButton",
-                  text = "Copy table to clipboard"
-                ),
-                list(
-                  extend = 'csv',
-                  className = 'dtButton',
-                  text = "Download table to csv",
-                  title = paste0(
-                    r$chart_specification$trust,
-                    " ",
-                    r$chart_specification$specialty,
-                    " ",
-                    format(Sys.time(), format = "%Y%m%d %H%M%S")
+        } else {
+          r$waiting_list |>
+            dplyr::select(
+              !c("period_id")
+            ) |>
+            dplyr::relocate(
+              "period",
+              .before = dplyr::everything()
+            ) |>
+            DT::datatable(
+              filter = "top",
+              extensions = "Buttons",
+              options = list(
+                paging = TRUE,
+                pageLength = 50,
+                lengthMenu = c(25, 50, 100),
+                searching = TRUE,
+                ordering = TRUE,
+                autoWidth = TRUE,
+                dom = 'Blrtip',
+                buttons = list(
+                  list(
+                    extend = 'copy',
+                    title = NULL, # prevents the title of the app being included when copying the data
+                    className = "dtButton",
+                    text = "Copy table to clipboard"
+                  ),
+                  list(
+                    extend = 'csv',
+                    className = 'dtButton',
+                    text = "Download table to csv",
+                    title = paste0(
+                      r$chart_specification$trust,
+                      " ",
+                      r$chart_specification$specialty,
+                      " ",
+                      format(Sys.time(), format = "%Y%m%d %H%M%S")
+                    )
                   )
                 )
-              )
-            ),
-            colnames = new_col_names,
-            rownames = FALSE
-          ) |>
-          DT::formatRound(
-            columns = c(
-              "Calculated treatment capacity",
-              "Reneges",
-              "Waiting list size (at end of month)",
-              "Unadjusted referrals",
-              "Adjusted referrals"
-            ),
-            digits = 1
-          )
-      }
-    },
-    server = FALSE)
+              ),
+              colnames = new_col_names,
+              rownames = FALSE
+            ) |>
+            DT::formatRound(
+              columns = c(
+                "Calculated treatment capacity",
+                "Reneges",
+                "Waiting list size (at end of month)",
+                "Unadjusted referrals",
+                "Adjusted referrals"
+              ),
+              digits = 1
+            )
+        }
+      },
+      server = FALSE
+    )
 
-# plot --------------------------------------------------------------------
+    # plot --------------------------------------------------------------------
 
     observeEvent(
-      c(input$chart_res,
+      c(
+        input$chart_res,
         input$btn_referrals,
         input$btn_capacity_ttl,
         input$btn_capacity_mnth,
@@ -499,181 +506,347 @@ mod_03_results_server <- function(id, r){
         input$btn_performance,
         input$btn_data,
         input$btn_report_ui
-      ), {
+      ),
+      {
         if (is.null(input$chart_res)) {
           calc_res <- 96
         } else {
           calc_res <- input$chart_res
         }
-        output$results_plot <- renderPlot({
+        output$results_plot <- renderPlot(
+          {
+            if (
+              is.null(r$waiting_list) |
+                identical(r$waiting_list, tibble())
+            ) {
+              holding_chart(type = "model")
+            } else if (is.null(reactive_data$btn_val)) {
+              holding_chart(type = "select_chart")
+            } else {
+              if (reactive_data$btn_val == "btn_referrals") {
+                reactive_data$plot_data <- r$waiting_list |>
+                  dplyr::filter(.data$months_waited_id == "0-1 months") |>
+                  dplyr::mutate(
+                    p_var = sum(.data$adjusted_referrals),
+                    .by = c("period", "period_type")
+                  ) |>
+                  extend_period_type_data()
 
-          # browser()
-          if (is.null(r$waiting_list) | identical(r$waiting_list, tibble())) {
-            holding_chart(type = "model")
-          } else if (is.null(reactive_data$btn_val)) {
-            holding_chart(type = "select_chart")
-          } else {
-            if (reactive_data$btn_val == "btn_referrals") {
-              reactive_data$plot_data <- r$waiting_list |>
-                dplyr::filter(.data$months_waited_id == "0-1 months") |>
-                dplyr::mutate(p_var  = sum(.data$adjusted_referrals),
-                              .by = c("period", "period_type")) |>
-                extend_period_type_data()
+                chart_type <- "referrals"
+                include_facets <- FALSE
+                percentage_axis <- FALSE
+                include_target_line <- FALSE
+              } else if (reactive_data$btn_val == "btn_capacity_ttl") {
+                reactive_data$plot_data <- r$waiting_list |>
+                  dplyr::summarise(
+                    p_var = sum(.data$calculated_treatments, na.rm = T),
+                    .by = c("period", "period_type")
+                  ) |>
+                  extend_period_type_data()
 
-              chart_type <- "referrals"
-              include_facets <- FALSE
-              percentage_axis <- FALSE
-              include_target_line <- FALSE
+                chart_type <- "total treatment capacity"
+                include_facets <- FALSE
+                percentage_axis <- FALSE
+                include_target_line <- FALSE
+              } else if (reactive_data$btn_val == "btn_capacity_mnth") {
+                reactive_data$plot_data <- r$waiting_list |>
+                  dplyr::summarise(
+                    p_var = sum(.data$calculated_treatments, na.rm = T),
+                    .by = c("period", "period_type", "months_waited_id")
+                  ) |>
+                  extend_period_type_data()
 
-            } else if (reactive_data$btn_val == "btn_capacity_ttl") {
-              reactive_data$plot_data <- r$waiting_list |>
-                dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                                 .by = c("period", "period_type")) |>
-                extend_period_type_data()
+                chart_type <- "treatment capacity by months waiting"
+                include_facets <- TRUE
+                percentage_axis <- FALSE
+                include_target_line <- FALSE
+              } else if (reactive_data$btn_val == "btn_reneges_ttl") {
+                reactive_data$plot_data <- r$waiting_list |>
+                  dplyr::summarise(
+                    p_var = sum(.data$reneges, na.rm = T),
+                    .by = c("period", "period_type")
+                  ) |>
+                  extend_period_type_data()
 
-              chart_type <- "total treatment capacity"
-              include_facets <- FALSE
-              percentage_axis <- FALSE
-              include_target_line <- FALSE
+                chart_type <- "total net reneges"
+                include_facets <- FALSE
+                percentage_axis <- FALSE
+                include_target_line <- FALSE
+              } else if (reactive_data$btn_val == "btn_reneges_mnth") {
+                reactive_data$plot_data <- r$waiting_list |>
+                  dplyr::summarise(
+                    p_var = sum(.data$reneges, na.rm = T),
+                    .by = c("period", "period_type", "months_waited_id")
+                  ) |>
+                  extend_period_type_data()
 
-            } else if (reactive_data$btn_val == "btn_capacity_mnth") {
-              reactive_data$plot_data <- r$waiting_list |>
-                dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                                 .by = c("period", "period_type", "months_waited_id")) |>
-                extend_period_type_data()
+                chart_type <- "net reneges by months waiting"
+                include_facets <- TRUE
+                percentage_axis <- FALSE
+                include_target_line <- FALSE
+              } else if (reactive_data$btn_val == "btn_waiting_list_ttl") {
+                reactive_data$plot_data <- r$waiting_list |>
+                  dplyr::summarise(
+                    p_var = sum(.data$incompletes, na.rm = T),
+                    .by = c("period", "period_type")
+                  ) |>
+                  extend_period_type_data()
 
-              chart_type <- "treatment capacity by months waiting"
-              include_facets <- TRUE
-              percentage_axis <- FALSE
-              include_target_line <- FALSE
+                chart_type <- "waiting list size"
+                include_facets <- FALSE
+                percentage_axis <- FALSE
+                include_target_line <- FALSE
+              } else if (reactive_data$btn_val == "btn_waiting_list_mnth") {
+                reactive_data$plot_data <- r$waiting_list |>
+                  dplyr::mutate(p_var = .data$incompletes) |>
+                  extend_period_type_data()
 
-            } else if (reactive_data$btn_val == "btn_reneges_ttl") {
-              reactive_data$plot_data <- r$waiting_list |>
-                dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                                 .by = c("period", "period_type")) |>
-                extend_period_type_data()
+                chart_type <- "numbers waiting by period"
+                include_facets <- TRUE
+                percentage_axis <- FALSE
+                include_target_line <- FALSE
+              } else if (reactive_data$btn_val == "btn_performance") {
+                reactive_data$plot_data <- r$waiting_list |>
+                  dplyr::rename(value = "incompletes") |>
+                  dplyr::group_by(.data$period_type) |>
+                  mutate(
+                    months_waited_id = extract_first_number(
+                      .data$months_waited_id
+                    )
+                  ) |>
+                  calc_performance(
+                    target_bin = 4
+                  ) |>
+                  ungroup() |>
+                  rename(p_var = "prop") |>
+                  extend_period_type_data()
 
-              chart_type <- "total net reneges"
-              include_facets <- FALSE
-              percentage_axis <- FALSE
-              include_target_line <- FALSE
+                chart_type <- "18 weeks performance"
+                include_facets <- FALSE
+                percentage_axis <- TRUE
+                include_target_line <- TRUE
+              }
 
-            } else if (reactive_data$btn_val == "btn_reneges_mnth") {
-              reactive_data$plot_data <- r$waiting_list |>
-                dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                                 .by = c("period", "period_type", "months_waited_id")) |>
-                extend_period_type_data()
-
-              chart_type <- "net reneges by months waiting"
-              include_facets <- TRUE
-              percentage_axis <- FALSE
-              include_target_line <- FALSE
-
-            } else if (reactive_data$btn_val == "btn_waiting_list_ttl") {
-              reactive_data$plot_data <- r$waiting_list |>
-                dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
-                                 .by = c("period", "period_type")) |>
-                extend_period_type_data()
-
-              chart_type <- "waiting list size"
-              include_facets <- FALSE
-              percentage_axis <- FALSE
-              include_target_line <- FALSE
-
-            } else if (reactive_data$btn_val == "btn_waiting_list_mnth") {
-              reactive_data$plot_data <- r$waiting_list |>
-                dplyr::mutate(p_var = .data$incompletes) |>
-                extend_period_type_data()
-
-              chart_type <- "numbers waiting by period"
-              include_facets <- TRUE
-              percentage_axis <- FALSE
-              include_target_line <- FALSE
-
-            } else if (reactive_data$btn_val == "btn_performance") {
-              reactive_data$plot_data <- r$waiting_list |>
-                dplyr::rename(value = "incompletes") |>
-                dplyr::group_by(.data$period_type) |>
-                mutate(
-                  months_waited_id = extract_first_number(.data$months_waited_id)
-                ) |>
-                calc_performance(
-                  target_bin = 4
-                ) |>
-                ungroup() |>
-                rename(p_var = "prop") |>
-                extend_period_type_data()
-
-
-              chart_type <- "18 weeks performance"
-              include_facets <- FALSE
-              percentage_axis <- TRUE
-              include_target_line <- TRUE
-
+              if (
+                !(reactive_data$btn_val %in% c("btn_data", "btn_report_ui"))
+              ) {
+                plot_output(
+                  data = reactive_data$plot_data,
+                  p_trust = r$chart_specification$trust,
+                  p_speciality = r$chart_specification$specialty,
+                  p_chart = chart_type,
+                  p_scenario = r$chart_specification$scenario_type,
+                  p_cap_change = r$chart_specification$capacity_percent_change,
+                  p_cap_skew = r$chart_specification$capacity_skew,
+                  p_cap_change_type = r$chart_specification$capacity_change_type,
+                  p_target_data = r$chart_specification$target_data,
+                  p_referrals_percent_change = r$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = r$chart_specification$referrals_change_type,
+                  p_perc = percentage_axis,
+                  p_facet = include_facets,
+                  p_target_line = include_target_line
+                )
+              }
             }
-
-            if (!(reactive_data$btn_val %in% c("btn_data", "btn_report_ui"))) {
-              plot_output(data = reactive_data$plot_data,
-                          p_trust = r$chart_specification$trust,
-                          p_speciality = r$chart_specification$specialty,
-                          p_chart = chart_type,
-                          p_scenario = r$chart_specification$scenario_type,
-                          p_cap_change = r$chart_specification$capacity_percent_change,
-                          p_cap_skew = r$chart_specification$capacity_skew,
-                          p_cap_change_type = r$chart_specification$capacity_change_type,
-                          p_target_data = r$chart_specification$target_data,
-                          p_referrals_percent_change = r$chart_specification$referrals_percent_change,
-                          p_referrals_change_type = r$chart_specification$referrals_change_type,
-                          p_perc = percentage_axis,
-                          p_facet = include_facets,
-                          p_target_line = include_target_line)
-            }
-          }
-
-        }, res = calc_res)
+          },
+          res = calc_res
+        )
       }
     )
 
-
-
-
-
-# dynamic ui --------------------------------------------------------------
+    # dynamic ui --------------------------------------------------------------
     output$results_ui <- renderUI({
-       if (reactive_data$show_table ==  TRUE) {
+      if (reactive_data$show_table == TRUE) {
         DTOutput(
           ns("results_table")
         )
       } else {
-        div(
+        # if no button has been selected then display results_plot
+        if (is.null(reactive_data$btn_val)) {
           plotOutput(
             ns("results_plot"),
             click = shiny::clickOpts(
               id = ns("plot_click")
             ),
             height = "600px"
-          ),
+          )
+        } else {
+          # if calculating performance from capacity inputs and selecting either referrals or capacity charts then we need to show the editing options
           div(
-            class = "label-left",
-            sliderInput(
-              inputId = ns("chart_res"),
-              label = "Select chart resolution (pixels per inch)",
-              min = 72,
-              max = 144,
-              value = 96,
-              step = 8
+            plotOutput(
+              ns("results_plot"),
+              click = shiny::clickOpts(
+                id = ns("plot_click")
+              ),
+              height = "600px"
+            ),
+            div(
+              class = "label-left",
+              sliderInput(
+                inputId = ns("chart_res"),
+                label = "Select chart resolution (pixels per inch)",
+                min = 72,
+                max = 144,
+                value = 96,
+                step = 8
+              )
+            ),
+            actionButton(
+              ns("edit_data"),
+              "Edit input data",
+              class = "btn-primary"
             )
           )
-        )
+        }
       }
     })
 
+    # Show modal when edit button is clicked
+    observeEvent(input$edit_data, {
+      reactive_data$temp_data <- r$waiting_list |>
+        dplyr::filter(
+          .data$period_type == "Projected"
+        ) |>
+        dplyr::summarise(
+          across(
+            c("adjusted_referrals", "calculated_treatments"),
+            ~ round(sum(.x, na.rm = TRUE), 2)
+          ),
+          .by = c("period")
+        )
 
-# plot clicks -------------------------------------------------------------
+      showModal(
+        modalDialog(
+          title = "Edit Inputs",
+          size = "l",
+          DTOutput(
+            ns("data_table")
+          ),
+          footer = tagList(
+            actionButton(
+              ns("save_changes"),
+              "Save Changes",
+              class = "btn-success"
+            ),
+            actionButton(
+              ns("reset_data"),
+              "Reset",
+              class = "btn-secondary"
+            ),
+            modalButton("Cancel")
+          )
+        )
+      )
+    })
+
+    # Render editable data table
+    output$data_table <- renderDT({
+      datatable(
+        reactive_data$temp_data,
+        editable = list(
+          target = "cell",
+          disable = list(
+            columns = 0 # indices here start at 0 for column 1
+          ), # disable editing the first column
+          numeric = 2:3 # allow only numeric values - indices here start at 1 for column 1
+        ),
+        options = list(
+          pageLength = 15,
+          dom = 't',
+          ordering = FALSE
+        ),
+        rownames = FALSE,
+        colnames = c(
+          "Month start date",
+          "Referrals",
+          "Treatment capacity"
+        ),
+        caption = "Double-click on a cell to edit the value"
+      ) |>
+        DT::formatRound(
+          columns = 2:3
+        ) |>
+        DT::formatDate(
+          columns = 1,
+          method = 'toLocaleDateString',
+          params = list('fr-FR')
+        )
+    })
+
+    # Handle table edits
+    observeEvent(input$data_table_cell_edit, {
+      info <- input$data_table_cell_edit
+      # Create a copy of the data to avoid reference issues
+      temp_copy <- reactive_data$temp_data
+
+      # Update the specific cell
+      temp_copy[info$row, info$col + 1] <- as.numeric(info$value)
+
+      # Update the reactive value
+      reactive_data$temp_data <- temp_copy |>
+        dplyr::mutate(
+          across(
+            c("adjusted_referrals", "calculated_treatments"),
+            \(x) ifelse(x < 0, 0, x)
+          )
+        )
+    })
+
+    # Save changes
+    observeEvent(input$save_changes, {
+      removeModal()
+
+      r$waiting_list <- calculate_customised_projections(
+        original_wl_data = r$chart_specification$original_data$waiting_list,
+        new_referrals_capacity = reactive_data$temp_data,
+        original_params = r$chart_specification$params
+      )
+
+      # pass information in the charts
+      r$chart_specification$referrals_percent_change <- ""
+      r$chart_specification$referrals_change_type <- "manual"
+      r$chart_specification$scenario_type <- "Estimate performance (from treatment capacity inputs)"
+      r$chart_specification$capacity_percent_change <- ""
+      r$chart_specification$capacity_change_type <- "manually adjusted"
+    })
+
+    # Reset to original data
+    observeEvent(input$reset_data, {
+      original_referrals_capacity <- r$chart_specification$original_data$waiting_list |>
+        filter(
+          .data$period_type == "Projected"
+        ) |>
+        summarise(
+          across(
+            c("adjusted_referrals", "calculated_treatments"),
+            ~ sum(.x, na.rm = TRUE)
+          ),
+          .by = c("period")
+        )
+
+      removeModal()
+
+      r$waiting_list <- calculate_customised_projections(
+        original_wl_data = r$chart_specification$original_data$waiting_list,
+        new_referrals_capacity = original_referrals_capacity,
+        original_params = r$chart_specification$params
+      )
+
+      # pass information in the charts
+      r$chart_specification$referrals_percent_change <- r$chart_specification$original_data$referrals_percent_change
+      r$chart_specification$referrals_change_type <- r$chart_specification$original_data$referrals_change_type
+      r$chart_specification$scenario_type <- r$chart_specification$original_data$scenario_type
+      r$chart_specification$capacity_percent_change <- r$chart_specification$original_data$capacity_percent_change
+      r$chart_specification$capacity_change_type <- r$chart_specification$original_data$capacity_change_type
+
+      r$chart_specification$optimise_status <- NULL
+    })
+
+    # plot clicks -------------------------------------------------------------
 
     observeEvent(
-      c(input$plot_click), {
-
+      c(input$plot_click),
+      {
         reactive_data$plot_clicked <- TRUE
 
         x_val <- as.Date(input$plot_click$x)
@@ -687,24 +860,48 @@ mod_03_results_server <- function(id, r){
 
     # Render the reneges value box based on click data
     output$value_box_container <- renderUI({
-
       if (isTRUE(reactive_data$plot_clicked)) {
-
         value_box_info <- dplyr::tribble(
-                          ~button,                                 ~title,             ~y_title, ~y_val_type,
-                  "btn_referrals",           "Referral count information",          "Referrals",    "number",
-               "btn_capacity_ttl", "Treatment capacity count information", "Treatment capacity",    "number",
-              "btn_capacity_mnth", "Treatment capacity count information", "Treatment capacity",    "number",
-                "btn_reneges_ttl",             "Renege count information",            "Reneges",    "number",
-               "btn_reneges_mnth",             "Renege count information",            "Reneges",    "number",
-           "btn_waiting_list_ttl",             "Waiting list information",  "Waiting list size",    "number",
-          "btn_waiting_list_mnth",             "Waiting list information",  "Waiting list size",    "number",
-                "btn_performance",              "Performance information",        "Performance",   "percent"
-          ) |>
+          ~button,
+          ~title,
+          ~y_title,
+          ~y_val_type,
+          "btn_referrals",
+          "Referral count information",
+          "Referrals",
+          "number",
+          "btn_capacity_ttl",
+          "Treatment capacity count information",
+          "Treatment capacity",
+          "number",
+          "btn_capacity_mnth",
+          "Treatment capacity count information",
+          "Treatment capacity",
+          "number",
+          "btn_reneges_ttl",
+          "Renege count information",
+          "Reneges",
+          "number",
+          "btn_reneges_mnth",
+          "Renege count information",
+          "Reneges",
+          "number",
+          "btn_waiting_list_ttl",
+          "Waiting list information",
+          "Waiting list size",
+          "number",
+          "btn_waiting_list_mnth",
+          "Waiting list information",
+          "Waiting list size",
+          "number",
+          "btn_performance",
+          "Performance information",
+          "Performance",
+          "percent"
+        ) |>
           dplyr::filter(
             .data$button == reactive_data$btn_val
           )
-
 
         layout_column_wrap(
           width = "400px",
@@ -725,10 +922,8 @@ mod_03_results_server <- function(id, r){
             id = "performance"
           )
         )
-
       }
     })
-
   })
 }
 

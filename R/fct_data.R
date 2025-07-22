@@ -9,32 +9,34 @@
 #' @importFrom lubridate floor_date
 #' @noRd
 get_rtt_data_with_progress <- function(
-    date_start,
-    date_end,
-    trust_parent_codes = NULL,
-    commissioner_parent_codes = NULL,
-    commissioner_org_codes = NULL,
-    trust_codes = NULL,
-    specialty_codes = NULL,
-    progress) {
-
-
+  date_start,
+  date_end,
+  trust_parent_codes = NULL,
+  commissioner_parent_codes = NULL,
+  commissioner_org_codes = NULL,
+  trust_codes = NULL,
+  specialty_codes = NULL,
+  progress
+) {
   all_dates <- seq(
     from = lubridate::floor_date(
-      date_start, unit = "months"
+      date_start,
+      unit = "months"
     ),
     to = lubridate::floor_date(
-      date_end, unit = "months"
+      date_end,
+      unit = "months"
     ),
     by = "months"
   ) |>
-    (\(x) setNames(
-      x,
-      nm = seq_len(
-        length(x)
+    (\(x) {
+      setNames(
+        x,
+        nm = seq_len(
+          length(x)
+        )
       )
-    )
-  )()
+    })()
 
   monthly_rtt <- all_dates |>
     purrr::imap(
@@ -232,7 +234,10 @@ check_imported_data <- function(imported_data) {
   missing_cols <- setdiff(required_cols, names(imported_data))
 
   if (length(missing_cols) > 0) {
-    msg <- paste("Error: Missing required columns:", paste(missing_cols, collapse = ", "))
+    msg <- paste(
+      "Error: Missing required columns:",
+      paste(missing_cols, collapse = ", ")
+    )
     data_checked <- NULL
 
     return(
@@ -264,7 +269,8 @@ check_imported_data <- function(imported_data) {
     msg <- paste(
       "Error: Invalid values in 'type' column:",
       paste(invalid_types, collapse = ", "),
-      ". Only 'Referral', 'Incomplete', and 'Complete' are allowed.")
+      ". Only 'Referral', 'Incomplete', and 'Complete' are allowed."
+    )
     data_checked <- NULL
 
     return(
@@ -282,7 +288,8 @@ check_imported_data <- function(imported_data) {
     unique()
 
   check_referral_months <- setdiff(
-    referral_months_waited, 0
+    referral_months_waited,
+    0
   )
 
   if (length(check_referral_months) > 0) {
@@ -328,4 +335,352 @@ check_imported_data <- function(imported_data) {
   )
 
   return(check_outputs)
+}
+
+#' take the raw data from the get_rtt_data_with_progress function and process it
+#' into a format suitable for the app
+#' @param imported_data the raw data from the get_rtt_data_with_progress function
+#' @param trust_display string, the display of the trusts (either the trust name or "Aggregated")
+#' @param specialty_display string, the display of the specialties (either the specialty name or
+#' "Aggregated")
+#' @param input_specialty_codes vector of specialty codes selected by the user
+#' @param min_download_date the minimum date of the data
+#' @param max_download_date the maximum date of the data
+#' @importFrom dplyr summarise mutate arrange
+#' @importFrom tidyr complete
+#' @importFrom NHSRtt convert_months_waited_to_id
+#' @importFrom rlang .data
+#' @return a tibble with the processed data
+#' @noRd
+process_downloaded_data <- function(
+  imported_data,
+  trust_display,
+  specialty_display,
+  input_specialty_codes,
+  min_download_date,
+  max_download_date
+) {
+  if (length(input_specialty_codes) > 1) {
+    stop("Only one specialty can be selected at a time")
+  }
+
+  processed_data <- imported_data |>
+    summarise(
+      value = sum(.data$value),
+      .by = c(
+        "trust",
+        "specialty",
+        "period",
+        "months_waited",
+        "type"
+      )
+    ) |>
+    mutate(
+      months_waited_id = NHSRtt::convert_months_waited_to_id(
+        .data$months_waited,
+        12 # this pools the data at 12+ months (this can be a user input in the future)
+      )
+    )
+
+  if (trust_display == "Aggregated") {
+    processed_data <- processed_data |>
+      mutate(
+        trust = "Aggregated"
+      )
+  } else {
+    processed_data <- processed_data |>
+      mutate(
+        trust = replace_fun(
+          .data$trust,
+          trust_lkp
+        )
+      )
+  }
+
+  if (specialty_display == "Aggregated") {
+    processed_data <- processed_data |>
+      mutate(
+        specialty = "Aggregated"
+      )
+  } else {
+    processed_data <- processed_data |>
+      mutate(
+        specialty = replace_fun(
+          .data$specialty,
+          treatment_function_codes
+        )
+      )
+  }
+
+  processed_data <- processed_data |>
+    summarise(
+      value = sum(.data$value),
+      .by = c(
+        "trust",
+        "specialty",
+        "period",
+        "type",
+        "months_waited_id"
+      )
+    ) |>
+    arrange(
+      .data$trust,
+      .data$specialty,
+      .data$type,
+      .data$months_waited_id,
+      .data$period
+    ) |>
+    tidyr::complete(
+      specialty = input_specialty_codes,
+      type = c("Complete", "Incomplete"),
+      .data$months_waited_id,
+      period = seq(
+        from = min_download_date,
+        to = lubridate::floor_date(max_download_date, unit = "months"),
+        by = "months"
+      ),
+      .data$trust,
+      fill = list(value = 0)
+    ) |>
+    tidyr::complete(
+      specialty = input_specialty_codes,
+      type = "Referrals",
+      months_waited_id = 0,
+      period = seq(
+        from = min_download_date,
+        to = lubridate::floor_date(max_download_date, unit = "months"),
+        by = "months"
+      ),
+      .data$trust,
+      fill = list(value = 0)
+    ) |>
+    mutate(
+      period_id = dplyr::row_number(), # we need period_id for later steps
+      .by = c(
+        "trust",
+        "specialty",
+        "type",
+        "months_waited_id"
+      )
+    )
+  return(processed_data)
+}
+
+#' update the sample data to finish at the final month of the available online data
+#' @param final_month the final month of the available online data
+#' @return a tibble with the updated sample data
+#' @noRd
+update_sample_data <- function(final_month) {
+  #sample_data is an internal data object
+  sample_data_mnths <- unique(sample_data[["period"]]) |>
+    sort()
+  months_in_sample_data <- length(sample_data_mnths)
+  calculated_first_month <- final_month %m-%
+    months(months_in_sample_data - 1)
+
+  mnth_lkp <- dplyr::tibble(
+    period = sample_data_mnths,
+    period_new = seq(
+      from = calculated_first_month,
+      to = final_month,
+      by = "months"
+    )
+  )
+
+  final_sample_data <- sample_data |>
+    left_join(
+      mnth_lkp,
+      by = join_by(
+        period
+      )
+    ) |>
+    dplyr::select(
+      period = "period_new",
+      "months_waited_id",
+      "type",
+      "value"
+    )
+
+  return(final_sample_data)
+}
+
+#' function that splits the calibration data into two halves and returns a dataset that models the second half from the first half
+#' @param data the processed calibration data
+#' @param referrals_uplift logical; whether the referrals should be uplifted if they appear under-reported
+#' @return a tibble with the processed data
+#' @noRd
+split_and_model_calibration_data <- function(data, referrals_uplift) {
+  # order the data by period and months_waited_id
+  data <- data |>
+    arrange(
+      .data$period,
+      .data$months_waited_id
+    )
+
+  # determine the months in the first half of the data
+  all_periods <- sort(unique(data$period))
+  # note, all_periods includes t0 to enable the incompletes for the beginning of model calibration.
+  # This isn't intuitive for the user based on their selection, so it should still be included in the
+  # calibration process, but omitted from the display of results and treated as if that first
+  # period isn't included
+  if (length(all_periods) %% 2 == 0) {
+    first_half_periods <- all_periods[1:((length(all_periods) / 2) + 1)]
+  } else {
+    first_half_periods <- all_periods[1:((length(all_periods) + 1) / 2)]
+  }
+
+  # calibrate model on first half of data
+  # first, create the calibration dataset
+  first_half_data <- data |>
+    filter(
+      .data$period %in% first_half_periods
+    )
+
+  if (isTRUE(referrals_uplift)) {
+    # calculate the referrals uplift value by calibrating the parameters
+    # with redistribute_m0_reneges set to FALSE
+    referrals_uplift_value <- calibrate_parameters(
+      first_half_data,
+      max_months_waited = 12,
+      redistribute_m0_reneges = FALSE,
+      referrals_uplift = NULL
+    ) |>
+      tidyr::unnest("params") |>
+      dplyr::filter(
+        .data$months_waited_id == 0
+      ) |>
+      dplyr::pull(.data$renege_param)
+
+    # check whether the referrals uplift value is negative
+    if (referrals_uplift_value < 0) {
+      referrals_uplift_value <- abs(
+        referrals_uplift_value
+      )
+    } else {
+      referrals_uplift_value <- 0
+    }
+  } else {
+    referrals_uplift_value <- 0
+  }
+
+  # calculate the modelling parameters using the uplifted referrals
+  params <- calibrate_parameters(
+    first_half_data,
+    max_months_waited = 12,
+    redistribute_m0_reneges = FALSE,
+    referrals_uplift = referrals_uplift_value
+  )
+
+  # apply parameters to projections
+  # first, create the second half of the data
+  second_half_data <- data |>
+    filter(
+      !.data$period %in% first_half_periods
+    )
+
+  # second, extract the referrals for the projected period
+  adjusted_projection_referrals <- second_half_data |>
+    filter(
+      .data$type == "Referrals"
+    ) |>
+    pull(.data$value) |>
+    (\(x) x + (x * referrals_uplift_value))()
+
+  # third, extract the treatment capacity for the projected period
+  projection_capacity <- second_half_data |>
+    filter(
+      .data$type == "Complete"
+    ) |>
+    summarise(
+      value = sum(.data$value),
+      .by = c("specialty", "trust", "type", "period", "period_id")
+    ) |>
+    pull(.data$value)
+
+  # fourth, extract the incompletes for the start of the projected period
+  t0_incompletes <- first_half_data |>
+    filter(
+      .data$type == "Incomplete",
+      .data$period == max(.data$period)
+    ) |>
+    select(
+      "months_waited_id",
+      incompletes = "value"
+    )
+
+  # fifth, apply the parameters to the projection data
+  projection_calcs <- NHSRtt::apply_params_to_projections(
+    capacity_projections = projection_capacity,
+    referrals_projections = adjusted_projection_referrals,
+    incomplete_pathways = t0_incompletes,
+    renege_capacity_params = params$params[[1]],
+    max_months_waited = 12
+  ) |>
+    select(
+      "period_id",
+      "months_waited_id",
+      modelled_incompletes = "incompletes"
+    ) |>
+    mutate(
+      period_id = .data$period_id + max(first_half_data$period_id)
+    )
+
+  # filter original data for incompletes
+  original_incompletes <- data |>
+    filter(
+      .data$type == "Incomplete"
+    ) |>
+    select(
+      "period_id",
+      "months_waited_id",
+      original = "value"
+    )
+
+  # calculate the mean average percentage error
+  modelled_incompletes <- projection_calcs |>
+    left_join(
+      original_incompletes,
+      by = join_by(
+        period_id,
+        months_waited_id
+      )
+    )
+
+  return(modelled_incompletes)
+}
+
+
+#' function to determine the mean absolute percentage error for the calibration data period
+#' @param data the output of the split_and_model_calibration_data function
+#' @importFrom dplyr summarise pull
+#' @importFrom rlang .data
+#' @return a string indicating the mean absolute percentage error (above 0%) or the mean
+#'   absolute error (if any of the original values are 0 in the waiting list)
+#' @noRd
+error_calc <- function(data) {
+  if (any(data$original == 0)) {
+    error <- data |>
+      summarise(
+        mae = mean(
+          abs(.data$original - .data$modelled_incompletes),
+          na.rm = TRUE
+        )
+      ) |>
+      pull(.data$mae) |>
+      # round to two decimal places and turn into a percentage
+      (\(x) as.character(round(x, 2)))()
+  } else {
+    error <- data |>
+      summarise(
+        mape = mean(
+          abs(.data$original - .data$modelled_incompletes) / .data$original,
+          na.rm = TRUE
+        ) *
+          100
+      ) |>
+      pull(.data$mape) |>
+      # round to two decimal places and turn into a percentage
+      (\(x) paste0(round(x, 2), "%"))()
+  }
+  return(error)
 }
