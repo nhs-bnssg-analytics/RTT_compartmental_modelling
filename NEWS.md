@@ -3,6 +3,7 @@
 
 * On the results page, following "calculating performance from capacity inputs", the user can now edit the input data for treatment capacity and referrals for the projection period to understand the impact of temporary measures on performance.
 * Allows for filtering providers by NHS and non-NHS providers
+* includes information about model error once data has been imported/downloaded
 
 # RTTshiny 1.0.2
 
