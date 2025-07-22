@@ -70,15 +70,9 @@ mod_02_planner_ui <- function(id) {
       choices = unname(treatment_function_codes),
       multiple = FALSE
     ),
-    # span(
     radioButtons(
       inputId = ns("nhs_only"),
       label = NULL,
-      # choices = c(
-      #   "NHS providers" = "nhs_only",
-      #   "Non-NHS providers" = "non_nhs_only",
-      #   "All providers" = "all"
-      # ),
       choiceNames = list(
         "NHS providers",
         span(
@@ -108,7 +102,8 @@ mod_02_planner_ui <- function(id) {
         label_busy = "Downloading...",
         type = "dark"
       ),
-      uiOutput(ns("tick_mark_dwnld"))
+      uiOutput(ns("tick_mark_dwnld")),
+      uiOutput(ns("accuracy_information_ui"))
     ),
     card(
       bslib::accordion(
@@ -332,6 +327,9 @@ mod_02_planner_server <- function(id, r) {
       ")"
     )
     reactive_values$import_success <- NULL
+
+    reactive_values$error_calc <- NULL
+    reactive_values$error_plot <- NULL
 
     r$chart_specification <- list(
       trust = NULL,
@@ -673,9 +671,136 @@ mod_02_planner_server <- function(id, r) {
           mutate(
             period_id = dplyr::row_number()
           )
+
+        # create accuracy information
+        modelled_calibration_data <- split_and_model_calibration_data(
+          data = r$all_data,
+          referrals_uplift = TRUE
+        )
+
+        reactive_values$error_calc <- error_calc(
+          data = modelled_calibration_data
+        )
+
+        reactive_values$error_plot <- plot_error(
+          modelled_data = modelled_calibration_data |>
+            left_join(
+              r$period_lkp,
+              by = join_by(
+                period_id
+              )
+            ),
+          observed_data = r$all_data |>
+            filter(
+              .data$type == "Incomplete",
+              .data$period_id < min(modelled_calibration_data$period_id),
+              .data$period_id > min(.data$period_id)
+            )
+        )
       },
       ignoreInit = TRUE
     )
+
+    # accuracy information ui ----------------------------------------------------
+
+    output$accuracy_information_ui <- renderUI({
+      if (is.null(reactive_values$error_calc)) {
+        return(NULL)
+      } else {
+        div(
+          style = "display: flex; align-items: center; gap: 10px;",
+          # insert text with model accuracy
+          p(
+            paste(
+              "Model error:",
+              reactive_values$error_calc
+            ),
+            style = "margin:0;"
+          ),
+          # insert info symbol, which when clicked, opens a modal with more info
+          actionButton(
+            inputId = ns("accuracy_info_modal"),
+            label = NULL,
+            icon = shiny::icon("info-circle"),
+            class = "btn-outline-info btn-sm",
+            style = "border: none;"
+          )
+        )
+      }
+    })
+
+    # modal with more info --------------------------------------------------------
+    observeEvent(
+      input$accuracy_info_modal,
+      {
+        if (grepl("%$", reactive_values$error_calc)) {
+          error_text <- paste(
+            "The model error metric is the mean absolute percentage error (MAPE).",
+            "To calculate this, the calibration data is divided in half based on the months of data included.",
+            "The model parameters are calculated based on the first half of the data.",
+            "These model parameters are then applied to the second half of the data, using the observed referrals and treatment capacity as the inputs for that period.",
+            "The number of people waiting, and how long they have been waiting, is then calculated for each period.",
+            "This is then compared to the observed waiting list, and the MAPE is calculated.",
+            "MAPE can be interpreted as the average percentage error between the observed waiting list and the modelled waiting list.",
+            "A lower MAPE indicates a more accurate model.",
+            sep = "<br>"
+          )
+        } else {
+          error_text <- paste(
+            "The model error metric is the mean absolute error (MAE).",
+            "To calculate this, the calibration data is divided in half based on the months of data included.",
+            "The model parameters are calculated based on the first half of the data.",
+            "These model parameters are then applied to the second half of the data, using the observed referrals and treatment capacity as the inputs for that period.",
+            "The number of people waiting, and how long they have been waiting, is then calculated for each period.",
+            "This is then compared to the observed waiting list, and the MAE is calculated.",
+            "MAE can be interpreted as the average absolute error between the observed waiting list and the modelled waiting list.",
+            "A lower MAE indicates a more accurate model.",
+            sep = "<br>"
+          )
+        }
+
+        showModal(
+          modalDialog(
+            title = "Model error",
+            size = "l", # large modal
+            span(
+              style = "font-size: 70%;",
+              # include text that is wrapped after every sentence
+              HTML(
+                paste(
+                  error_text,
+                  "<br><br>",
+                  "The chart below is calculated from the modelled and observed waiting list counts, aggregated to calculate performance."
+                )
+              ),
+              plotOutput(
+                ns("error_plot"),
+                height = 500
+              ),
+              HTML(paste(
+                "<br>",
+                "<strong>Caution</strong> must be exercised when interpreting the model error metric.",
+                "The model error can be affected by many things, including:",
+                # start bullet points
+                "<ul>",
+                "<li>Small numbers - this can lead to noisy monthly data, making the model error metric less accurate</li>",
+                "<li>Operational changes over the time period can mean the model parameters will not reflect the reality of the underpinning processes</li>",
+                "</ul>"
+                # end bullet points
+              ))
+            ),
+            easyClose = TRUE,
+            footer = NULL
+          )
+        )
+      }
+    )
+
+    # create error plot to show the performance predictions vs observe for the calibration period --------
+
+    output$error_plot <- renderPlot({
+      reactive_values$error_plot
+    })
 
     # download complete symbol ------------------------------------------------
 
@@ -969,6 +1094,16 @@ mod_02_planner_server <- function(id, r) {
         ui = check_data$msg,
         duration = 10,
         type = notification_type
+      )
+
+      # create accuracy information
+      modelled_calibration_data <- split_and_model_calibration_data(
+        data = r$all_data,
+        referrals_uplift = FALSE
+      )
+
+      reactive_values$error_calc <- error_calc(
+        data = modelled_calibration_data
       )
     })
 

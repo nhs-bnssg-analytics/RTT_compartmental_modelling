@@ -42,7 +42,7 @@ mod_03_results_ui <- function(id) {
 #' @importFrom rlang .data
 #' @importFrom bslib value_box layout_column_wrap
 #' @importFrom shiny updateActionButton showModal modalDialog downloadHandler
-#'   actionButton p hr uiOutput  modalButton removeModal
+#'   actionButton p hr uiOutput modalButton removeModal
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r) {

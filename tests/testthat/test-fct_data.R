@@ -363,7 +363,7 @@ test_that("convert_to_date works", {
 test_that("process_downloaded_data works", {
   specialty_codes <- "General Surgery"
   processed_results <- process_downloaded_data(
-    imported_data = result |> filter(.data$specialty == "C_100"),
+    imported_data = result |> filter(specialty == "C_100"),
     trust_display = "Aggregated",
     specialty_display = "General Surgery",
     input_specialty_codes = specialty_codes,
@@ -395,5 +395,81 @@ test_that("update_sample_data works", {
   expect_true(
     all(diff(sort(unique(updated_sample_data$period))) %in% 28:31),
     info = "all periods in sample data have been progressed so no months are missing in the data"
+  )
+})
+
+
+test_that("split_and_model_calibration_data works", {
+  modified_sample_data <- sample_data |>
+    mutate(
+      trust = "ABC",
+      specialty = "DEF",
+      period_id = dplyr::row_number(),
+      .by = c("type", "months_waited_id")
+    )
+  cal_data_modelled <- split_and_model_calibration_data(
+    data = modified_sample_data,
+    referrals_uplift = TRUE
+  )
+
+  # check that number of periods in the modelled data is the correct number based on the number of unique periods in the sample data
+  sample_data_periods <- unique(modified_sample_data$period)
+  if (length(sample_data_periods) %% 2 == 0) {
+    expected_num_periods <- length(sample_data_periods) / 2
+  } else {
+    expected_num_periods <- (length(sample_data_periods) - 1) / 2
+  }
+
+  expect_equal(
+    length(unique(cal_data_modelled$period_id)),
+    expected_num_periods,
+    info = "number of periods in modelled data is correct"
+  )
+
+  # there are no NAs in the modelled data
+  expect_false(
+    any(is.na(cal_data_modelled)),
+    info = "no NAs in modelled data"
+  )
+
+  # check the uplift part of the split_and_model_calibration_data function works
+  expect_equal(
+    suppressWarnings(
+      modified_sample_data |>
+        mutate(
+          value = case_when(
+            type == "Referrals" ~ value / 2,
+            .default = value
+          )
+        ) |>
+        filter(period != max(period)) |>
+        split_and_model_calibration_data(
+          referrals_uplift = TRUE
+        ) |>
+        dim()
+    ),
+    c(65, 4),
+    info = "when supplying too few referrals, the referrals uplift section is implemented and the function returns the correct dimensions"
+  )
+
+  # the mean average percentage error is consistently calculated
+  expect_equal(
+    error_calc(
+      data = cal_data_modelled
+    ),
+    "20.74%",
+    info = "error_calc is calculated correctly (MAPE)"
+  )
+
+  # mean absolute error is consistently calculated
+  expect_equal(
+    error_calc(
+      data = cal_data_modelled |>
+        mutate(across(c("modelled_incompletes", "original"), \(x) {
+          x - min(cal_data_modelled$original)
+        }))
+    ),
+    "397.94",
+    info = "error_calc is calculated correctly (MAE)"
   )
 })

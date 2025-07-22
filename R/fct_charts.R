@@ -433,6 +433,136 @@ plot_skew <- function(params, skew_values, pivot_bin, skew_method) {
   return(p_skews)
 }
 
+#' create plot of observed and modelled performance for the calibration period
+#' @param modelled_data data frame containing the modelled and observed waiting list for the second part of the calibration period
+#' @param observed_data data frame containing the observed waiting list
+#' @importFrom dplyr bind_rows filter mutate summarise
+#' @importFrom lubridate `%m+%`
+#' @importFrom tidyr pivot_longer
+#' @importFrom rlang .data
+#' @import ggplot2
+#' @noRd
+plot_error <- function(modelled_data, observed_data) {
+  observed_dates <- range(observed_data$period)
+
+  p <- modelled_data |>
+    tidyr::pivot_longer(
+      cols = c("modelled_incompletes", "original"),
+      names_to = "type",
+      values_to = "value"
+    ) |>
+    dplyr::bind_rows(
+      observed_data
+    ) |>
+    mutate(
+      type = case_when(
+        type %in% c("original", "Incomplete") ~ "Observed",
+        type == "modelled_incompletes" ~ "Modelled"
+      ),
+      perf = case_when(
+        .data$months_waited_id < 4 ~ "Below",
+        .default = "Above"
+      )
+    ) |>
+    summarise(
+      value = sum(.data$value),
+      .by = c(
+        "period",
+        "type",
+        "perf"
+      )
+    ) |>
+    mutate(
+      prop = 100 * (.data$value / sum(.data$value)),
+      .by = c(
+        "period",
+        "type"
+      )
+    ) |>
+    filter(
+      .data$perf == "Below"
+    ) |>
+    # repeat the final period of data, but artificially apply it to the subsequent month
+    (\(x) {
+      x |>
+        filter(.data$period == max(.data$period)) |>
+        mutate(period = period %m+% months(1)) |>
+        bind_rows(x)
+    })() |>
+    ggplot2::ggplot(
+      aes(
+        x = .data$period,
+        y = .data$prop,
+        group = .data$type
+      )
+    ) +
+    geom_rect(
+      data = tibble(
+        date_start = observed_dates[1],
+        date_end = lubridate::ceiling_date(
+          observed_dates[2],
+          unit = "month"
+        )
+      ),
+      aes(
+        xmin = .data$date_start,
+        xmax = .data$date_end,
+        ymin = -Inf,
+        ymax = Inf
+      ),
+      fill = "grey",
+      alpha = 0.5,
+      inherit.aes = FALSE
+    ) +
+    geom_text(
+      x = observed_dates[1],
+      y = Inf,
+      label = "For error calculation, model calibration period is shaded in grey",
+      hjust = 0,
+      vjust = 2,
+      inherit.aes = FALSE
+    ) +
+    geom_step(
+      aes(
+        colour = .data$type,
+        linetype = .data$type
+      )
+    ) +
+    theme_minimal() +
+    # make Modelled dashed and Observed solid linetype
+    scale_linetype_manual(
+      name = "",
+      values = c(
+        "Observed" = "solid",
+        "Modelled" = "dashed"
+      )
+    ) +
+    # make Modelled and Observed colours different
+    scale_colour_manual(
+      name = "",
+      values = c(
+        "Observed" = "black",
+        "Modelled" = "blue"
+      )
+    ) +
+    labs(
+      title = "Modelled and observed 18 week performance for the calibration period",
+      y = "18 week performance (%)",
+      x = ""
+    ) +
+    # put black border around the whole plot
+    theme(
+      plot.background = element_rect(
+        fill = NA,
+        colour = "black"
+      ),
+      legend.position = "bottom"
+    )
+
+  return(p)
+}
+
+
 #' geom_step in the charts do not display the final observed or projected months
 #' well because the stepped line terminates at the start of the month. This
 #' function adds an artificial month onto the observed and projected
