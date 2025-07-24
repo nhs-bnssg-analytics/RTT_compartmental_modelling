@@ -154,7 +154,7 @@ convert_month_to_factor <- function(months_waited_id) {
 #' vector
 #' @param string_vector A character vector
 #' @param replacement_vector A named vector where names correspond to values in
-#'   string_vector, adn can be regular expressions, and values are the
+#'   string_vector, and can be regular expressions, and values are the
 #'   replacements
 #' @return A character vector with replaced values
 #' @noRd
@@ -168,7 +168,7 @@ replace_fun <- function(string_vector, replacement_vector) {
 
   for (pattern in names(replacement_vector)) {
     replaced_vector <- ifelse(
-      grepl(pattern, replaced_vector),
+      grepl(paste0("^", pattern, "$"), replaced_vector),
       replacement_vector[pattern],
       replaced_vector
     )

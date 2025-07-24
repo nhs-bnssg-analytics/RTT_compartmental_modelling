@@ -122,6 +122,24 @@ test_that("replace_fun works", {
     c("a", "b", "c", "flow", "e", "f", "g", "junk"),
     info = "replace_fun works"
   )
+
+  expect_equal(
+    replace_fun(
+      string = "RFF",
+      replacement_vector = trust_lkp
+    ),
+    "BARNSLEY HOSPITAL NHS FOUNDATION TRUST",
+    info = "replace_fun works for Barnsley Trust"
+  )
+
+  expect_equal(
+    replace_fun(
+      "C_430",
+      treatment_function_codes
+    ),
+    "Elderly Medicine",
+    info = "replace_fun works for specialty"
+  )
 })
 
 test_that("local_enframe errors", {

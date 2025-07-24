@@ -52,10 +52,8 @@ mod_08_batch_ui <- function(id) {
     selectizeInput(
       inputId = ns("specialty_codes"),
       label = "Select specialties",
-      selected = "Total",
-      choices = unname(treatment_function_codes)[
-        unname(treatment_function_codes) != "Total"
-      ], # Exclude Total
+      # selected = "Total",
+      choices = unname(treatment_function_codes),
       options = list(
         placeholder = "Select one or more"
       ),
@@ -144,7 +142,8 @@ mod_08_batch_ui <- function(id) {
 
 #' 08_batch Server Functions
 #'
-#' @importFrom shiny reactiveValues observeEvent renderUI helpText
+#' @importFrom shiny reactiveValues observeEvent renderUI helpText modalDialog modalButton
+#'   tagList showModal
 #' @importFrom NHSRtt latest_rtt_date get_rtt_data
 #' @importFrom lubridate floor_date interval
 #' @importFrom rlang .data
@@ -209,7 +208,7 @@ mod_08_batch_server <- function(id) {
             showModal(
               modalDialog(
                 title = "Input Error",
-                "Please make a selection for both Trust & Specialty before submitting!",
+                "Please make a selection for both Trust & Specialty before submitting",
                 easyClose = TRUE, # Allows closing by clicking outside the modal
                 footer = tagList(
                   modalButton("Close")
@@ -279,7 +278,7 @@ mod_08_batch_server <- function(id) {
               package = "RTTshiny"
             )) |>
               filter(trust %in% input$ss_trust_codes) |>
-              filter(specialty %in% c(input$specialty_codes, "Total"))
+              filter(specialty %in% c(input$specialty_codes))
 
             # calculate the referrals uplift value per specialty/trust (remember,
             # the uplift to the number of referrals is due to the under-reporting
