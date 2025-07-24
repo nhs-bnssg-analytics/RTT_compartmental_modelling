@@ -360,15 +360,15 @@ test_that("convert_to_date works", {
   )
 })
 
-test_that("process_downloaded_data works", {
+test_that("aggregate_and_format_raw_data works", {
   specialty_codes <- "General Surgery"
-  processed_results <- process_downloaded_data(
-    imported_data = result |> filter(specialty == "C_100"),
-    trust_display = "Aggregated",
-    specialty_display = "General Surgery",
-    input_specialty_codes = specialty_codes,
-    min_download_date = min(dates),
-    max_download_date = max(dates)
+  processed_results <- aggregate_and_format_raw_data(
+    data = result |> filter(specialty == "C_100"),
+    trust_aggregate = "Aggregated",
+    specialty_aggregate = "General Surgery",
+    selected_specialties = specialty_codes,
+    min_date = min(dates),
+    max_date = max(dates)
   )
 
   expect_equal(

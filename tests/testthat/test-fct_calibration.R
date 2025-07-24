@@ -35,11 +35,16 @@ test_that("create_modelling_data works", {
     ) |>
     select(!c("referrals", "incompletes", "treatments"))
 
+  ref_uplift <- dplyr::tibble(
+    trust = unique(df$trust),
+    specialty = unique(df$specialty),
+    referrals_uplift = 0.1
+  )
 
   modelling_df <- create_modelling_data(
     df,
     max_months_waited = top_bin,
-    referrals_uplift = 0.1
+    referrals_uplift = ref_uplift
   )
 
 
@@ -127,12 +132,17 @@ test_that("calibrate_parameters works", {
     ) |>
     select(!c("referrals", "incompletes", "treatments"))
 
+  ref_uplift <- dplyr::tibble(
+    trust = unique(df$trust),
+    specialty = unique(df$specialty),
+    referrals_uplift = 0
+  )
 
   params <- calibrate_parameters(
     rtt_data = df,
     max_months_waited = top_bin,
     redistribute_m0_reneges = TRUE,
-    referrals_uplift = 0,
+    referrals_uplift = ref_uplift,
     full_breakdown = FALSE
   )
 
@@ -152,7 +162,7 @@ test_that("calibrate_parameters works", {
     rtt_data = df,
     max_months_waited = top_bin,
     redistribute_m0_reneges = TRUE,
-    referrals_uplift = 0,
+    referrals_uplift = ref_uplift,
     full_breakdown = TRUE
   )
 

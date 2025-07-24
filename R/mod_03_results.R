@@ -671,32 +671,58 @@ mod_03_results_server <- function(id, r) {
             height = "600px"
           )
         } else {
-          # if calculating performance from capacity inputs and selecting either referrals or capacity charts then we need to show the editing options
-          div(
-            plotOutput(
-              ns("results_plot"),
-              click = shiny::clickOpts(
-                id = ns("plot_click")
-              ),
-              height = "600px"
-            ),
+          # if calculating performance from capacity inputs then we need to show the editing options
+          if (
+            r$chart_specification$scenario_type ==
+              "Estimate performance (from treatment capacity inputs)"
+          ) {
             div(
-              class = "label-left",
-              sliderInput(
-                inputId = ns("chart_res"),
-                label = "Select chart resolution (pixels per inch)",
-                min = 72,
-                max = 144,
-                value = 96,
-                step = 8
+              plotOutput(
+                ns("results_plot"),
+                click = shiny::clickOpts(
+                  id = ns("plot_click")
+                ),
+                height = "600px"
+              ),
+              div(
+                class = "label-left",
+                sliderInput(
+                  inputId = ns("chart_res"),
+                  label = "Select chart resolution (pixels per inch)",
+                  min = 72,
+                  max = 144,
+                  value = 96,
+                  step = 8
+                )
+              ),
+              actionButton(
+                ns("edit_data"),
+                "Edit input data",
+                class = "btn-primary"
               )
-            ),
-            actionButton(
-              ns("edit_data"),
-              "Edit input data",
-              class = "btn-primary"
             )
-          )
+          } else {
+            div(
+              plotOutput(
+                ns("results_plot"),
+                click = shiny::clickOpts(
+                  id = ns("plot_click")
+                ),
+                height = "600px"
+              ),
+              div(
+                class = "label-left",
+                sliderInput(
+                  inputId = ns("chart_res"),
+                  label = "Select chart resolution (pixels per inch)",
+                  min = 72,
+                  max = 144,
+                  value = 96,
+                  step = 8
+                )
+              )
+            )
+          }
         }
       }
     })

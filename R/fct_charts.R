@@ -153,7 +153,7 @@ plot_output <- function(
       )
   } else if (
     p_target_line == F &
-      p_scenario == 'Estimate treatment capacity (from performance inputs)'
+      p_scenario == 'Estimate treatment capacity (from performance targets)'
   ) {
     txt <- performance_text(p_target_data)
 
@@ -248,7 +248,7 @@ plot_output <- function(
 
   if (
     p_target_line == T &
-      p_scenario == 'Estimate treatment capacity (from performance inputs)'
+      p_scenario == 'Estimate treatment capacity (from performance targets)'
   ) {
     # create the target month table
     target_month <- dplyr::tibble(
