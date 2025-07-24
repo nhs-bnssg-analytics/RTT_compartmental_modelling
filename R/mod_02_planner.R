@@ -535,12 +535,12 @@ mod_02_planner_server <- function(id, r) {
           specialty_codes = selections_labels$specialties$selected_code,
           progress = progress
         ) |>
-          process_downloaded_data(
-            trust_display = selections_labels$trusts$display,
-            specialty_display = selections_labels$specialties$display,
-            input_specialty_codes = input$specialty_codes,
-            min_download_date = min_download_date,
-            max_download_date = max_download_date
+          aggregate_and_format_raw_data(
+            trust_aggregate = selections_labels$trusts$display,
+            specialty_aggregate = selections_labels$specialties$display,
+            selected_specialties = input$specialty_codes,
+            min_date = min_download_date,
+            max_date = max_download_date
           )
 
         reactive_values$data_downloaded <- TRUE
@@ -575,15 +575,6 @@ mod_02_planner_server <- function(id, r) {
             )
           ) |>
           select("trust", "specialty", "referrals_uplift")
-
-        # check whether the referrals uplift value is negative
-        if (reactive_values$referrals_uplift < 0) {
-          reactive_values$referrals_uplift <- abs(
-            reactive_values$referrals_uplift
-          )
-        } else {
-          reactive_values$referrals_uplift <- 0
-        }
 
         # calculate the modelling parameters using the uplifted referrals
         reactive_values$params <- calibrate_parameters(
@@ -622,7 +613,8 @@ mod_02_planner_server <- function(id, r) {
           ) |>
           dplyr::mutate(
             adjusted_referrals = .data$unadjusted_referrals +
-              (.data$unadjusted_referrals * reactive_values$referrals_uplift$referrals_uplift),
+              (.data$unadjusted_referrals *
+                reactive_values$referrals_uplift$referrals_uplift),
             capacity_skew = 1,
             period_type = "Observed"
           )
@@ -1080,7 +1072,8 @@ mod_02_planner_server <- function(id, r) {
           dplyr::mutate(
             # we assume the referral inputs are the correct number if they aren't using the public data
             adjusted_referrals = .data$unadjusted_referrals +
-              (.data$unadjusted_referrals * reactive_values$referrals_uplift$referrals_uplift),
+              (.data$unadjusted_referrals *
+                reactive_values$referrals_uplift$referrals_uplift),
             capacity_skew = 1,
             period_type = "Observed"
           )
@@ -1801,10 +1794,9 @@ mod_02_planner_server <- function(id, r) {
     # Forecast performance based on treatment capacity inputs ---------------------------
 
     observeEvent(
-      c(input$calculate_performance), {
-
-        if(input$calculate_performance >= 1) {
-
+      c(input$calculate_performance),
+      {
+        if (input$calculate_performance >= 1) {
           selections_labels <- filters_displays(
             nhs_regions = input$region,
             nhs_only = input$nhs_only,
@@ -1841,7 +1833,7 @@ mod_02_planner_server <- function(id, r) {
           if (!is.null(reactive_values$referrals_uplift)) {
             projections_referrals <- unadjusted_projections_referrals +
               (unadjusted_projections_referrals *
-                reactive_values$referrals_uplift)
+                reactive_values$referrals_uplift$referrals_uplift)
           } else {
             projections_referrals <- unadjusted_projections_referrals
           }
@@ -1909,7 +1901,8 @@ mod_02_planner_server <- function(id, r) {
             ) |>
             mutate(
               adjusted_referrals = .data$unadjusted_referrals +
-                (.data$unadjusted_referrals * reactive_values$referrals_uplift$referrals_uplift),
+                (.data$unadjusted_referrals *
+                  reactive_values$referrals_uplift$referrals_uplift),
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = input$capacity_skew,
               period_type = "Projected"
@@ -1967,7 +1960,6 @@ mod_02_planner_server <- function(id, r) {
             capacity_percent_change = r$chart_specification$capacity_percent_change,
             capacity_change_type = r$chart_specification$capacity_change_type
           )
-
         }
       },
       ignoreInit = TRUE
@@ -2038,7 +2030,8 @@ mod_02_planner_server <- function(id, r) {
             baseline_referrals <- unadjusted_baseline_referrals |>
               mutate(
                 value = .data$value +
-                  (.data$value * reactive_values$referrals_uplift$referrals_uplift)
+                  (.data$value *
+                    reactive_values$referrals_uplift$referrals_uplift)
               )
           } else {
             baseline_referrals <- unadjusted_baseline_referrals
@@ -2168,7 +2161,6 @@ mod_02_planner_server <- function(id, r) {
             )
 
           for (i in seq_len(nrow(target_data()))) {
-
             i_target_data <- target_data() |>
               dplyr::slice(i)
 
@@ -2436,7 +2428,8 @@ mod_02_planner_server <- function(id, r) {
             ) |>
             dplyr::mutate(
               adjusted_referrals = .data$unadjusted_referrals +
-                (.data$unadjusted_referrals * reactive_values$referrals_uplift$referrals_uplift),
+                (.data$unadjusted_referrals *
+                  reactive_values$referrals_uplift$referrals_uplift),
               period_id = .data$period_id + max(r$all_data$period_id),
               capacity_skew = projection_calcs$skew_param,
               period_type = "Projected"

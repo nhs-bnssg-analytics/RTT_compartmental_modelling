@@ -81,18 +81,22 @@ get_rtt_data_with_progress <- function(
 #'   months_waited_id and value
 #' @noRd
 aggregate_and_format_raw_data <- function(
-    data, specialty_aggregate = NULL,
-    trust_aggregate = NULL, selected_specialties = NULL,
-    min_date,
-    max_date
-  ) {
-
-
+  data,
+  specialty_aggregate = NULL,
+  trust_aggregate = NULL,
+  selected_specialties = NULL,
+  min_date,
+  max_date
+) {
   data <- data |>
     summarise(
       value = sum(.data$value),
       .by = c(
-        "trust", "specialty", "period", "months_waited", "type"
+        "trust",
+        "specialty",
+        "period",
+        "months_waited",
+        "type"
       )
     ) |>
     mutate(
@@ -111,7 +115,6 @@ aggregate_and_format_raw_data <- function(
         )
       )
   } else {
-
     data <- data |>
       mutate(
         trust = "Aggregated"
@@ -178,10 +181,10 @@ aggregate_and_format_raw_data <- function(
     mutate(
       period_id = dplyr::row_number(), # we need period_id for later steps
       .by = c(
-        .data$trust,
-        .data$specialty,
-        .data$type,
-        .data$months_waited_id
+        "trust",
+        "specialty",
+        "type",
+        "months_waited_id"
       )
     )
 
@@ -337,135 +340,6 @@ check_imported_data <- function(imported_data) {
   return(check_outputs)
 }
 
-#' take the raw data from the get_rtt_data_with_progress function and process it
-#' into a format suitable for the app
-#' @param imported_data the raw data from the get_rtt_data_with_progress function
-#' @param trust_display string, the display of the trusts (either the trust name or "Aggregated")
-#' @param specialty_display string, the display of the specialties (either the specialty name or
-#' "Aggregated")
-#' @param input_specialty_codes vector of specialty codes selected by the user
-#' @param min_download_date the minimum date of the data
-#' @param max_download_date the maximum date of the data
-#' @importFrom dplyr summarise mutate arrange
-#' @importFrom tidyr complete
-#' @importFrom NHSRtt convert_months_waited_to_id
-#' @importFrom rlang .data
-#' @return a tibble with the processed data
-#' @noRd
-process_downloaded_data <- function(
-  imported_data,
-  trust_display,
-  specialty_display,
-  input_specialty_codes,
-  min_download_date,
-  max_download_date
-) {
-  if (length(input_specialty_codes) > 1) {
-    stop("Only one specialty can be selected at a time")
-  }
-
-  processed_data <- imported_data |>
-    summarise(
-      value = sum(.data$value),
-      .by = c(
-        "trust",
-        "specialty",
-        "period",
-        "months_waited",
-        "type"
-      )
-    ) |>
-    mutate(
-      months_waited_id = NHSRtt::convert_months_waited_to_id(
-        .data$months_waited,
-        12 # this pools the data at 12+ months (this can be a user input in the future)
-      )
-    )
-
-  if (trust_display == "Aggregated") {
-    processed_data <- processed_data |>
-      mutate(
-        trust = "Aggregated"
-      )
-  } else {
-    processed_data <- processed_data |>
-      mutate(
-        trust = replace_fun(
-          .data$trust,
-          trust_lkp
-        )
-      )
-  }
-
-  if (specialty_display == "Aggregated") {
-    processed_data <- processed_data |>
-      mutate(
-        specialty = "Aggregated"
-      )
-  } else {
-    processed_data <- processed_data |>
-      mutate(
-        specialty = replace_fun(
-          .data$specialty,
-          treatment_function_codes
-        )
-      )
-  }
-
-  processed_data <- processed_data |>
-    summarise(
-      value = sum(.data$value),
-      .by = c(
-        "trust",
-        "specialty",
-        "period",
-        "type",
-        "months_waited_id"
-      )
-    ) |>
-    arrange(
-      .data$trust,
-      .data$specialty,
-      .data$type,
-      .data$months_waited_id,
-      .data$period
-    ) |>
-    tidyr::complete(
-      specialty = input_specialty_codes,
-      type = c("Complete", "Incomplete"),
-      .data$months_waited_id,
-      period = seq(
-        from = min_download_date,
-        to = lubridate::floor_date(max_download_date, unit = "months"),
-        by = "months"
-      ),
-      .data$trust,
-      fill = list(value = 0)
-    ) |>
-    tidyr::complete(
-      specialty = input_specialty_codes,
-      type = "Referrals",
-      months_waited_id = 0,
-      period = seq(
-        from = min_download_date,
-        to = lubridate::floor_date(max_download_date, unit = "months"),
-        by = "months"
-      ),
-      .data$trust,
-      fill = list(value = 0)
-    ) |>
-    mutate(
-      period_id = dplyr::row_number(), # we need period_id for later steps
-      .by = c(
-        "trust",
-        "specialty",
-        "type",
-        "months_waited_id"
-      )
-    )
-  return(processed_data)
-}
-
 #' update the sample data to finish at the final month of the available online data
 #' @param final_month the final month of the available online data
 #' @return a tibble with the updated sample data
@@ -563,12 +437,18 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
     referrals_uplift_value <- 0
   }
 
+  referrals_uplift <- dplyr::tibble(
+    trust = unique(first_half_data$trust),
+    specialty = unique(first_half_data$specialty),
+    referrals_uplift = referrals_uplift_value
+  )
+
   # calculate the modelling parameters using the uplifted referrals
   params <- calibrate_parameters(
     first_half_data,
     max_months_waited = 12,
     redistribute_m0_reneges = FALSE,
-    referrals_uplift = referrals_uplift_value
+    referrals_uplift = referrals_uplift
   )
 
   # apply parameters to projections
