@@ -14,7 +14,6 @@
 #'   filter
 #' @noRd
 calc_performance <- function(incompletes_data, target_bin) {
-
   # check one record per month waited per period
   check_counts <- incompletes_data |>
     dplyr::count(
@@ -25,7 +24,9 @@ calc_performance <- function(incompletes_data, target_bin) {
       .data$n > 1
     )
 
-  if (nrow(check_counts) > 0) stop("duplicate counts per period and month waited")
+  if (nrow(check_counts) > 0) {
+    stop("duplicate counts per period and month waited")
+  }
 
   current_groupings <- dplyr::group_vars(
     incompletes_data
@@ -36,12 +37,18 @@ calc_performance <- function(incompletes_data, target_bin) {
   )
 
   # check target_bin within the range of bins available
-  if (!(target_bin %in% incompletes_data[["months_waited_id"]]))
+  if (!(target_bin %in% incompletes_data[["months_waited_id"]])) {
     stop("target_bin not a valid month waited in the incompletes_data")
+  }
 
   # check names
-  if (!all(c("period", "months_waited_id", "value") %in% names(incompletes_data)))
-    stop("'period', 'months_waited_id' and 'value' should be present in incompletes_data")
+  if (
+    !all(c("period", "months_waited_id", "value") %in% names(incompletes_data))
+  ) {
+    stop(
+      "'period', 'months_waited_id' and 'value' should be present in incompletes_data"
+    )
+  }
 
   performance <- incompletes_data |>
     mutate(
@@ -68,7 +75,9 @@ calc_performance <- function(incompletes_data, target_bin) {
     select(
       all_of(
         c(
-          "period", "prop", current_groupings
+          "period",
+          "prop",
+          current_groupings
         )
       )
     ) |>
@@ -89,8 +98,9 @@ calc_performance <- function(incompletes_data, target_bin) {
 #'   for a filter() operation
 #' @noRd
 extract_pval <- function(lm_object, input_term) {
-
-  if (!inherits(lm_object, "lm")) stop("lm_object not lm class")
+  if (!inherits(lm_object, "lm")) {
+    stop("lm_object not lm class")
+  }
 
   p_val <- summary(lm_object)$coefficients |>
     dplyr::as_tibble(rownames = "term") |>
@@ -100,7 +110,6 @@ extract_pval <- function(lm_object, input_term) {
     )
 
   return(p_val)
-
 }
 
 #' extracts the percentage value at the end of a string
@@ -121,11 +130,31 @@ extract_first_number <- function(text) {
   return(as.integer(start_month))
 }
 
+convert_month_to_factor <- function(months_waited_id) {
+  months_waited_character <- ifelse(
+    months_waited_id < 12,
+    paste0(months_waited_id, "-", months_waited_id + 1, " months"),
+    "12+ months"
+  )
+
+  months_waited_factor <- factor(
+    months_waited_character,
+    levels = paste(
+      c(
+        paste0(0:11, "-", 1:12),
+        "12+"
+      ),
+      "months"
+    )
+  )
+  return(months_waited_factor)
+}
+
 #' Replaces values in a string vector with corresponding values from a named
 #' vector
 #' @param string_vector A character vector
 #' @param replacement_vector A named vector where names correspond to values in
-#'   string_vector, adn can be regular expressions, and values are the
+#'   string_vector, and can be regular expressions, and values are the
 #'   replacements
 #' @return A character vector with replaced values
 #' @noRd
@@ -138,9 +167,11 @@ replace_fun <- function(string_vector, replacement_vector) {
   replaced_vector <- string_vector
 
   for (pattern in names(replacement_vector)) {
-    replaced_vector <- ifelse(grepl(pattern, replaced_vector),
-                              replacement_vector[pattern],
-                              replaced_vector)
+    replaced_vector <- ifelse(
+      grepl(paste0("^", pattern, "$"), replaced_vector),
+      replacement_vector[pattern],
+      replaced_vector
+    )
   }
 
   return(replaced_vector)
@@ -154,7 +185,8 @@ replace_fun <- function(string_vector, replacement_vector) {
 org_name_lkp <- function(names = NULL, type) {
   type <- match.arg(
     type,
-    c("NHS Region",
+    c(
+      "NHS Region",
       "Provider Parent",
       "Provider Org",
       "Commissioner Parent",
@@ -162,7 +194,9 @@ org_name_lkp <- function(names = NULL, type) {
     )
   )
 
-  if (length(names) == 0) return(NULL)
+  if (length(names) == 0) {
+    return(NULL)
+  }
 
   if (type == "NHS Region") {
     code_col <- "NHS Region Code"
@@ -184,8 +218,7 @@ org_name_lkp <- function(names = NULL, type) {
   codes <- org_lkp |>
     dplyr::select(
       dplyr::all_of(
-        c(code_col,
-          name_col)
+        c(code_col, name_col)
       )
     ) |>
     dplyr::rename(
@@ -198,8 +231,11 @@ org_name_lkp <- function(names = NULL, type) {
     ) |>
     dplyr::pull(.data$code)
 
-  if (length(names) != length(codes))
-    warning("some names were not translated to codes as they were missing from the lookup")
+  if (length(names) != length(codes)) {
+    warning(
+      "some names were not translated to codes as they were missing from the lookup"
+    )
+  }
 
   return(codes)
 }
@@ -215,7 +251,8 @@ org_name_lkp <- function(names = NULL, type) {
 #' @param comm_parents character; vector of full names for commissioner parents
 #' @param comms character; vector of full names for commissioners
 #' @param spec character; vector of full names for specialties
-#'
+#' @param nhs_only character; one of "nhs_only", "non_nhs_only" or "all"
+#' @param nhs_regions character; vector of NHS regions
 #' @returns a nested list with five nests. The five nests are named
 #'   trust_parents, trusts, commissioner_parents, commissioners, and
 #'   specialties. Within each of these there are 3 items; selected_name,
@@ -233,21 +270,48 @@ org_name_lkp <- function(names = NULL, type) {
 #'   subsequently displayed in the chart titles. If multiple or no selections
 #'   are made, then this will take the value 'Aggregated'.
 #' @noRd
-filters_displays <- function(nhs_regions, nhs_only, trust_parents, trusts, comm_parents, comms, spec) {
+filters_displays <- function(
+  nhs_regions,
+  nhs_only,
+  trust_parents,
+  trusts,
+  comm_parents,
+  comms,
+  spec
+) {
+  nhs_only <- match.arg(
+    nhs_only,
+    c(
+      "nhs_only",
+      "non_nhs_only",
+      "all"
+    )
+  )
 
   selected_trust_parents <- org_name_lkp(
     names = trust_parents,
     type = "Provider Parent"
   )
 
-  if (all(is.null(trusts), is.null(trust_parents), is.null(comm_parents), is.null(comms))) {
-
+  if (
+    all(
+      is.null(trusts),
+      is.null(trust_parents),
+      is.null(comm_parents),
+      is.null(comms)
+    )
+  ) {
     data_table <- org_lkp
 
-    if (isTRUE(nhs_only)) {
+    if (nhs_only == "nhs_only") {
       data_table <- data_table |>
         dplyr::filter(
           grepl("NHS", .data$`Provider Org Name`)
+        )
+    } else if (nhs_only == "non_nhs_only") {
+      data_table <- data_table |>
+        dplyr::filter(
+          !grepl("NHS", .data$`Provider Org Name`)
         )
     }
 
@@ -282,45 +346,54 @@ filters_displays <- function(nhs_regions, nhs_only, trust_parents, trusts, comm_
     pull(.data$Treatment.Function.Code)
 
   spec <- replace_fun(
-      spec,
-      treatment_function_codes
-    )
+    spec,
+    treatment_function_codes
+  )
 
-  if (length(selected_trust_parents) > 1 |
-      is.null(selected_trust_parents)) {
+  if (
+    length(selected_trust_parents) > 1 |
+      is.null(selected_trust_parents)
+  ) {
     display_trust_parents <- "Aggregated"
   } else {
     display_trust_parents <- trust_parents
   }
 
-  if (length(selected_trusts) > 1 |
-      is.null(selected_trusts)) {
+  if (
+    length(selected_trusts) > 1 |
+      is.null(selected_trusts)
+  ) {
     display_trusts <- "Aggregated"
   } else {
     display_trusts <- trusts
   }
 
-  if (length(selected_commissioner_parents) > 1 |
-      is.null(selected_commissioner_parents)) {
+  if (
+    length(selected_commissioner_parents) > 1 |
+      is.null(selected_commissioner_parents)
+  ) {
     display_commissioner_parents <- "Aggregated"
   } else {
     display_commissioner_parents <- comm_parents
   }
 
-  if (length(selected_commissioners) > 1 |
-      is.null(selected_commissioners)) {
+  if (
+    length(selected_commissioners) > 1 |
+      is.null(selected_commissioners)
+  ) {
     display_commissioners <- "Aggregated"
   } else {
     display_commissioners <- comms
   }
 
-  if (length(selected_specialties) > 1 |
-      length(selected_specialties) == 0) {
+  if (
+    length(selected_specialties) > 1 |
+      length(selected_specialties) == 0
+  ) {
     display_specialties <- "Aggregated"
   } else {
     display_specialties <- spec
   }
-
 
   return(
     list(
@@ -354,8 +427,9 @@ filters_displays <- function(nhs_regions, nhs_only, trust_parents, trusts, comm_
 }
 
 local_enframe <- function(named_vector, name, value_name) {
-
-  if (is.null(names(named_vector))) stop("named_vector must have names")
+  if (is.null(names(named_vector))) {
+    stop("named_vector must have names")
+  }
 
   df <- dplyr::tibble(
     name = names(named_vector),
@@ -366,12 +440,10 @@ local_enframe <- function(named_vector, name, value_name) {
     )
 
   return(df)
-
 }
 
 
 value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NA) {
-
   x_val <- format(x_val, "%b %Y")
 
   y_val_type <- match.arg(
@@ -414,7 +486,6 @@ value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NA) {
       )
     )
   } else {
-
     months_waited <- facet
 
     out <- p(
@@ -435,6 +506,37 @@ value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NA) {
     )
   }
 
-
   return(out)
+}
+
+#' Create a text string for the latest performance based on the r$all_data dataset
+#' @param data the r$all_data dataset
+#' @noRd
+#' @importFrom dplyr filter pull mutate
+latest_performance_text <- function(data) {
+  text <- data |>
+    filter(
+      .data$type == "Incomplete",
+      .data$period == max(.data$period)
+    ) |>
+    calc_performance(
+      target_bin = 4
+    ) |>
+    mutate(
+      text = paste0(
+        "The performance at ",
+        format(.data$period, '%b %y'),
+        " was ",
+        format(
+          100 * .data$prop,
+          format = "f",
+          digits = 2,
+          nsmall = 1
+        ),
+        "%"
+      )
+    ) |>
+    pull(.data$text)
+
+  return(text)
 }

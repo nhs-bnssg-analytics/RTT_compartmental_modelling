@@ -1,5 +1,4 @@
 test_that("plot_output function", {
-
   target_data <- example_chart_data |>
     filter(period == as.Date("2026-04-01")) |>
     mutate(months_waited_id = extract_first_number(months_waited_id)) |>
@@ -17,8 +16,10 @@ test_that("plot_output function", {
     plot_output(
       data = example_chart_data |>
         dplyr::filter(.data$months_waited_id == "0-1 months") |>
-        dplyr::mutate(p_var  = sum(.data$adjusted_referrals),
-                      .by = c("period", "period_type")) |>
+        dplyr::mutate(
+          p_var = sum(.data$adjusted_referrals),
+          .by = c("period", "period_type")
+        ) |>
         extend_period_type_data(),
       p_trust = "Example trust",
       p_speciality = "specialty selection",
@@ -43,8 +44,10 @@ test_that("plot_output function", {
     title = "capacity total chart",
     plot_output(
       data = example_chart_data |>
-        dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                         .by = c("period", "period_type")) |>
+        dplyr::summarise(
+          p_var = sum(.data$calculated_treatments, na.rm = T),
+          .by = c("period", "period_type")
+        ) |>
         extend_period_type_data(),
       p_trust = "Example trust",
       p_speciality = "specialty selection",
@@ -67,8 +70,10 @@ test_that("plot_output function", {
     title = "capacity facet chart",
     plot_output(
       data = example_chart_data |>
-        dplyr::summarise(p_var = sum(.data$calculated_treatments, na.rm = T),
-                         .by = c("period", "period_type", "months_waited_id")) |>
+        dplyr::summarise(
+          p_var = sum(.data$calculated_treatments, na.rm = T),
+          .by = c("period", "period_type", "months_waited_id")
+        ) |>
         extend_period_type_data(),
       p_trust = "Example trust",
       p_speciality = "specialty selection",
@@ -92,8 +97,10 @@ test_that("plot_output function", {
     title = "reneges total chart",
     plot_output(
       data = example_chart_data |>
-        dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                         .by = c("period", "period_type")) |>
+        dplyr::summarise(
+          p_var = sum(.data$reneges, na.rm = T),
+          .by = c("period", "period_type")
+        ) |>
         extend_period_type_data(),
       p_trust = "Example trust",
       p_speciality = "specialty selection",
@@ -116,13 +123,15 @@ test_that("plot_output function", {
     title = "reneges facet chart",
     plot_output(
       data = example_chart_data |>
-        dplyr::summarise(p_var = sum(.data$reneges, na.rm = T),
-                         .by = c("period", "period_type", "months_waited_id")) |>
+        dplyr::summarise(
+          p_var = sum(.data$reneges, na.rm = T),
+          .by = c("period", "period_type", "months_waited_id")
+        ) |>
         extend_period_type_data(),
       p_trust = "Example trust",
       p_speciality = "specialty selection",
       p_chart = "net reneges by months waiting",
-      p_scenario = "Estimate treatment capacity (from performance inputs)",
+      p_scenario = "Estimate treatment capacity (from performance targets)",
       p_cap_change = 5,
       p_cap_skew = 1,
       p_cap_change_type = "linear",
@@ -136,18 +145,20 @@ test_that("plot_output function", {
     )
   )
 
-# waiting list charts
+  # waiting list charts
   vdiffr::expect_doppelganger(
     title = "waiting list total chart",
     plot_output(
       data = example_chart_data |>
-        dplyr::summarise(p_var = sum(.data$incompletes, na.rm = T),
-                         .by = c("period", "period_type")) |>
+        dplyr::summarise(
+          p_var = sum(.data$incompletes, na.rm = T),
+          .by = c("period", "period_type")
+        ) |>
         extend_period_type_data(),
       p_trust = "Example trust",
       p_speciality = "specialty selection",
       p_chart = "waiting list size",
-      p_scenario = "Estimate treatment capacity (from performance inputs)",
+      p_scenario = "Estimate treatment capacity (from performance targets)",
       p_cap_change = 5,
       p_cap_skew = 1,
       p_cap_change_type = "uniform",
@@ -203,7 +214,7 @@ test_that("plot_output function", {
       p_trust = "Example trust",
       p_speciality = "specialty selection",
       p_chart = "18 weeks performance",
-      p_scenario = "Estimate treatment capacity (from performance inputs)",
+      p_scenario = "Estimate treatment capacity (from performance targets)",
       p_cap_change = 5,
       p_cap_skew = 1,
       p_cap_change_type = "uniform",
@@ -217,7 +228,33 @@ test_that("plot_output function", {
     )
   )
 
-
+  # customised referrals chart
+  vdiffr::expect_doppelganger(
+    title = "customised referrals chart",
+    plot_output(
+      data = example_chart_data |>
+        dplyr::filter(.data$months_waited_id == "0-1 months") |>
+        dplyr::mutate(
+          p_var = sum(.data$adjusted_referrals),
+          .by = c("period", "period_type")
+        ) |>
+        extend_period_type_data(),
+      p_trust = "Example trust",
+      p_speciality = "specialty selection",
+      p_chart = "referrals",
+      p_scenario = "Estimate performance (from treatment capacity inputs)",
+      p_cap_change = "",
+      p_cap_skew = 1,
+      p_cap_change_type = "manually adjusted",
+      p_target_data = NULL,
+      p_referrals_percent_change = "",
+      p_referrals_change_type = "manual",
+      p_perc = FALSE,
+      p_facet = FALSE,
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
+    )
+  )
 })
 
 
@@ -226,7 +263,6 @@ test_that("performance_text works", {
     Target_date = as.Date("2022-03-01") %m+% months(c(0, 12, 24)),
     Target_percentage = c(60, 65, 70)
   )
-
 
   expect_equal(
     performance_text(df),
@@ -251,11 +287,15 @@ test_that("performance_text works", {
 
 # Test suite for extend_period_type_data
 test_that("Test extend_period_type_data", {
-
   # Helper function to create a sample dataset
   create_sample_data <- function() {
     data.frame(
-      period = as.Date(c("2023-01-01", "2023-02-01","2023-03-01", "2023-04-01")),
+      period = as.Date(c(
+        "2023-01-01",
+        "2023-02-01",
+        "2023-03-01",
+        "2023-04-01"
+      )),
       period_type = c("Type A", "Type A", "Type B", "Type B"),
       value = c(10, 20, 15, 25)
     )
@@ -279,7 +319,8 @@ test_that("Test extend_period_type_data", {
     dplyr::anti_join(
       sample_data,
       by = join_by(
-        period, period_type
+        period,
+        period_type
       )
     )
 
@@ -310,8 +351,6 @@ test_that("Test extend_period_type_data", {
     info = "New values from the previous month are copied correctly"
   )
 
-
-
   # Test case 2: Test with only one period
 
   one_period_data <- data.frame(
@@ -335,12 +374,9 @@ test_that("Test extend_period_type_data", {
     expected_new_periods,
     info = "New periods are calculated correctly when one period is passed to the function"
   )
-
-
 })
 
 test_that("holding_chart is consistent", {
-
   vdiffr::expect_doppelganger(
     title = "holding chart to signpost to modelling",
     fig = holding_chart(type = "model")
@@ -355,11 +391,9 @@ test_that("holding_chart is consistent", {
     holding_chart(type = "other"),
     error = TRUE
   )
-
 })
 
-test_that("plot_skew is consistent" ,{
-
+test_that("plot_skew is consistent", {
   dummy_params <- dplyr::tibble(
     months_waited_id = 0:6,
     renege_param = c(0.3, 0.1, 0.05, 0.02, 0.02, 0.03, 0.15),
@@ -424,7 +458,6 @@ test_that("plot_skew is consistent" ,{
 })
 
 test_that("calc_breaks functionality", {
-
   date_limits <- as.Date(c("2020-01-01", "2024-01-01"))
   unfacetted_breaks <- january_breaks(
     date_limits
@@ -437,10 +470,24 @@ test_that("calc_breaks functionality", {
   expect_equal(
     unfacetted_breaks,
     as.Date(
-      c("2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01", "2021-01-01",
-        "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01",
-        "2022-07-01", "2022-10-01", "2023-01-01", "2023-04-01", "2023-07-01",
-        "2023-10-01", "2024-01-01"
+      c(
+        "2020-01-01",
+        "2020-04-01",
+        "2020-07-01",
+        "2020-10-01",
+        "2021-01-01",
+        "2021-04-01",
+        "2021-07-01",
+        "2021-10-01",
+        "2022-01-01",
+        "2022-04-01",
+        "2022-07-01",
+        "2022-10-01",
+        "2023-01-01",
+        "2023-04-01",
+        "2023-07-01",
+        "2023-10-01",
+        "2024-01-01"
       )
     ),
     info = "unfacetted breaks are calculated consistently"
@@ -450,8 +497,15 @@ test_that("calc_breaks functionality", {
     facetted_breaks,
     as.Date(
       c(
-        "2020-01-01", "2020-07-01", "2021-01-01", "2021-07-01", "2022-01-01",
-        "2022-07-01", "2023-01-01", "2023-07-01", "2024-01-01"
+        "2020-01-01",
+        "2020-07-01",
+        "2021-01-01",
+        "2021-07-01",
+        "2022-01-01",
+        "2022-07-01",
+        "2023-01-01",
+        "2023-07-01",
+        "2024-01-01"
       )
     ),
     info = "facetted breaks are calculated consistently"
@@ -466,7 +520,6 @@ test_that("calc_breaks functionality", {
     any(months(facetted_breaks) == "January"),
     info = "January in facetted breaks"
   )
-
 })
 
 
@@ -516,7 +569,6 @@ test_that("click_info works", {
     info = "click_info works for first month of projected period selected"
   )
 
-
   chart_data <- chart_data |>
     cross_join(
       tibble(
@@ -541,15 +593,12 @@ test_that("click_info works", {
     ),
     info = "click_info works for facetted chart"
   )
-
 })
-
 
 
 # tool tip tests ----------------------------------------------------------
 
 test_that("tooltip testing", {
-
   vdiffr::expect_doppelganger(
     title = "Linear tooltip",
     linear_tooltip()
@@ -560,7 +609,7 @@ test_that("tooltip testing", {
     uniform_tooltip()
   )
 
-  expect_snapshot(
+  golem::expect_shinytag(
     linear_uniform_tooltip(
       uniform_id = "dummy_uniform",
       linear_id = "dummy_linear"
@@ -569,5 +618,42 @@ test_that("tooltip testing", {
 
   expect_snapshot(
     skew_tooltip()
+  )
+})
+
+test_that("plot_error works", {
+  modified_sample_data <- sample_data |>
+    mutate(
+      trust = "ABC",
+      specialty = "DEF",
+      period_id = dplyr::row_number(),
+      .by = c("type", "months_waited_id")
+    )
+  cal_data_modelled <- split_and_model_calibration_data(
+    data = modified_sample_data,
+    referrals_uplift = TRUE
+  )
+
+  vdiffr::expect_doppelganger(
+    title = "plot_error",
+    fig = plot_error(
+      modelled_data = cal_data_modelled |>
+        left_join(
+          modified_sample_data |>
+            distinct(
+              period,
+              period_id
+            ),
+          by = join_by(
+            period_id
+          )
+        ),
+      observed_data = modified_sample_data |>
+        filter(
+          type == "Incomplete",
+          period_id < min(cal_data_modelled$period_id),
+          period_id > min(period_id)
+        )
+    )
   )
 })

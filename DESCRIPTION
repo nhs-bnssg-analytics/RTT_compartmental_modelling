@@ -1,9 +1,11 @@
 Package: RTTshiny
 Title: A Shiny App to support teams to plan to reduce waiting list times
-Version: 1.0.1
+Version: 1.0.2.9000
 Authors@R: c(
     person("Seb", "Fox", , "sebastian.fox3@nhs.net", role = c("aut", "cre")),
-    person("Simon", "Wellesley-Miller", , "simon.wellesley-miller@nhs.net", role = "aut")
+    person("Simon", "Wellesley-Miller", , "simon.wellesley-miller@nhs.net", role = "aut"),
+    person("Nick", "Cooper", , "nick.cooper5@nhs.net", role = "aut"),
+    person("Euan", "Ives", , "euan.ives@nhs.net", role = "aut") 
   )
 Description: Ingests public NHS Referral to Treatment data and models
     historic relationships, allowing users to forecast future scenarios.

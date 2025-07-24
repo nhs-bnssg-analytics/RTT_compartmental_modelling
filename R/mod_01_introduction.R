@@ -8,7 +8,7 @@
 #' @importFrom bslib page_fillable page_navbar layout_column_wrap card
 #'   card_header card_body card_footer
 #' @importFrom shiny NS tagList h3 p hr actionButton div h4
-mod_01_introduction_ui <- function(id){
+mod_01_introduction_ui <- function(id) {
   ns <- NS(id)
   page_fillable(
     layout_columns(
@@ -16,28 +16,36 @@ mod_01_introduction_ui <- function(id){
       card(
         card_body(
           h3("About this tool"),
-          p("This is a tool to help the NHS plan and manage elective waiting lists and waiting times."),
+          p(
+            "This is a tool to help the NHS plan and manage elective waiting lists and waiting times."
+          ),
 
-          p("This tool projects future waiting list and associated performance metrics based on a model calibrated
+          p(
+            "This tool projects future waiting list and associated performance metrics based on a model calibrated
             on historical referral, treatment and reneging activity. By applying the calibrated model to referral
             trajectories, the tool can help users make informed decisions to improve patient care
-            delivery and achieve NHS performance targets."),
+            delivery and achieve NHS performance targets."
+          ),
 
-          p(HTML("This tool has been developed, and is maintained, by the South West Decision Support Network.
-            See the <em>Acknowledgements</em> tab for its history and to find out more about the collaborators.")),
+          p(HTML(
+            "This tool has been developed, and is maintained, by the South West Decision Support Network.
+            See the <em>Acknowledgements</em> tab for its history and to find out more about the collaborators."
+          )),
 
           p(
             HTML(
               paste0(
                 "See the latest features <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/blob/main/NEWS.md'>here</a>."
-                )
+              )
             )
           ),
 
           hr(),
 
           h3("How to use this tool"),
-          p("Navigate through the following sections using the tabs at the top of each page:"),
+          p(
+            "Navigate through the following sections using the tabs at the top of each page:"
+          ),
 
           layout_column_wrap(
             width = 1 / 3,
@@ -53,8 +61,12 @@ mod_01_introduction_ui <- function(id){
                   class = "intro-card"
                 ),
                 card_body(
-                  p("Make selections of trust, specialty, and any associated commissioning groups."),
-                  p("Select the length of time that the calibration period should be."),
+                  p(
+                    "Make selections of trust, specialty, and any associated commissioning groups."
+                  ),
+                  p(
+                    "Select the length of time that the calibration period should be."
+                  ),
                   p(HTML("Hit the <em>Download</em> button."))
                 )
               )
@@ -78,9 +90,15 @@ mod_01_introduction_ui <- function(id){
                     class = "intro-card"
                   ),
                   card_body(
-                    p("Enter the forecast period and referrals projection information."),
-                    p(HTML("Select the scenario type <em>'Calculate performance (from treatment capacity inputs)'</em>.")),
-                    p("Provide the treatment capacity information (along with skew settings)."),
+                    p(
+                      "Enter the forecast period and referrals projection information."
+                    ),
+                    p(HTML(
+                      "Select the scenario type <em>'Calculate performance (from treatment capacity inputs)'</em>."
+                    )),
+                    p(
+                      "Provide the treatment capacity information (along with skew settings)."
+                    ),
                     p(HTML("Hit <em>'Calculate future performance'</em>."))
                   )
                 ),
@@ -90,20 +108,27 @@ mod_01_introduction_ui <- function(id){
                 card(
                   card_header(
                     h4(
-                      HTML("Optimise treatment capacity (<em>Scenario planner</em>)")
+                      HTML(
+                        "Optimise treatment capacity (<em>Scenario planner</em>)"
+                      )
                     ),
                     class = "intro-card"
                   ),
                   card_body(
-                    p("Enter the forecast period and referrals projection information."),
-                    p(HTML("Select the scenario type <em>'Calculate treatment capacity (from performance inputs)'</em>.")),
-                    p("Provide the performance information (along with skew settings)."),
+                    p(
+                      "Enter the forecast period and referrals projection information."
+                    ),
+                    p(HTML(
+                      "Select the scenario type <em>'Calculate treatment capacity (from performance inputs)'</em>."
+                    )),
+                    p(
+                      "Provide the performance information (along with skew settings)."
+                    ),
                     p(HTML("Hit <em>'Optimise treatment capacity'</em>."))
                   )
                 )
               )
             ),
-
 
             # Third column with title above card
             div(
@@ -127,32 +152,45 @@ mod_01_introduction_ui <- function(id){
           hr(),
 
           h3("Future developments"),
-          p("We are continuously improving this tool to better serve healthcare professionals.
-          The following enhancements are currently in development:"),
+          p(
+            "We are continuously improving this tool to better serve healthcare professionals.
+          The following enhancements are currently in development:"
+          ),
 
           tags$ul(
-            tags$li(tags$strong("Translate treatment capacity to activity:"), " Apply national analaysis of pathways data to provide an estimate of the numbers and types of activity per treatment."),
-            tags$li(tags$strong("Post-optimisation adjustments:"), " Feed the projection data back into the scenario section to make minor, more custom adjustments."),
-            tags$li(tags$strong("Data inputs:"), " Provide visualisations of the downloaded data once the data are downloaded."),
-            tags$li(tags$strong("Other:"), HTML(" View the issues backlog <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>here</a>."))
+            tags$li(
+              tags$strong("Translate treatment capacity to activity:"),
+              " Apply national analaysis of pathways data to provide an estimate of the numbers and types of activity per treatment."
+            ),
+            tags$li(
+              tags$strong("Batch processing:"),
+              " Option of selecting multiple combinations of trust and specialty to process at once, to understand treatment capacity changes required to meet a performance target."
+            ),
+            tags$li(
+              tags$strong("Steady state:"),
+              " Provision of a gap analysis between the current waiting list and an optimal waiting list that is 'healthy', in steady state, and meeting performance targets."
+            ),
+            tags$li(
+              tags$strong("Other:"),
+              HTML(
+                " View the issues backlog <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>here</a>."
+              )
+            )
           ),
 
           hr(),
-
         )
       )
     )
   )
-
 }
 
 #' 01_introduction Server Functions
 #' @importFrom shiny updateTabsetPanel
 #' @noRd
-mod_01_introduction_server <- function(id){
-  moduleServer( id, function(input, output, session){
+mod_01_introduction_server <- function(id) {
+  moduleServer(id, function(input, output, session) {
     ns <- session$ns
-
   })
 }
 

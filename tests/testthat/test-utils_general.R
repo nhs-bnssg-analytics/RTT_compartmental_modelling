@@ -122,6 +122,24 @@ test_that("replace_fun works", {
     c("a", "b", "c", "flow", "e", "f", "g", "junk"),
     info = "replace_fun works"
   )
+
+  expect_equal(
+    replace_fun(
+      string = "RFF",
+      replacement_vector = trust_lkp
+    ),
+    "BARNSLEY HOSPITAL NHS FOUNDATION TRUST",
+    info = "replace_fun works for Barnsley Trust"
+  )
+
+  expect_equal(
+    replace_fun(
+      "C_430",
+      treatment_function_codes
+    ),
+    "Elderly Medicine",
+    info = "replace_fun works for specialty"
+  )
 })
 
 test_that("local_enframe errors", {
@@ -183,7 +201,6 @@ test_that("org_name_lkp errors", {
 })
 
 test_that("org_name_lkp works", {
-
   expect_equal(
     org_name_lkp(
       names = c("London", "South West"),
@@ -239,16 +256,34 @@ test_that("org_name_lkp works", {
   )
 })
 
+test_that("filters_displays errors", {
+  expect_snapshot(
+    filters_displays(
+      nhs_only = TRUE,
+      trust_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
+      trusts = "FULWOOD HALL HOSPITAL",
+      comm_parents = c(
+        "NHS SOUTH YORKSHIRE INTEGRATED CARE BOARD",
+        "NHS NORTH EAST LONDON INTEGRATED CARE BOARD"
+      ),
+      comms = NULL,
+      spec = "Total"
+    ),
+    error = TRUE
+  )
+})
 
 test_that("filters_displays works", {
-
   specs <- c("General Surgery", "Total")
 
   lbls <- filters_displays(
+    nhs_only = "nhs_only",
     trust_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
     trusts = "FULWOOD HALL HOSPITAL",
-    comm_parents = c("NHS SOUTH YORKSHIRE INTEGRATED CARE BOARD",
-                     "NHS NORTH EAST LONDON INTEGRATED CARE BOARD"),
+    comm_parents = c(
+      "NHS SOUTH YORKSHIRE INTEGRATED CARE BOARD",
+      "NHS NORTH EAST LONDON INTEGRATED CARE BOARD"
+    ),
     comms = NULL,
     spec = specs
   )
@@ -282,19 +317,133 @@ test_that("filters_displays works", {
   )
 
   sw_trusts <- filters_displays(
-    nhs_only = TRUE,
+    nhs_only = "nhs_only",
     nhs_regions = "South West",
     trusts = NULL,
     trust_parents = NULL,
     comm_parents = NULL,
     comms = NULL,
-    spec = specs
+    spec = "Total"
   ) |>
     purrr::pluck("trusts", "selected_code")
 
   expect_equal(
     sw_trusts,
-    c("RA9", "RH8", "RK9", "RD1", "RN3", "RNZ", "RTE", "RH5", "REF", "RJ8", "RA7", "RVJ", "R0D", "RBD"),
-    info = "Trusts in SW are identified when region and NHS only are provieded"
+    c(
+      "RA9",
+      "RH8",
+      "RK9",
+      "RD1",
+      "RN3",
+      "RNZ",
+      "RTE",
+      "RH5",
+      "REF",
+      "RJ8",
+      "RA7",
+      "RVJ",
+      "R0D",
+      "RBD"
+    ),
+    info = "Trusts in SW are identified when region and NHS only are provided"
+  )
+
+  commissioners_and_parents <- filters_displays(
+    nhs_only = "nhs_only",
+    nhs_regions = NULL,
+    trusts = NULL,
+    trust_parents = NULL,
+    comm_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
+    comms = "NHS BLACKBURN WITH DARWEN (SUB ICB LOCATION)",
+    spec = "Total"
+  )
+
+  expect_equal(
+    c(
+      commissioners_and_parents$commissioners$selected_code,
+      commissioners_and_parents$commissioner_parents$selected_code
+    ),
+    c(
+      "00Q",
+      "QE1"
+    ),
+    info = "Commissioners and commissioner parents are identified"
+  )
+})
+
+test_that("extract_first_number works", {
+  expect_equal(
+    extract_first_number("0-1 months"),
+    0,
+    info = "extract_first_number works"
+  )
+})
+
+test_that("convert_month_to_factor works", {
+  expect_equal(
+    convert_month_to_factor(0:12),
+    factor(
+      paste(
+        c(
+          paste0(0:11, "-", 1:12),
+          "12+"
+        ),
+        "months"
+      ),
+      levels = paste(
+        c(
+          paste0(0:11, "-", 1:12),
+          "12+"
+        ),
+        "months"
+      )
+    ),
+    info = "convert_month_to_factor works"
+  )
+})
+
+test_that("extract_percent works", {
+  expect_equal(
+    extract_percent("This sentence finishes with 50%"),
+    50,
+    info = "extract_percent works"
+  )
+
+  expect_equal(
+    extract_percent("This sentence finishes with 50"),
+    numeric(),
+    info = "extract_percent works"
+  )
+})
+
+test_that("value_box_text works", {
+  golem::expect_shinytag(
+    value_box_text(
+      x_val = as.Date("2023-01-01"),
+      y_title = "This is a title",
+      y_val = 0.15,
+      y_val_type = "percent",
+      facet = NA
+    )
+  )
+
+  golem::expect_shinytag(
+    value_box_text(
+      x_val = as.Date("2023-01-01"),
+      y_title = "This is a title",
+      y_val = 1050,
+      y_val_type = "number",
+      facet = 6
+    )
+  )
+})
+
+
+test_that("latest_performance_text works", {
+  expect_equal(
+    latest_performance_text(
+      data = sample_data
+    ),
+    "The performance at Dec 24 was 49.4%"
   )
 })
