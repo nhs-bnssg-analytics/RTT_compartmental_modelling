@@ -8,6 +8,7 @@
 # RTTshiny 1.0.2
 
 * Fixes minor bug when some data are downloaded, which occurred when referrals exceeded treatments in the first compartment in the calibration period
+* Fixes bug where optimisation can't occur because it is attempting to use negative treatment capacities
 
 # RTTshiny 1.0.0
 
