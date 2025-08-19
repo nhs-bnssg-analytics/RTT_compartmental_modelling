@@ -562,7 +562,8 @@ mod_02_planner_server <- function(id, r) {
           r$all_data,
           max_months_waited = 12,
           redistribute_m0_reneges = FALSE,
-          referrals_uplift = NULL
+          referrals_uplift = NULL,
+          allow_negative_params = TRUE
         ) |>
           tidyr::unnest(.data$params) |>
           dplyr::filter(
@@ -581,7 +582,8 @@ mod_02_planner_server <- function(id, r) {
           r$all_data,
           max_months_waited = 12,
           redistribute_m0_reneges = FALSE,
-          referrals_uplift = reactive_values$referrals_uplift
+          referrals_uplift = reactive_values$referrals_uplift,
+          allow_negative_params = FALSE
         )
 
         # data frame of counts by period which get supplied to the 3rd module
@@ -591,7 +593,12 @@ mod_02_planner_server <- function(id, r) {
           max_months_waited = 12,
           full_breakdown = TRUE,
           referrals_uplift = reactive_values$referrals_uplift,
-          redistribute_m0_reneges = FALSE
+          redistribute_m0_reneges = FALSE,
+          # when providing the full breakdown, allow capacity and renege
+          # parameters to be negative as these are what are displayed on
+          # the charts and by flooring them at zero, the actual parameters
+          # wouldn't be able to be calculated
+          allow_negative_params = TRUE
         ) |>
           select(
             "params"
@@ -1039,7 +1046,8 @@ mod_02_planner_server <- function(id, r) {
           r$all_data,
           max_months_waited = 12,
           referrals_uplift = NULL,
-          redistribute_m0_reneges = FALSE
+          redistribute_m0_reneges = FALSE,
+          allow_negative_params = FALSE
         )
 
         # data frame of counts by period which get supplied to the 3rd module
@@ -1049,7 +1057,12 @@ mod_02_planner_server <- function(id, r) {
           max_months_waited = 12,
           full_breakdown = TRUE,
           referrals_uplift = NULL,
-          redistribute_m0_reneges = FALSE
+          redistribute_m0_reneges = FALSE,
+          # when providing the full breakdown, allow capacity and renege
+          # parameters to be negative as these are what are displayed on
+          # the charts and by flooring them at zero, the actual parameters
+          # wouldn't be able to be calculated
+          allow_negative_params = TRUE
         ) |>
           select(
             "params"

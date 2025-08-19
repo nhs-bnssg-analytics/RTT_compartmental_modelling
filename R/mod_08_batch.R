@@ -289,7 +289,8 @@ mod_08_batch_server <- function(id) {
               raw_data,
               max_months_waited = 12,
               redistribute_m0_reneges = FALSE,
-              referrals_uplift = NULL
+              referrals_uplift = NULL,
+              allow_negative_params = TRUE
             ) |>
               tidyr::unnest("params") |>
               dplyr::filter(
@@ -310,7 +311,9 @@ mod_08_batch_server <- function(id) {
               raw_data,
               max_months_waited = 12,
               redistribute_m0_reneges = FALSE,
-              referrals_uplift = referrals_uplift
+              referrals_uplift = referrals_uplift,
+              # do not allow negative parameters when creating the parameters for modelling
+              allow_negative_params = FALSE
             )
 
             # calculate the number of months for projection period

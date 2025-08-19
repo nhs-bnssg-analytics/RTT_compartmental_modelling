@@ -417,7 +417,8 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
       first_half_data,
       max_months_waited = 12,
       redistribute_m0_reneges = FALSE,
-      referrals_uplift = NULL
+      referrals_uplift = NULL,
+      allow_negative_params = TRUE
     ) |>
       tidyr::unnest("params") |>
       dplyr::filter(
@@ -448,7 +449,8 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
     first_half_data,
     max_months_waited = 12,
     redistribute_m0_reneges = FALSE,
-    referrals_uplift = referrals_uplift
+    referrals_uplift = referrals_uplift,
+    allow_negative_params = FALSE
   )
 
   # apply parameters to projections
