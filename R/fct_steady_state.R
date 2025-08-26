@@ -167,3 +167,43 @@ append_current_status <- function(data, max_months_waited) {
 
   return(current_status)
 }
+
+append_steady_state <- function(params, ss_demand, attempts = 400) {
+  # browser()
+  find_p_results <- seq(
+    from = ss_demand * 0.1,
+    to = ss_demand * 0.4,
+    length.out = attempts
+  ) |>
+    # furrr::future_map(
+    purrr::map(
+      \(mu) {
+        out <- find_p(
+          renege_params = params$renege_param,
+          mu_1 = mu,
+          referrals = ss_demand,
+          max_iterations = 10
+        )
+
+        out[["mu_1"]] <- mu
+        return(out)
+      }
+    )
+
+  results_table <- dplyr::tibble(
+    mu = sapply(find_p_results, `[[`, "mu"),
+    wlsize = sapply(find_p_results, `[[`, "wlsize")
+  )
+
+  capacity_ss <- median(results_table$mu, na.rm = TRUE)
+  reneges_ss <- ss_demand - capacity_ss
+  incompletes_ss <- median(results_table$wlsize, na.rm = TRUE)
+
+  output <- dplyr::tibble(
+    capacity_ss = capacity_ss,
+    reneges_ss = reneges_ss,
+    incompletes_ss = incompletes_ss
+  )
+
+  return(output)
+}
