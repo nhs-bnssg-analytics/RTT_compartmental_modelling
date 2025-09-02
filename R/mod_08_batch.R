@@ -291,7 +291,6 @@ mod_08_batch_server <- function(id) {
             ) %/%
               months(1) +
               1 # the plus 1 makes is inclusive of the final month
-            # browser()
 
             current <- append_current_status(
               data = raw_data,
@@ -310,7 +309,8 @@ mod_08_batch_server <- function(id) {
                     input$referral_bin_medium,
                     input$referral_bin_high
                   )
-                )
+                ) |>
+                  filter(!is.na(.data$referral_change))
               ) |>
               mutate(
                 id = dplyr::row_number()
@@ -331,14 +331,16 @@ mod_08_batch_server <- function(id) {
                         12),
                     ss_calcs = purrr::pmap(
                       list(
-                        par = .data$params,
                         ref_ss = .data$referrals_ss,
+                        targ_cap = .data$capacity_t1,
+                        par = .data$params,
                         id = .data$id
                       ),
-                      \(par, ref_ss, id) {
+                      \(ref_ss, targ_cap, par, id) {
                         out <- append_steady_state(
-                          params = par,
-                          ss_demand = ref_ss
+                          referrals = ref_ss,
+                          target_treatments = targ_cap,
+                          renege_params = par$renege_param
                         )
 
                         shiny::incProgress(
@@ -369,7 +371,6 @@ mod_08_batch_server <- function(id) {
                   )
               }
             )
-
             reactive_values$show_results <- TRUE
           }
         }
@@ -424,7 +425,7 @@ mod_08_batch_server <- function(id) {
           )
         ) |>
           DT::formatRound(
-            columns = c(3:6, 9, 11, 14),
+            columns = c(3:6, 9:14),
             digits = 1
           )
       } else {

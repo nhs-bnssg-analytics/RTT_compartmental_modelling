@@ -1,7 +1,34 @@
 #' append_current_status
 #'
+#' @importFrom dplyr distinct arrange mutate select left_join join_by filter
+#'  summarise pull
+#' @importFrom tidyr complete nesting unnest nest
+#' @importFrom purrr map_dbl
+#' @importFrom rlang .data
 #' @noRd
 append_current_status <- function(data, max_months_waited) {
+  # browser()
+
+  period_lkp <- data |>
+    distinct(.data$period) |>
+    arrange(.data$period) |>
+    mutate(period_id = dplyr::row_number())
+
+  data <- data |>
+    select(!c("period_id")) |>
+    tidyr::complete(
+      # tidyr::nesting(.data$trust, .data$specialty),
+      # tidyr::nesting(.data$type, .data$months_waited_id),
+      tidyr::nesting(trust, specialty),
+      tidyr::nesting(type, months_waited_id),
+      period = period_lkp$period,
+      fill = list(value = 0)
+    ) |>
+    left_join(
+      period_lkp,
+      by = join_by(period)
+    )
+
   # calculate referrals uplift
   referrals_uplift <- calibrate_parameters(
     data,
@@ -168,41 +195,17 @@ append_current_status <- function(data, max_months_waited) {
   return(current_status)
 }
 
-append_steady_state <- function(params, ss_demand, attempts = 400) {
-  # browser()
-  find_p_results <- seq(
-    from = ss_demand * 0.1,
-    to = ss_demand * 0.4,
-    length.out = attempts
-  ) |>
-    # furrr::future_map(
-    purrr::map(
-      \(mu) {
-        out <- find_p(
-          renege_params = params$renege_param,
-          mu_1 = mu,
-          referrals = ss_demand,
-          max_iterations = 10
-        )
-
-        out[["mu_1"]] <- mu
-        return(out)
-      }
-    )
-
-  results_table <- dplyr::tibble(
-    mu = sapply(find_p_results, `[[`, "mu"),
-    wlsize = sapply(find_p_results, `[[`, "wlsize")
+append_steady_state <- function(referrals, target_treatments, renege_params) {
+  results <- NHSRtt::optimise_steady_state_mu(
+    referrals = referrals,
+    target_treatments = target_treatments,
+    renege_params = renege_params
   )
 
-  capacity_ss <- median(results_table$mu, na.rm = TRUE)
-  reneges_ss <- ss_demand - capacity_ss
-  incompletes_ss <- median(results_table$wlsize, na.rm = TRUE)
-
   output <- dplyr::tibble(
-    capacity_ss = capacity_ss,
-    reneges_ss = reneges_ss,
-    incompletes_ss = incompletes_ss
+    capacity_ss = results$mu,
+    reneges_ss = referrals - results$mu,
+    incompletes_ss = results$wlsize
   )
 
   return(output)
