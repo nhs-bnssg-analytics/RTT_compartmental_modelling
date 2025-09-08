@@ -15,6 +15,7 @@
 #' @noRd
 calc_performance <- function(incompletes_data, target_bin) {
   # check one record per month waited per period
+
   check_counts <- incompletes_data |>
     dplyr::count(
       .data$period,

@@ -1,12 +1,13 @@
 #' append_current_status
 #'
+#' @param percentile numeric; target percentile value
 #' @importFrom dplyr distinct arrange mutate select left_join join_by filter
 #'  summarise pull
 #' @importFrom tidyr complete nesting unnest nest
 #' @importFrom purrr map_dbl
 #' @importFrom rlang .data
 #' @noRd
-append_current_status <- function(data, max_months_waited) {
+append_current_status <- function(data, max_months_waited, percentile) {
   # browser()
 
   period_lkp <- data |>
@@ -155,6 +156,27 @@ append_current_status <- function(data, max_months_waited) {
     allow_negative_params = FALSE,
     full_breakdown = FALSE
   )
+  # browser()
+  # calculate pressure metric
+  pressure <- data |>
+    filter(
+      .data$type == "Incomplete",
+      .data$period_id == max(.data$period_id)
+    ) |>
+    nest(data = c("months_waited_id", "value")) |>
+    mutate(
+      percentile_mnth = purrr::map_dbl(
+        data,
+        ~ NHSRtt:::hist_percentile_calc(
+          wl_structure = .x,
+          percentile = percentile,
+          wlsize_col = "value",
+          time_col = "months_waited_id"
+        )
+      ),
+      pressure = percentile_mnth / percentile
+    ) |>
+    select("trust", "specialty", "pressure")
 
   current_status <- projection_referrals |>
     left_join(
@@ -190,16 +212,30 @@ append_current_status <- function(data, max_months_waited) {
         trust,
         specialty
       )
+    ) |>
+    left_join(
+      pressure,
+      by = join_by(
+        trust,
+        specialty
+      )
     )
 
   return(current_status)
 }
 
-append_steady_state <- function(referrals, target_treatments, renege_params) {
-  results <- NHSRtt::optimise_steady_state_mu(
+#' @importFrom NHSRtt optimise_steady_state
+append_steady_state <- function(
+  referrals,
+  target,
+  renege_params,
+  method
+) {
+  results <- NHSRtt::optimise_steady_state(
     referrals = referrals,
-    target_treatments = target_treatments,
-    renege_params = renege_params
+    target = target,
+    renege_params = renege_params,
+    method = method
   )
 
   output <- dplyr::tibble(

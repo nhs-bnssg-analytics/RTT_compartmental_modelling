@@ -8,7 +8,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS uiOutput numericInput selectizeInput helpText dateInput
-#'   sliderInput hr
+#'   sliderInput hr radioButtons
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   layout_columns card_body page_fillable bs_theme
 #' @importFrom lubridate years ceiling_date `%m+%`
@@ -61,19 +61,19 @@ mod_08_batch_ui <- function(id) {
     ),
     layout_columns(
       col_widths = c(8, 4),
-      helpText("Low Referral Scenario"),
+      helpText("Low Referral Scenario (% annual uplift)"),
       numericInput(
         inputId = ns("referral_bin_low"),
         label = NULL,
         value = -1
       ),
-      helpText("Medium Referral Scenario"),
+      helpText("Medium Referral Scenario (% annual uplift)"),
       numericInput(
         inputId = ns("referral_bin_medium"),
         label = NULL,
         value = 0
       ),
-      helpText("High Referral Scenario"),
+      helpText("High Referral Scenario (% annual uplift)"),
       numericInput(
         inputId = ns("referral_bin_high"),
         label = NULL,
@@ -109,6 +109,35 @@ mod_08_batch_ui <- function(id) {
         label = "Batch Run",
         label_busy = "Running...",
         type = "dark"
+      ),
+      radioButtons(
+        inputId = ns("ss_method"),
+        label = span(
+          "Chose solution method based on:",
+          tooltip(
+            shiny::icon("info-circle"),
+            shiny::HTML(
+              paste0(
+                "Theoretically, there are an infinite number of solutions that can achieve steady state ",
+                "(e.g., where referrals are equal to the sum of treatments and reneges) by varying the volume of treatment,",
+                " and the profile of how the treatment is applied across the waiting list.<br>",
+                "A single solution can be identified in two ways:<br><br>",
+                "<strong>Treatments:</strong> ",
+                "selected solution is as close to the current treatment capacity as possible.",
+                "This can result in a larger waiting list size, which can have knock on effects of additional healthcare requirements.<br><br>",
+                "<strong>Renege rates:</strong> ",
+                "the proportion or people reneging out of the total people leaving the waiting list is similar to the national rate for that specialty",
+                " when the 92% target was last met (or the best historic performance if this never happened)."
+              )
+            ),
+            placement = "right"
+          )
+        ),
+        choices = list(
+          Treatments = "treatments",
+          `Renege rates` = "renege_rates"
+        ),
+        selected = "treatments"
       )
     )
   )
@@ -294,7 +323,8 @@ mod_08_batch_server <- function(id) {
 
             current <- append_current_status(
               data = raw_data,
-              max_months_waited = 12
+              max_months_waited = 12,
+              percentile = input$target_value / 100
             ) |>
               # add the referrals scenarios
               dplyr::cross_join(
@@ -315,7 +345,7 @@ mod_08_batch_server <- function(id) {
               mutate(
                 id = dplyr::row_number()
               )
-
+            # browser()
             shiny::withProgress(
               message = "Processing trusts/specialties/scenarios",
               value = 0,
@@ -323,24 +353,37 @@ mod_08_batch_server <- function(id) {
                 n <- nrow(current)
 
                 reactive_values$optimised_projections <- current |>
+                  # add historic renege rates by specialty
+                  left_join(
+                    target_renege_proportions |>
+                      dplyr::select("specialty", "renege_proportion"),
+                    by = "specialty"
+                  ) |>
                   # calculate steady state demand
                   mutate(
                     referrals_ss = .data$referrals_t1 +
                       ((.data$referrals_t1 * .data$referral_change / 100) *
                         forecast_months /
                         12),
+                    target = case_when(
+                      input$ss_method == "treatments" ~ .data$capacity_t1,
+                      input$ss_method == "renege_rates" ~
+                        .data$renege_proportion,
+                      .default = NA_real_
+                    ),
                     ss_calcs = purrr::pmap(
                       list(
                         ref_ss = .data$referrals_ss,
-                        targ_cap = .data$capacity_t1,
+                        targ = .data$target,
                         par = .data$params,
                         id = .data$id
                       ),
-                      \(ref_ss, targ_cap, par, id) {
+                      \(ref_ss, targ, par, id) {
                         out <- append_steady_state(
                           referrals = ref_ss,
-                          target_treatments = targ_cap,
-                          renege_params = par$renege_param
+                          target = targ,
+                          renege_params = par$renege_param,
+                          method = input$ss_method
                         )
 
                         shiny::incProgress(
@@ -366,7 +409,9 @@ mod_08_batch_server <- function(id) {
                     !c(
                       "params",
                       "referral_change",
-                      "id"
+                      "id",
+                      "renege_proportion",
+                      "target"
                     )
                   )
               }
@@ -415,6 +460,7 @@ mod_08_batch_server <- function(id) {
             "Current reneges" = "reneges_t0",
             "Current load" = "load",
             "Current waiting list size" = "incompletes_t0",
+            "Current pressure" = "pressure",
             "Demand scenario" = "referrals_scenario",
             "Steady state demand" = "referrals_ss",
             "Steady state treatment capacity" = "capacity_ss",
@@ -425,7 +471,7 @@ mod_08_batch_server <- function(id) {
           )
         ) |>
           DT::formatRound(
-            columns = c(3:6, 9:14),
+            columns = c(3:8, 10:15),
             digits = 1
           )
       } else {
