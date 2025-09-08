@@ -6,6 +6,7 @@
 #' @importFrom tidyr complete nesting unnest nest
 #' @importFrom purrr map_dbl
 #' @importFrom rlang .data
+#' @importFrom NHSRtt hist_percentile_calc
 #' @noRd
 append_current_status <- function(data, max_months_waited, percentile) {
   # browser()
@@ -167,14 +168,14 @@ append_current_status <- function(data, max_months_waited, percentile) {
     mutate(
       percentile_mnth = purrr::map_dbl(
         data,
-        ~ NHSRtt:::hist_percentile_calc(
+        ~ NHSRtt::hist_percentile_calc(
           wl_structure = .x,
           percentile = percentile,
           wlsize_col = "value",
           time_col = "months_waited_id"
         )
       ),
-      pressure = percentile_mnth / percentile
+      pressure = .data$percentile_mnth / percentile
     ) |>
     select("trust", "specialty", "pressure")
 

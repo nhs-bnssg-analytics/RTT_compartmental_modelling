@@ -395,7 +395,7 @@ mod_08_batch_server <- function(id) {
                       }
                     )
                   ) |>
-                  unnest(ss_calcs) |>
+                  unnest("ss_calcs") |>
                   mutate(
                     current_vs_ss_wl_ratio = round(
                       .data$incompletes_t0 / .data$incompletes_ss,
