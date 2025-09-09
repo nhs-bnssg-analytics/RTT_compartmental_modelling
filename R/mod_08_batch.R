@@ -196,8 +196,9 @@ mod_08_batch_ui <- function(id) {
 #' @importFrom purrr map pmap list_rbind map2 map_dbl
 #' @importFrom tidyr unnest nest complete
 #' @importFrom dplyr filter mutate case_when select cross_join tibble row_number
-#'   summarise rename left_join join_by intersect
-#' @importFrom DT datatable renderDT DTOutput
+#'   summarise rename left_join join_by intersect all_of
+#' @importFrom reactable reactable renderReactable colDef colFormat reactableOutput
+#'   colGroup
 #' @noRd
 mod_08_batch_server <- function(id) {
   moduleServer(id, function(input, output, session) {
@@ -288,34 +289,6 @@ mod_08_batch_server <- function(id) {
             # SERVER SHOULD BE STRUCTURED LIKE raw_data FOLLOWING THIS CHUNK OF
             # CODE (action: EI). The data on the server here will also be used in
             # module 2.
-
-            # # ORIGINAL CODE
-            # raw_data <- seq(
-            #   from = lubridate::floor_date(
-            #     min_download_date, unit = "months"
-            #   ),
-            #   to = lubridate::floor_date(
-            #     max_download_date, unit = "months"
-            #   ),
-            #   by = "months"
-            # ) |>
-            #   purrr::map(
-            #     ~ NHSRtt::get_rtt_data(
-            #       date_start = .x,
-            #       date_end = .x,
-            #       trust_parent_codes = NULL,
-            #       trust_codes = selections_labels$trusts$selected_code,
-            #       commissioner_parent_codes = NULL,
-            #       commissioner_org_codes = NULL,
-            #       specialty_codes = selections_labels$specialties$selected_code
-            #     )
-            #   ) |>
-            #   purrr::list_rbind() |>
-            #   aggregate_and_format_raw_data(
-            #     selected_specialties = selections_labels$specialties$selected_name,
-            #     min_date = min_download_date,
-            #     max_date = max_download_date
-            #   )
 
             # RDS VERSION
             raw_data <- readRDS(system.file(
@@ -420,7 +393,12 @@ mod_08_batch_server <- function(id) {
                     ),
                     monthly_removals = (.data$incompletes_t0 -
                       .data$incompletes_ss) /
-                      forecast_months
+                      forecast_months,
+                    referrals_scenario = gsub(
+                      "_referrals",
+                      "",
+                      .data$referrals_scenario
+                    )
                   ) |>
                   dplyr::select(
                     !c(
@@ -440,67 +418,151 @@ mod_08_batch_server <- function(id) {
     )
 
     # create the result table
-    output$results_table <- DT::renderDT({
+    output$results_table <- reactable::renderReactable({
       if (reactive_values$show_results == TRUE) {
-        DT::datatable(
+        current_cols <- c(
+          "referrals_t1",
+          "capacity_t1",
+          "reneges_t0",
+          "load",
+          "incompletes_t0",
+          "pressure"
+        )
+
+        ss_cols <- c(
+          "referrals_scenario",
+          "referrals_ss",
+          "capacity_ss",
+          "reneges_ss",
+          "incompletes_ss"
+        )
+
+        reactable::reactable(
           reactive_values$optimised_projections,
-          filter = "top",
-          extensions = "Buttons",
-          options = list(
-            paging = TRUE,
-            pageLength = 50,
-            lengthMenu = c(25, 50, 100),
-            searching = TRUE,
-            ordering = TRUE,
-            autoWidth = TRUE,
-            dom = 'Blrtip',
-            buttons = list(
-              list(
-                extend = 'copy',
-                title = NULL, # prevents the title of the app being included when copying the data
-                className = "dtButton",
-                text = "Copy table to clipboard"
-              ),
-              list(
-                extend = 'csv',
-                className = 'dtButton',
-                text = "Download table to csv"
-              )
+          columnGroups = list(
+            colGroup(
+              name = "Current",
+              columns = current_cols
+            ),
+            colGroup(name = "Steady state", columns = ss_cols)
+          ),
+          filterable = TRUE,
+          showPageSizeOptions = TRUE,
+          pageSizeOptions = c(10, 20, 50, 100),
+          defaultPageSize = 10,
+          columns = list(
+            trust = colDef(name = "Trust"),
+            specialty = colDef(name = "Specialty"),
+            referrals_t1 = colDef(
+              name = "Demand",
+              format = colFormat(digits = 2)
+            ),
+            capacity_t1 = colDef(
+              name = "Treatment capacity",
+              format = colFormat(digits = 2)
+            ),
+            reneges_t0 = colDef(
+              name = "Reneges",
+              format = colFormat(digits = 2)
+            ),
+            load = colDef(
+              name = "Load",
+              format = colFormat(digits = 2)
+            ),
+            incompletes_t0 = colDef(
+              name = "Waiting list size",
+              format = colFormat(digits = 0)
+            ),
+            pressure = colDef(
+              name = "Pressure",
+              format = colFormat(digits = 2)
+            ),
+            referrals_scenario = colDef(name = "Demand scenario"),
+            referrals_ss = colDef(
+              name = "Demand",
+              format = colFormat(digits = 2)
+            ),
+            capacity_ss = colDef(
+              name = "Treatment capacity",
+              format = colFormat(digits = 2)
+            ),
+            reneges_ss = colDef(
+              name = "Reneges",
+              format = colFormat(digits = 2)
+            ),
+            incompletes_ss = colDef(
+              name = "Waiting list size",
+              format = colFormat(digits = 0)
+            ),
+            current_vs_ss_wl_ratio = colDef(
+              name = "Current / steady state waiting list size",
+              format = colFormat(digits = 2)
+            ),
+            monthly_removals = colDef(
+              name = "Additional monthly removals required",
+              format = colFormat(digits = 2)
             )
           ),
-          rownames = FALSE,
-          colnames = c(
-            "Trust" = "trust",
-            "Specialty" = "specialty",
-            "Current demand" = "referrals_t1",
-            "Current treatment capacity" = "capacity_t1",
-            "Current reneges" = "reneges_t0",
-            "Current load" = "load",
-            "Current waiting list size" = "incompletes_t0",
-            "Current pressure" = "pressure",
-            "Demand scenario" = "referrals_scenario",
-            "Steady state demand" = "referrals_ss",
-            "Steady state treatment capacity" = "capacity_ss",
-            "Steady state reneges" = "reneges_ss",
-            "Steady state waiting list size" = "incompletes_ss",
-            "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
-            "Additional monthly removals required" = "monthly_removals"
-          )
-        ) |>
-          DT::formatRound(
-            columns = c(3:8, 10:15),
-            digits = 1
-          )
+          class = "steadystate-table"
+        )
       } else {
         NULL
       }
     })
 
+    observeEvent(
+      c(input$copy_results),
+      {
+        if (input$copy_results > 0) {
+          reactive_values$optimised_projections |>
+            dplyr::rename(
+              dplyr::all_of(
+                c(
+                  "Trust" = "trust",
+                  "Specialty" = "specialty",
+                  "Current demand" = "referrals_t1",
+                  "Current treatment capacity" = "capacity_t1",
+                  "Current reneges" = "reneges_t0",
+                  "Current load" = "load",
+                  "Current waiting list size" = "incompletes_t0",
+                  "Current pressure" = "pressure",
+                  "Demand scenario" = "referrals_scenario",
+                  "Steady state demand" = "referrals_ss",
+                  "Steady state treatment capacity" = "capacity_ss",
+                  "Steady state reneges" = "reneges_ss",
+                  "Steady state waiting list size" = "incompletes_ss",
+                  "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
+                  "Additional monthly removals required" = "monthly_removals"
+                )
+              )
+            ) |>
+            write.table(
+              file = "clipboard",
+              sep = "\t",
+              row.names = FALSE
+            )
+          showModal(modalDialog(
+            title = "Copy success",
+            "Results copied to clipboard",
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      }
+    )
+
     # dynamic display, only show if results have been created
     output$ss_results_ui <- renderUI({
       if (reactive_values$show_results == TRUE) {
-        DTOutput(
-          ns("results_table")
+        span(
+          actionButton(
+            inputId = ns("copy_results"),
+            label = "Copy results",
+            class = "copy-button"
+          ),
+          reactableOutput(
+            ns("results_table")
+          )
         )
       } else {
         helpText("Please make selections and generate results")

@@ -1,0 +1,10 @@
+.steadystate-table {
+  font-family: Karla, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.875rem;
+}
+
+.copy-button {
+  background-color: rgb(102, 157, 211);
+  color: white;
+  border-color: rgb(0, 94, 184);
+}

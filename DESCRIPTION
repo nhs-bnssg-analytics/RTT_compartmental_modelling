@@ -24,6 +24,7 @@ Imports:
     NHSRtt (>= 0.3.0),
     pkgload,
     purrr,
+    reactable,
     rlang,
     rmarkdown,
     scales,
