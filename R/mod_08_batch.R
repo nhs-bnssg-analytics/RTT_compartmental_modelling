@@ -146,6 +146,24 @@ mod_08_batch_ui <- function(id) {
   scenario_card <- card(
     card_header("Batch Output View"),
     card_body(
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          title = "Description of methods",
+          p(
+            HTML(paste(
+              "The results here represent 'steady-state' scenarios.",
+              "Here, 'steady-state' means that arrivals onto the waiting list are equal to departures, where arrivals are referrals, and departures are both treatments and reneges (see 'Definitions').",
+              "A second criterion is also fulfilled from these results - that the calculated waiting list is achieving the desired performance target.",
+              "<br>The steps to identify the resulting solutions are as follows:",
+              "First, the final 12 months of available public data are used to understand, on average, the proportion of people that renege who are on the waiting list, by how long they have been waiting.",
+              "Second, testing for a range of total treatments, a corresponding treatment profile that follows a <a href='https://en.wikipedia.org/wiki/Geometric_distribution' target='_blank'>geometric distribution</a> is identified that result in the two criteria described to be met - once reneging has also been accounted for based on the rates calculated from the calibration period.",
+              "From this range of solutions, a single solution is selected based on the user defined solution method.",
+              sep = "<br>"
+            ))
+          )
+        )
+      ),
       uiOutput(
         ns("ss_results_ui")
       )
