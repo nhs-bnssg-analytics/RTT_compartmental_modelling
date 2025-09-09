@@ -137,7 +137,7 @@ mod_08_batch_ui <- function(id) {
           Treatments = "treatments",
           `Renege rates` = "renege_rates"
         ),
-        selected = "treatments"
+        selected = "renege_rates"
       )
     )
   )
@@ -146,7 +146,6 @@ mod_08_batch_ui <- function(id) {
   scenario_card <- card(
     card_header("Batch Output View"),
     card_body(
-      # helpText("Coming Soon...")
       uiOutput(
         ns("ss_results_ui")
       )
