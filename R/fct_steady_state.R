@@ -242,7 +242,8 @@ append_steady_state <- function(
   output <- dplyr::tibble(
     capacity_ss = results$mu,
     reneges_ss = referrals - results$mu,
-    incompletes_ss = results$wlsize
+    incompletes_ss = results$wlsize,
+    wl_ss = results$waiting_list
   )
 
   return(output)

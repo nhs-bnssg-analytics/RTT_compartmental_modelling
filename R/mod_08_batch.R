@@ -189,14 +189,14 @@ mod_08_batch_ui <- function(id) {
 #' 08_batch Server Functions
 #'
 #' @importFrom shiny reactiveValues observeEvent renderUI helpText modalDialog modalButton
-#'   tagList showModal
+#'   tagList showModal plotOutput renderPlot
 #' @importFrom NHSRtt latest_rtt_date get_rtt_data find_p
 #' @importFrom lubridate floor_date interval
 #' @importFrom rlang .data
 #' @importFrom purrr map pmap list_rbind map2 map_dbl
 #' @importFrom tidyr unnest nest complete
 #' @importFrom dplyr filter mutate case_when select cross_join tibble row_number
-#'   summarise rename left_join join_by intersect all_of
+#'   summarise rename left_join join_by intersect all_of distinct slice
 #' @importFrom reactable reactable renderReactable colDef colFormat reactableOutput
 #'   colGroup
 #' @noRd
@@ -207,6 +207,7 @@ mod_08_batch_server <- function(id) {
     reactive_values <- reactiveValues()
     reactive_values$show_results <- FALSE # determines whether outputs are shown
     reactive_values$optimised_projections <- NULL # these are the outputs
+    reactive_values$optimised_waiting_list <- NULL # these are the outputs
 
     # trust selection filtering based on other NHS only checkbox ----------------------
     reactive_org_tbl <- reactiveVal(org_lkp)
@@ -342,7 +343,7 @@ mod_08_batch_server <- function(id) {
               {
                 n <- nrow(current)
 
-                reactive_values$optimised_projections <- current |>
+                optimised_projections <- current |>
                   # add historic renege rates by specialty
                   left_join(
                     target_renege_proportions |>
@@ -399,16 +400,36 @@ mod_08_batch_server <- function(id) {
                       "",
                       .data$referrals_scenario
                     )
+                  )
+
+                reactive_values$optimised_waiting_list <- optimised_projections |>
+                  select("trust", "specialty", "referrals_scenario", "wl_ss") |>
+                  tidyr::unnest("wl_ss") |>
+                  tidyr::nest(
+                    waiting_list = c(
+                      "months_waited_id",
+                      "r",
+                      "service",
+                      "sigma",
+                      "wlsize"
+                    )
                   ) |>
+                  mutate(
+                    id = dplyr::row_number()
+                  )
+
+                reactive_values$optimised_projections <- optimised_projections |>
                   dplyr::select(
                     !c(
                       "params",
                       "referral_change",
                       "id",
                       "renege_proportion",
-                      "target"
+                      "target",
+                      "wl_ss"
                     )
-                  )
+                  ) |>
+                  distinct()
               }
             )
             reactive_values$show_results <- TRUE
@@ -417,9 +438,45 @@ mod_08_batch_server <- function(id) {
       }
     )
 
+    output$plot_waiting_lists_ui <- renderUI({
+      plot_waiting_lists <- lapply(
+        seq_len(nrow(reactive_values$optimised_waiting_list)),
+        function(i) {
+          local({
+            index <- i
+            # species <- $id[index]
+            plotname <- paste0("plot_wl", index)
+
+            output[[plotname]] <- renderPlot({
+              ggplot(
+                reactive_values$optimised_waiting_list$waiting_list[[i]] |>
+                  mutate(
+                    months_waited = convert_month_to_factor(
+                      .data$months_waited_id
+                    )
+                  ),
+                aes(
+                  x = factor(.data$months_waited),
+                  y = .data$wlsize
+                )
+              ) +
+                geom_col() +
+                theme_bw() +
+                labs(
+                  x = "Number of months waited",
+                  y = "Number of people"
+                )
+            })
+          })
+        }
+      )
+      NULL # UI already handled in reactable details
+    })
+
     # create the result table
     output$results_table <- reactable::renderReactable({
       if (reactive_values$show_results == TRUE) {
+        # create the grouping columns
         current_cols <- c(
           "referrals_t1",
           "capacity_t1",
@@ -467,7 +524,18 @@ mod_08_batch_server <- function(id) {
             ),
             load = colDef(
               name = "Load",
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 2),
+              cell = function(value) {
+                if (value >= 1.5) {
+                  classes <- "tag num-high"
+                } else if (value >= 0.8) {
+                  classes <- "tag num-med"
+                } else {
+                  classes <- "tag num-low"
+                }
+                value <- format(value, nsmall = 1)
+                span(class = classes, value)
+              }
             ),
             incompletes_t0 = colDef(
               name = "Waiting list size",
@@ -503,6 +571,16 @@ mod_08_batch_server <- function(id) {
               format = colFormat(digits = 2)
             )
           ),
+          onClick = "expand",
+          detail = function(index) {
+            div(
+              style = "padding: 16px;",
+              plotOutput(
+                outputId = ns(paste0("plot_wl", index)),
+                height = "300px"
+              )
+            )
+          },
           class = "steadystate-table"
         )
       } else {
@@ -562,7 +640,8 @@ mod_08_batch_server <- function(id) {
           ),
           reactableOutput(
             ns("results_table")
-          )
+          ),
+          uiOutput(ns("plot_waiting_lists_ui"))
         )
       } else {
         helpText("Please make selections and generate results")
