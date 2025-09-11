@@ -362,7 +362,7 @@ mod_08_batch_server <- function(id) {
               mutate(
                 id = dplyr::row_number()
               )
-            # browser()
+
             shiny::withProgress(
               message = "Processing trusts/specialties/scenarios",
               value = 0,
@@ -430,20 +430,58 @@ mod_08_batch_server <- function(id) {
                     )
                   )
 
+                historic_waiting_list <- raw_data |>
+                  filter(
+                    .data$type == "Incomplete",
+                    .data$period %in%
+                      c(
+                        max(.data$period),
+                        max(.data$period) %m-% months(12)
+                      )
+                  ) |>
+                  mutate(
+                    wl_description = format(.data$period, format = "%b %Y")
+                  ) |>
+                  select(
+                    "trust",
+                    "specialty",
+                    "period",
+                    "months_waited_id",
+                    wlsize = "value",
+                    "wl_description"
+                  ) |>
+                  tidyr::nest(
+                    previous_waiting_list = c(
+                      "period",
+                      "months_waited_id",
+                      "wlsize",
+                      "wl_description"
+                    )
+                  )
+
                 reactive_values$optimised_waiting_list <- optimised_projections |>
                   select("trust", "specialty", "referrals_scenario", "wl_ss") |>
                   tidyr::unnest("wl_ss") |>
+                  select("trust", "specialty", "months_waited_id", "wlsize") |>
+                  mutate(
+                    wl_description = "Steady state"
+                  ) |>
                   tidyr::nest(
-                    waiting_list = c(
+                    steady_state_waiting_list = c(
                       "months_waited_id",
-                      "r",
-                      "service",
-                      "sigma",
-                      "wlsize"
+                      # "r",
+                      # "service",
+                      # "sigma",
+                      "wlsize",
+                      "wl_description"
                     )
                   ) |>
                   mutate(
                     id = dplyr::row_number()
+                  ) |>
+                  left_join(
+                    historic_waiting_list,
+                    by = join_by(trust, specialty)
                   )
 
                 reactive_values$optimised_projections <- optimised_projections |>
@@ -472,27 +510,54 @@ mod_08_batch_server <- function(id) {
         function(i) {
           local({
             index <- i
-            # species <- $id[index]
             plotname <- paste0("plot_wl", index)
 
             output[[plotname]] <- renderPlot({
-              ggplot(
-                reactive_values$optimised_waiting_list$waiting_list[[i]] |>
-                  mutate(
-                    months_waited = convert_month_to_factor(
-                      .data$months_waited_id
+              reactive_values$optimised_waiting_list |>
+                dplyr::slice(i) |>
+                tidyr::pivot_longer(
+                  cols = c(steady_state_waiting_list, previous_waiting_list),
+                  names_to = "wl_type",
+                  values_to = "wl_data"
+                ) |>
+                tidyr::unnest("wl_data") |>
+                mutate(
+                  wl_description = factor(
+                    .data$wl_description,
+                    levels = c(
+                      format(
+                        max(.data$period, na.rm = TRUE) %m-% months(12),
+                        format = "%b %Y"
+                      ),
+                      format(max(.data$period, na.rm = TRUE), format = "%b %Y"),
+                      "Steady state"
                     )
                   ),
-                aes(
-                  x = factor(.data$months_waited),
-                  y = .data$wlsize
-                )
-              ) +
+                  months_waited = convert_month_to_factor(
+                    .data$months_waited_id
+                  )
+                ) |>
+                ggplot(
+                  # reactive_values$optimised_waiting_list$waiting_list[[i]] |>
+                  #   mutate(
+                  #     months_waited = convert_month_to_factor(
+                  #       .data$months_waited_id
+                  #     )
+                  #   ),
+                  aes(
+                    x = factor(.data$months_waited),
+                    y = .data$wlsize
+                  )
+                ) +
                 geom_col() +
                 theme_bw() +
                 labs(
                   x = "Number of months waited",
                   y = "Number of people"
+                ) +
+                facet_wrap(
+                  facets = vars(.data$wl_description),
+                  nrow = 1
                 )
             })
           })
