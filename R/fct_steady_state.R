@@ -230,12 +230,19 @@ append_steady_state <- function(
   referrals,
   target,
   renege_params,
+  percentile,
+  target_time,
   method
 ) {
+  # convert weeks input to months
+  target_time <- convert_weeks_to_months(target_time)
+
   results <- NHSRtt::optimise_steady_state(
     referrals = referrals,
     target = target,
     renege_params = renege_params,
+    percentile = percentile,
+    target_time = target_time,
     method = method
   )
 

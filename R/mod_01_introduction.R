@@ -112,7 +112,7 @@ mod_01_introduction_server <- function(id) {
               "Enter referrals scenarios.",
               "Set the target data and performance target.",
               "Choose solution method and hit 'Batch Run'.",
-              sep = "\n"
+              sep = "<br>"
             )
           )
         )

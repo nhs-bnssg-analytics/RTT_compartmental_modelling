@@ -151,6 +151,15 @@ convert_month_to_factor <- function(months_waited_id) {
   return(months_waited_factor)
 }
 
+convert_weeks_to_months <- function(wks) {
+  dys_in_year <- 365.25
+  mnths_in_year <- dys_in_year / 12
+
+  mnths <- wks * 7 / mnths_in_year
+
+  return(mnths)
+}
+
 #' Replaces values in a string vector with corresponding values from a named
 #' vector
 #' @param string_vector A character vector

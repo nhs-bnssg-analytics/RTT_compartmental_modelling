@@ -7,7 +7,7 @@
 #'
 #' @noRd
 #'
-#' @importFrom shiny NS uiOutput numericInput selectizeInput helpText dateInput
+#' @importFrom shiny NS uiOutput numericInput selectizeInput p dateInput
 #'   sliderInput hr radioButtons
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   layout_columns card_body page_fillable bs_theme
@@ -61,52 +61,78 @@ mod_08_batch_ui <- function(id) {
     ),
     layout_columns(
       col_widths = c(8, 4),
-      helpText("Low Referral Scenario (% annual uplift)"),
+      p("Low Referral Scenario (% annual uplift)"),
       numericInput(
         inputId = ns("referral_bin_low"),
         label = NULL,
         value = -1
       ),
-      helpText("Medium Referral Scenario (% annual uplift)"),
+      p("Medium Referral Scenario (% annual uplift)"),
       numericInput(
         inputId = ns("referral_bin_medium"),
         label = NULL,
         value = 0
       ),
-      helpText("High Referral Scenario (% annual uplift)"),
+      p("High Referral Scenario (% annual uplift)"),
       numericInput(
         inputId = ns("referral_bin_high"),
         label = NULL,
         value = 1
       )
     ),
-    dateInput(
-      inputId = ns("target_date"),
-      label = "Target date",
-      min = lubridate::ceiling_date(Sys.Date(), unit = "month"),
-      max = lubridate::ceiling_date(Sys.Date() %m+% years(10), unit = "month"),
-      value = "2029-03-01",
-      format = "dd-mm-yyyy",
-      weekstart = 1,
-      autoclose = TRUE,
-      width = "40%"
-    ),
-    sliderInput(
-      inputId = ns("target_value"),
-      label = "Target proportion",
-      min = 0,
-      max = 100,
-      value = 92,
-      step = 1,
-      post = "%",
-      width = "100%"
+    hr(),
+    layout_columns(
+      col_widths = c(8, 4),
+      p(name_with_tooltip(
+        "Target date",
+        definition = "The date to achieve the target criteria by"
+      )),
+      dateInput(
+        inputId = ns("target_date"),
+        label = NULL,
+        min = lubridate::ceiling_date(Sys.Date(), unit = "month"),
+        max = lubridate::ceiling_date(
+          Sys.Date() %m+% years(10),
+          unit = "month"
+        ),
+        value = "2029-03-01",
+        format = "dd-mm-yyyy",
+        weekstart = 1,
+        autoclose = TRUE #,
+        # width = "40%"
+      ),
+      p(name_with_tooltip(
+        "Target week",
+        definition = "The week that the 'target proportion' applies to"
+      )),
+      numericInput(
+        inputId = ns("target_week"),
+        label = NULL,
+        min = 1,
+        max = 52,
+        value = 18
+      ),
+      p(name_with_tooltip(
+        "Target proportion",
+        definition = "The proportion of people on a waiting list that have been waiting less than the 'target week'"
+      )),
+      sliderInput(
+        inputId = ns("target_value"),
+        label = NULL,
+        min = 0,
+        max = 100,
+        value = 92,
+        step = 1,
+        post = "%",
+        width = "100%"
+      )
     ),
     hr(),
     layout_columns(
       col_widths = c(12),
       bslib::input_task_button(
         id = ns("batch_run_rtt_data"),
-        label = "Batch Run",
+        label = "Calculate steady state",
         label_busy = "Running...",
         type = "dark"
       ),
@@ -188,7 +214,7 @@ mod_08_batch_ui <- function(id) {
 
 #' 08_batch Server Functions
 #'
-#' @importFrom shiny reactiveValues observeEvent renderUI helpText modalDialog modalButton
+#' @importFrom shiny reactiveValues observeEvent renderUI p modalDialog modalButton
 #'   tagList showModal plotOutput renderPlot withTags
 #' @importFrom NHSRtt latest_rtt_date get_rtt_data find_p
 #' @importFrom lubridate floor_date interval
@@ -374,6 +400,8 @@ mod_08_batch_server <- function(id) {
                           referrals = ref_ss,
                           target = targ,
                           renege_params = par$renege_param,
+                          percentile = input$target_value / 100,
+                          target_time = input$target_week,
                           method = input$ss_method
                         )
 
@@ -507,6 +535,11 @@ mod_08_batch_server <- function(id) {
           showPageSizeOptions = TRUE,
           pageSizeOptions = c(10, 20, 50, 100),
           defaultPageSize = 10,
+          defaultColDef = colDef(
+            vAlign = "center",
+            headerVAlign = "bottom",
+            headerClass = "header"
+          ),
           columns = list(
             trust = colDef(
               header = name_with_tooltip("Trust", definition = "Trust name")
@@ -515,7 +548,8 @@ mod_08_batch_server <- function(id) {
               header = name_with_tooltip(
                 "Specialty",
                 definition = "Specialty name"
-              )
+              ),
+              class = "divider-right"
             ),
             referrals_t1 = colDef(
               header = name_with_tooltip(
@@ -579,7 +613,8 @@ mod_08_batch_server <- function(id) {
                 "Pressure",
                 definition = "The current target percentile waiting time divided by the expected target percentilile wait time"
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 2),
+              class = "divider-right"
             ),
             referrals_scenario = colDef(
               header = name_with_tooltip(
@@ -613,7 +648,8 @@ mod_08_batch_server <- function(id) {
                 "Waiting list size",
                 definition = "The number of people on the waiting list in the steady-state solution based on the selected method"
               ),
-              format = colFormat(digits = 0)
+              format = colFormat(digits = 0),
+              class = "divider-right"
             ),
             current_vs_ss_wl_ratio = colDef(
               header = name_with_tooltip(
@@ -747,7 +783,7 @@ mod_08_batch_server <- function(id) {
           uiOutput(ns("plot_waiting_lists_ui"))
         )
       } else {
-        helpText("Please make selections and generate results")
+        p("Please make selections and generate results")
       }
     })
   })

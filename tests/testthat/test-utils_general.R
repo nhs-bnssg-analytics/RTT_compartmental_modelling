@@ -567,3 +567,39 @@ test_that("Single long word is not broken arbitrarily", {
   expect_false(grepl("\n", wrapped))
   expect_equal(wrapped, definition)
 })
+
+
+test_that("Basic conversions are correct", {
+  expect_equal(
+    round(convert_weeks_to_months(4), 2),
+    round(4 * 7 / (365.25 / 12), 2)
+  )
+  expect_equal(
+    round(convert_weeks_to_months(52), 2),
+    round(52 * 7 / (365.25 / 12), 2)
+  ) # ~12 months
+})
+
+test_that("Zero weeks returns zero months", {
+  expect_equal(convert_weeks_to_months(0), 0)
+})
+
+test_that("Negative input returns negative months", {
+  expect_equal(
+    round(convert_weeks_to_months(-4), 2),
+    round(-4 * 7 / (365.25 / 12), 2)
+  )
+})
+
+test_that("Fractional weeks are handled correctly", {
+  expect_equal(
+    round(convert_weeks_to_months(2.5), 2),
+    round(2.5 * 7 / (365.25 / 12), 2)
+  )
+})
+
+test_that("Vectorized input returns correct vector of months", {
+  input <- c(1, 2, 3)
+  expected <- input * 7 / (365.25 / 12)
+  expect_equal(round(convert_weeks_to_months(input), 2), round(expected, 2))
+})

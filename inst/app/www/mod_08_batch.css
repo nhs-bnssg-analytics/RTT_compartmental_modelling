@@ -8,3 +8,7 @@
   color: white;
   border-color: rgb(0, 94, 184);
 }
+
+.reactable .divider-right {
+  border-right: 2px solid #a1a0a0ff;
+}
