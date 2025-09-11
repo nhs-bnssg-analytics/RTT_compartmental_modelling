@@ -576,6 +576,8 @@ name_with_tooltip <- function(name, definition) {
     30
   )
 
+  wrapped_definition <- gsub("^\\n", "", wrapped_definition)
+
   withTags(
     span(
       name,

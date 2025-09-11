@@ -447,3 +447,123 @@ test_that("latest_performance_text works", {
     "The performance at Dec 24 was 49.4%"
   )
 })
+
+
+test_that("Valid interpolation returns expected color", {
+  lowval <- setNames(0, "#0000FF") # Blue
+  midval <- setNames(50, "#00FF00") # Green
+  highval <- setNames(100, "#FF0000") # Red
+
+  # Midpoint should return green
+  expect_equal(cell_colour(50, lowval, midval, highval), "#00FF00")
+
+  # Low end should return blue
+  expect_equal(cell_colour(0, lowval, midval, highval), "#0000FF")
+
+  # High end should return red
+  expect_equal(cell_colour(100, lowval, midval, highval), "#FF0000")
+
+  # Value between low and mid
+  expect_equal(
+    cell_colour(25, lowval, midval, highval),
+    rgb(0, 128, 128, maxColorValue = 255)
+  )
+
+  # Value between mid and high
+  expect_equal(
+    cell_colour(75, lowval, midval, highval),
+    rgb(128, 128, 0, maxColorValue = 255)
+  )
+})
+
+test_that("Error if any input is not length 1", {
+  expect_error(
+    cell_colour(
+      25,
+      c("a" = 0, "b" = 1),
+      midval = setNames(50, "#00FF00"),
+      highval = setNames(100, "#FF0000")
+    ),
+    "All inputs must be length 1"
+  )
+})
+
+test_that("Error if any input is unnamed", {
+  expect_error(
+    cell_colour(
+      25,
+      lowval = c(0),
+      midval = setNames(50, "#00FF00"),
+      highval = setNames(100, "#FF0000")
+    ),
+    "All inputs must have a name"
+  )
+})
+
+test_that("Error if any name is not a valid hex color", {
+  expect_error(
+    cell_colour(
+      25,
+      lowval = setNames(0, "blue"),
+      midval = setNames(50, "#00FF00"),
+      highval = setNames(100, "#FF0000")
+    ),
+    "All names must be hex value"
+  )
+})
+
+test_that("Interpolation clamps values correctly", {
+  lowval <- setNames(0, "#000000")
+  midval <- setNames(50, "#FFFFFF")
+  highval <- setNames(100, "#000000")
+
+  # Should not exceed RGB bounds
+  expect_true(grepl(
+    "^#[A-Fa-f0-9]{6}$",
+    cell_colour(25, lowval, midval, highval)
+  ))
+})
+
+
+test_that("Returns a span tag with correct class and title", {
+  result <- name_with_tooltip(
+    "Column Name",
+    "This is a definition that should wrap nicely at around thirty characters."
+  )
+
+  expect_s3_class(result, "shiny.tag")
+  expect_equal(result$name, "span")
+  expect_equal(result$attribs$class, "table-headers")
+  expect_equal(result$children[[1]], "Column Name")
+})
+
+test_that("Tooltip text is wrapped at approximately 30 characters", {
+  definition <- "This is a long definition that should be wrapped at the nearest whitespace to every 30 characters."
+  result <- name_with_tooltip("Test", definition)
+  wrapped <- result$attribs$title
+
+  # Check that wrapped text contains line breaks
+  expect_true(grepl("\n", wrapped))
+
+  # Check that no line exceeds 30 characters
+  lines <- unlist(strsplit(wrapped, "\n"))
+  expect_true(all(nchar(lines) <= 30))
+})
+
+test_that("Short definitions are not wrapped", {
+  definition <- "Short definition."
+  result <- name_with_tooltip("Test", definition)
+  wrapped <- result$attribs$title
+
+  expect_equal(wrapped, definition)
+})
+
+test_that("Single long word is not broken arbitrarily", {
+  definition <- "Supercalifragilisticexpialidocious"
+  result <- name_with_tooltip("Test", definition)
+  wrapped <- result$attribs$title
+
+  # Should not insert line breaks in the middle of a word
+  expect_false(grepl("\n", wrapped))
+  expect_equal(wrapped, definition)
+})
