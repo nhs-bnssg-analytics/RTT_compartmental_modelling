@@ -541,3 +541,110 @@ latest_performance_text <- function(data) {
 
   return(text)
 }
+
+name_with_tooltip <- function(name, definition) {
+  wrap_hover_text <- function(text, width = 30) {
+    # Split the string into words
+    words <- unlist(strsplit(text, " "))
+    wrapped <- ""
+    line <- ""
+
+    for (word in words) {
+      # Check if adding the next word exceeds the width
+      if (nchar(line) + nchar(word) + 1 > width) {
+        # Add the current line to wrapped text
+        wrapped <- paste0(wrapped, line, "\n")
+        line <- word
+      } else {
+        # Add word to the current line
+        if (nchar(line) == 0) {
+          line <- word
+        } else {
+          line <- paste(line, word)
+        }
+      }
+    }
+
+    # Add the last line
+    wrapped <- paste0(wrapped, line)
+
+    return(wrapped)
+  }
+
+  wrapped_definition <- wrap_hover_text(
+    definition,
+    30
+  )
+
+  withTags(
+    span(
+      name,
+      title = wrapped_definition,
+      class = "table-headers"
+    )
+  )
+}
+
+cell_colour <- function(currentval, lowval, midval, highval) {
+  # check each input length 1
+  if (!all(length(lowval) == 1, length(midval) == 1, length(highval) == 1)) {
+    stop("All inputs must be length 1")
+  }
+
+  # check each input is a named vector
+  if (
+    any(is.null(names(lowval)), is.null(names(midval)), is.null(names(highval)))
+  ) {
+    stop("All inputs must have a name")
+  }
+
+  # check all names are hex vals
+  pat <- "^#(0x|0X)?[a-fA-F0-9]+$"
+  if (
+    any(
+      !grepl(pat, names(lowval)),
+      !grepl(pat, names(midval)),
+      !grepl(pat, names(midval))
+    )
+  ) {
+    stop("All names must be hex value")
+  }
+
+  # Extract numeric values and hex color names
+  lv <- as.numeric(lowval)
+  lc <- names(lowval)
+  mv <- as.numeric(midval)
+  mc <- names(midval)
+  hv <- as.numeric(highval)
+  hc <- names(highval)
+
+  # Convert hex to RGB
+  hex_to_rgb <- function(hex) {
+    rgb <- col2rgb(hex)
+    return(as.numeric(rgb))
+  }
+
+  # Interpolate between two RGB colors
+  interpolate_rgb <- function(val, val1, val2, col1, col2) {
+    ratio <- (val - val1) / (val2 - val1)
+    rgb1 <- hex_to_rgb(col1)
+    rgb2 <- hex_to_rgb(col2)
+    rgb_interp <- rgb1 + ratio * (rgb2 - rgb1)
+    rgb_interp <- pmax(0, pmin(255, rgb_interp)) # Clamp values
+    rgb_interp <- round(rgb_interp)
+    rgb_interp <- rgb(
+      rgb_interp[1],
+      rgb_interp[2],
+      rgb_interp[3],
+      maxColorValue = 255
+    )
+    return(rgb_interp)
+  }
+
+  # Determine which range to interpolate
+  if (currentval <= mv) {
+    return(interpolate_rgb(currentval, lv, mv, lc, mc))
+  } else {
+    return(interpolate_rgb(currentval, mv, hv, mc, hc))
+  }
+}

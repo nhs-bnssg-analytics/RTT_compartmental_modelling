@@ -189,7 +189,7 @@ mod_08_batch_ui <- function(id) {
 #' 08_batch Server Functions
 #'
 #' @importFrom shiny reactiveValues observeEvent renderUI helpText modalDialog modalButton
-#'   tagList showModal plotOutput renderPlot
+#'   tagList showModal plotOutput renderPlot withTags
 #' @importFrom NHSRtt latest_rtt_date get_rtt_data find_p
 #' @importFrom lubridate floor_date interval
 #' @importFrom rlang .data
@@ -508,67 +508,170 @@ mod_08_batch_server <- function(id) {
           pageSizeOptions = c(10, 20, 50, 100),
           defaultPageSize = 10,
           columns = list(
-            trust = colDef(name = "Trust"),
-            specialty = colDef(name = "Specialty"),
+            trust = colDef(
+              header = name_with_tooltip("Trust", definition = "Trust name")
+            ),
+            specialty = colDef(
+              header = name_with_tooltip(
+                "Specialty",
+                definition = "Specialty name"
+              )
+            ),
             referrals_t1 = colDef(
-              name = "Demand",
+              header = name_with_tooltip(
+                "Demand",
+                definition = "The calculated current demand based on the previous 12 months"
+              ),
               format = colFormat(digits = 2)
             ),
             capacity_t1 = colDef(
-              name = "Treatment capacity",
+              header = name_with_tooltip(
+                "Treatment capacity",
+                definition = "The calculated current treatment capacity based on the previous 12 months"
+              ),
               format = colFormat(digits = 2)
             ),
             reneges_t0 = colDef(
-              name = "Reneges",
+              header = name_with_tooltip(
+                "Reneges",
+                definition = "Calculated total reneges for final month of 12 month calibration period"
+              ),
               format = colFormat(digits = 2)
             ),
             load = colDef(
-              name = "Load",
+              header = name_with_tooltip(
+                "Load",
+                definition = "Arrivals (demand) divided by departures (treatment capacity + reneges), indicating whether list size is growing (>1) or shrinking (<1)"
+              ),
               format = colFormat(digits = 2),
-              cell = function(value) {
-                if (value >= 1.5) {
-                  classes <- "tag num-high"
-                } else if (value >= 0.8) {
-                  classes <- "tag num-med"
-                } else {
-                  classes <- "tag num-low"
-                }
-                value <- format(value, nsmall = 1)
-                span(class = classes, value)
+              style = function(value) {
+                list(
+                  backgroundColor = cell_colour(
+                    currentval = value,
+                    lowval = c(
+                      "#94e994ff" = min(
+                        reactive_values$optimised_projections$load,
+                        0.5
+                      )
+                    ),
+                    midval = c(
+                      "#FCFAFA" = 1
+                    ),
+                    highval = c(
+                      "#FA7557" = max(
+                        reactive_values$optimised_projections$load,
+                        2
+                      )
+                    )
+                  )
+                )
               }
             ),
             incompletes_t0 = colDef(
-              name = "Waiting list size",
+              header = name_with_tooltip(
+                "Waiting list size",
+                definition = "The number of people on the waiting list for the last observed period"
+              ),
               format = colFormat(digits = 0)
             ),
             pressure = colDef(
-              name = "Pressure",
+              header = name_with_tooltip(
+                "Pressure",
+                definition = "The current target percentile waiting time divided by the expected target percentilile wait time"
+              ),
               format = colFormat(digits = 2)
             ),
-            referrals_scenario = colDef(name = "Demand scenario"),
+            referrals_scenario = colDef(
+              header = name_with_tooltip(
+                "Demand scenario",
+                definition = "The demand scenario based on the user inputs"
+              )
+            ),
             referrals_ss = colDef(
-              name = "Demand",
+              header = name_with_tooltip(
+                "Demand",
+                definition = "The demand at the the target date based on the user inputs"
+              ),
               format = colFormat(digits = 2)
             ),
             capacity_ss = colDef(
-              name = "Treatment capacity",
+              header = name_with_tooltip(
+                "Treatments",
+                definition = "The calculated number of monthly treatments to achieve the steady-state solution based on the selected method"
+              ),
               format = colFormat(digits = 2)
             ),
             reneges_ss = colDef(
-              name = "Reneges",
+              header = name_with_tooltip(
+                "Reneges",
+                definition = "The calculated number of monthly reneges in the steady-state solution based on the selected method"
+              ),
               format = colFormat(digits = 2)
             ),
             incompletes_ss = colDef(
-              name = "Waiting list size",
+              header = name_with_tooltip(
+                "Waiting list size",
+                definition = "The number of people on the waiting list in the steady-state solution based on the selected method"
+              ),
               format = colFormat(digits = 0)
             ),
             current_vs_ss_wl_ratio = colDef(
-              name = "Current / steady state waiting list size",
-              format = colFormat(digits = 2)
+              header = name_with_tooltip(
+                "Current / steady state waiting list size",
+                definition = "The ratio of the current waiting list size compared with the calculated steady-state waiting list size"
+              ),
+              format = colFormat(digits = 2),
+              style = function(value) {
+                list(
+                  backgroundColor = cell_colour(
+                    currentval = value,
+                    lowval = c(
+                      "#94e994ff" = min(
+                        reactive_values$optimised_projections$current_vs_ss_wl_ratio,
+                        0.5
+                      )
+                    ),
+                    midval = c(
+                      "#FCFAFA" = 1
+                    ),
+                    highval = c(
+                      "#FA7557" = max(
+                        reactive_values$optimised_projections$current_vs_ss_wl_ratio,
+                        2
+                      )
+                    )
+                  )
+                )
+              }
             ),
             monthly_removals = colDef(
-              name = "Additional monthly removals required",
-              format = colFormat(digits = 2)
+              header = name_with_tooltip(
+                "Additional monthly removals required",
+                definition = "The number of additional monthly removals (above current treatments and reneges) to achieve the target waiting list size in the number of months specified by the user"
+              ),
+              format = colFormat(digits = 2),
+              style = function(value) {
+                list(
+                  backgroundColor = cell_colour(
+                    currentval = value,
+                    lowval = c(
+                      "#94e994ff" = min(
+                        reactive_values$optimised_projections$monthly_removals,
+                        -1
+                      )
+                    ),
+                    midval = c(
+                      "#FCFAFA" = 0
+                    ),
+                    highval = c(
+                      "#FA7557" = max(
+                        reactive_values$optimised_projections$monthly_removals,
+                        2
+                      )
+                    )
+                  )
+                )
+              }
             )
           ),
           onClick = "expand",
