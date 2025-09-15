@@ -93,6 +93,39 @@ calc_performance <- function(incompletes_data, target_bin) {
   return(performance)
 }
 
+#' Calculate the percentile waiting at a given week
+#' @param wl_shape a tibble with columns for the number of months waited (where 0 is 0-1 month)
+#'  and volume waiting
+#' @param week numeric; the week to calculate the percentile for
+#' @param wlsize_col character length 1; the name of the column containing the volume waiting
+#' @param time_col character length 1; the name of the column containing the number of months waiting
+calc_percentile_at_week <- function(
+  wl_shape,
+  week,
+  wlsize_col = "wlsize",
+  time_col = "months_waited_id"
+) {
+  mnth <- convert_weeks_to_months(week)
+
+  remainder <- mnth %% 1
+  whole_months <- wl_shape |>
+    filter(!!rlang::sym(time_col) %in% 0:(floor(mnth) - 1)) |>
+    pull(!!rlang::sym(wlsize_col)) |>
+    sum()
+
+  remainder_months <- wl_shape |>
+    filter(!!rlang::sym(time_col) %in% floor(mnth)) |>
+    pull(!!rlang::sym(wlsize_col)) |>
+    (\(x) x * remainder)()
+  # whole_months <- sum(wl_shape[[wlsize_col]])[0:floor(mnth)]
+  # remainder_months <- remainder * wl_shape[[wlsize_col]][floor(mnth) + 1]
+
+  total_wl <- sum(wl_shape[[wlsize_col]])
+
+  perc_calc <- (whole_months + remainder_months) / total_wl
+  return(perc_calc)
+}
+
 #' @importFrom dplyr as_tibble filter pull
 #' @param lm_object the output from a lm() function
 #' @param term string; the term name for the p.value of interest. This is used

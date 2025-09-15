@@ -657,3 +657,280 @@ test_that("plot_error works", {
     )
   )
 })
+
+
+# test the waiting list plots for the steady state tab
+
+chart_data <- data.frame(
+  wl_type = c(
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list"
+  ),
+  months_waited_id = c(
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    0,
+    0,
+    1,
+    1,
+    2,
+    2,
+    3,
+    3,
+    4,
+    4,
+    5,
+    5,
+    6,
+    6,
+    7,
+    7,
+    8,
+    8,
+    9,
+    9,
+    10,
+    10,
+    11,
+    11,
+    12,
+    12
+  ),
+  wlsize = c(
+    515.863580366944,
+    235.033272134513,
+    117.814204227977,
+    55.1352975464488,
+    29.6007443722297,
+    17.0348657994358,
+    11.1602249219391,
+    7.64245900007452,
+    5.88117350305859,
+    4.64322676490156,
+    3.93629800595832,
+    3.15584222893564,
+    1.75364439623187,
+    475,
+    515.571428571429,
+    287.714285714286,
+    291,
+    247.428571428571,
+    270.142857142857,
+    167.142857142857,
+    146.714285714286,
+    134,
+    112.142857142857,
+    94.2857142857143,
+    81.4285714285714,
+    94.7142857142857,
+    91.7142857142857,
+    93.8571428571429,
+    77.7142857142857,
+    115.857142857143,
+    75.5714285714286,
+    99.8571428571428,
+    54.2857142857143,
+    72.1428571428571,
+    33.7142857142857,
+    70,
+    12,
+    111,
+    1
+  ),
+  period = c(
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01"
+  ),
+  wl_description = as.factor(c(
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025"
+  ))
+)
+
+perc_calc <- data.frame(
+  target_percentile = c(4.13905367647223, 11.228, 8.47017013232514),
+  wl_description = as.factor(c("Steady state", "May 2024", "May 2025"))
+)
+
+chart_data <- chart_data |>
+  left_join(
+    perc_calc,
+    by = join_by(wl_description)
+  ) |>
+  mutate(
+    column_fill = case_when(
+      .data$months_waited_id < floor(convert_weeks_to_months(targ_week)) ~
+        "Within target week",
+      .data$months_waited_id == floor(convert_weeks_to_months(targ_week)) ~
+        "Part within target week",
+      .data$months_waited_id < floor(.data$target_percentile) ~
+        "Below target percentile",
+      .data$months_waited_id > floor(.data$target_percentile) ~
+        "Above target percentile",
+      .default = "Part within target percentile"
+    ),
+    column_fill = factor(
+      .data$column_fill,
+      levels = c(
+        "Within target week",
+        "Part within target week",
+        "Below target percentile",
+        "Part within target percentile",
+        "Above target percentile"
+      )
+    )
+  )
+
+test_that("plot_waiting_lists returns a ggplot object", {
+  targ_week <- 18
+  targ_val <- 92
+  p <- chart_data |>
+    plot_waiting_lists(
+      target_week = targ_week,
+      percentile_data = perc_calc,
+      target_value = targ_val
+    )
+
+  expect_s3_class(p, "ggplot")
+
+  vdiffr::expect_doppelganger(
+    title = "waiting lists chart",
+    p
+  )
+})
+
+test_that("plot_waiting_lists handles missing columns gracefully", {
+  broken_data <- chart_data |>
+    select(!c("months_waited_id"))
+  expect_snapshot(
+    plot_waiting_lists(
+      data = broken_data,
+      target_week = 12,
+      percentile_data = perc_calc,
+      target_value = 90
+    ),
+    error = TRUE
+  )
+})

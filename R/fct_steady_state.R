@@ -1,6 +1,7 @@
 #' append_current_status
 #'
 #' @param percentile numeric; target percentile value
+#' @param percentile_month numeric; month value that the percentile needs to be achieved
 #' @importFrom dplyr distinct arrange mutate select left_join join_by filter
 #'  summarise pull
 #' @importFrom tidyr complete nesting unnest nest
@@ -8,7 +9,12 @@
 #' @importFrom rlang .data
 #' @importFrom NHSRtt hist_percentile_calc
 #' @noRd
-append_current_status <- function(data, max_months_waited, percentile) {
+append_current_status <- function(
+  data,
+  max_months_waited,
+  percentile,
+  percentile_month
+) {
   period_lkp <- data |>
     distinct(.data$period) |>
     arrange(.data$period) |>
@@ -173,7 +179,7 @@ append_current_status <- function(data, max_months_waited, percentile) {
           time_col = "months_waited_id"
         )
       ),
-      pressure = .data$percentile_mnth / percentile
+      pressure = .data$percentile_mnth / percentile_month
     ) |>
     select("trust", "specialty", "pressure")
 

@@ -341,7 +341,8 @@ mod_08_batch_server <- function(id) {
             current <- append_current_status(
               data = raw_data,
               max_months_waited = 12,
-              percentile = input$target_value / 100
+              percentile = input$target_value / 100,
+              percentile_month = convert_weeks_to_months(input$target_week)
             ) |>
               # add the referrals scenarios
               dplyr::cross_join(
@@ -532,33 +533,63 @@ mod_08_batch_server <- function(id) {
                       format(max(.data$period, na.rm = TRUE), format = "%b %Y"),
                       "Steady state"
                     )
-                  ),
-                  months_waited = convert_month_to_factor(
-                    .data$months_waited_id
                   )
                 ) |>
-                ggplot(
-                  # reactive_values$optimised_waiting_list$waiting_list[[i]] |>
-                  #   mutate(
-                  #     months_waited = convert_month_to_factor(
-                  #       .data$months_waited_id
-                  #     )
-                  #   ),
-                  aes(
-                    x = factor(.data$months_waited),
-                    y = .data$wlsize
-                  )
-                ) +
-                geom_col() +
-                theme_bw() +
-                labs(
-                  x = "Number of months waited",
-                  y = "Number of people"
-                ) +
-                facet_wrap(
-                  facets = vars(.data$wl_description),
-                  nrow = 1
+                plot_waiting_lists_chart(
+                  target_week = input$target_week,
+                  target_value = input$target_value
                 )
+
+              # percentile_calculation <- chart_data |>
+              #   select(
+              #     "trust",
+              #     "specialty",
+              #     "wl_description",
+              #     "months_waited_id",
+              #     "wlsize"
+              #   ) |>
+              #   tidyr::nest(wl_shape = c("months_waited_id", "wlsize")) |>
+              #   mutate(
+              #     target_percentile = purrr::map_dbl(
+              #       wl_shape,
+              #       ~ NHSRtt::hist_percentile_calc(
+              #         wl_structure = .x,
+              #         percentile = input$target_value / 100
+              #       )
+              #     )
+              #   ) |>
+              #   select(!c("wl_shape"))
+              # # browser()
+              # chart_data |>
+              #   left_join(
+              #     percentile_calculation,
+              #     by = join_by(trust, specialty, wl_description)
+              #   ) |>
+              #   mutate(
+              #     column_fill = case_when(
+              #       .data$months_waited_id <
+              #         floor(convert_weeks_to_months(input$target_week)) ~
+              #         "Within target week",
+              #       .data$months_waited_id ==
+              #         floor(convert_weeks_to_months(input$target_week)) ~
+              #         "Part within target week",
+              #       .data$months_waited_id < floor(.data$target_percentile) ~
+              #         "Below target percentile",
+              #       .data$months_waited_id > floor(.data$target_percentile) ~
+              #         "Above target percentile",
+              #       .default = "Part within target percentile"
+              #     ),
+              #     column_fill = factor(
+              #       .data$column_fill,
+              #       levels = c(
+              #         "Within target week",
+              #         "Part within target week",
+              #         "Below target percentile",
+              #         "Part within target percentile",
+              #         "Above target percentile"
+              #       )
+              #     )
+              #   )
             })
           })
         }
@@ -625,7 +656,7 @@ mod_08_batch_server <- function(id) {
             ),
             capacity_t1 = colDef(
               header = name_with_tooltip(
-                "Treatment capacity",
+                "Treatments",
                 definition = "The calculated current treatment capacity based on the previous 12 months"
               ),
               format = colFormat(digits = 2)
@@ -640,7 +671,7 @@ mod_08_batch_server <- function(id) {
             load = colDef(
               header = name_with_tooltip(
                 "Load",
-                definition = "Arrivals (demand) divided by departures (treatment capacity + reneges), indicating whether list size is growing (>1) or shrinking (<1)"
+                definition = "Arrivals (demand) divided by departures (treatments + reneges), indicating whether list size is growing (>1) or shrinking (<1)"
               ),
               format = colFormat(digits = 2),
               style = function(value) {

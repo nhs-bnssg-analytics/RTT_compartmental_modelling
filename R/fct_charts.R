@@ -563,6 +563,239 @@ plot_error <- function(modelled_data, observed_data) {
 }
 
 
+#' Plot Waiting List Distributions with Target Indicators
+#'
+#' Generates a faceted bar plot showing the distribution of waiting list sizes
+#' across different categories, with vertical lines and labels indicating a target
+#' number of weeks and a percentile threshold.
+#'
+#' @param data A data frame containing waiting list information. Must include columns:
+#'   - `months_waited_id`: numeric identifier for months waited
+#'   - `wlsize`: number of people on the waiting list
+#'   - `wl_description`: description used for faceting
+#' @param target_week Numeric value indicating the target number of weeks to wait.
+#'   This will be converted to months and shown as a vertical dashed line with a label.
+#' @param target_value Numeric value representing the percentile (e.g., 90 for 90th percentile).
+#'   Used for labeling the percentile line.
+#'
+#' @return A `ggplot2` object representing the waiting list distribution plot.
+#'
+#' @examples
+#' \dontrun{
+#' plot_waiting_lists_chart(data = my_data,
+#'                    target_week = 18,
+#'                    target_value = 90)
+#' }
+#'
+#' @import ggplot2
+#' @export
+plot_waiting_lists_chart <- function(
+  data,
+  target_week,
+  percentile_data,
+  target_value
+) {
+  # browser()
+  percentile_calculation <- data |>
+    select(
+      "trust",
+      "specialty",
+      "wl_description",
+      "months_waited_id",
+      "wlsize"
+    ) |>
+    tidyr::nest(wl_shape = c("months_waited_id", "wlsize")) |>
+    mutate(
+      target_percentile = purrr::map_dbl(
+        wl_shape,
+        ~ NHSRtt::hist_percentile_calc(
+          wl_structure = .x,
+          percentile = target_value / 100
+        )
+      ),
+      percentile_at_target = purrr::map_dbl(
+        wl_shape,
+        ~ calc_percentile_at_week(
+          wl_shape = .x,
+          week = target_week
+        )
+      ),
+      percentile_between_target_week_and_target_percentile = (target_value /
+        100) -
+        .data$percentile_at_target,
+      percentile_above_target_value = 1 -
+        (.data$percentile_at_target +
+          .data$percentile_between_target_week_and_target_percentile),
+      percentile_between_target_week_and_target_percentile = case_when(
+        round(.data$percentile_between_target_week_and_target_percentile, 1) ==
+          0 ~
+          NA_real_,
+        .default = .data$percentile_between_target_week_and_target_percentile
+      )
+    ) |>
+    select(!c("wl_shape"))
+  # browser()
+
+  segment_y = -max(data$wlsize) * 0.05
+  text_y = -max(data$wlsize) * 0.1
+
+  p <- data |>
+    left_join(
+      percentile_calculation,
+      by = join_by(trust, specialty, wl_description)
+    ) |>
+    # mutate(
+    #   column_fill = case_when(
+    #     .data$months_waited_id < floor(convert_weeks_to_months(target_week)) ~
+    #       "Within target week",
+    #     .data$months_waited_id == floor(convert_weeks_to_months(target_week)) ~
+    #       "Part within target week",
+    #     .data$months_waited_id < floor(.data$target_percentile) ~
+    #       "Below target percentile",
+    #     .data$months_waited_id > floor(.data$target_percentile) ~
+    #       "Above target percentile",
+    #     .default = "Part within target percentile"
+    #   ),
+    #   column_fill = factor(
+    #     .data$column_fill,
+    #     levels = c(
+    #       "Within target week",
+    #       "Part within target week",
+    #       "Below target percentile",
+    #       "Part within target percentile",
+    #       "Above target percentile"
+    #     )
+    #   )
+    # ) |>
+    ggplot(
+      aes(
+        x = .data$months_waited_id,
+        y = .data$wlsize
+      )
+    ) +
+    geom_col(
+      # aes(fill = .data$column_fill)
+    ) +
+    # Green line below the bars within the given target time, slightly below the x-axis
+    geom_segment(
+      x = -0.5,
+      xend = convert_weeks_to_months(target_week) - 0.5,
+      y = segment_y,
+      yend = segment_y,
+      color = "#009E73"
+    ) +
+    geom_text(
+      data = percentile_calculation,
+      y = text_y,
+      x = convert_weeks_to_months(target_week) / 2,
+      color = "#009E73",
+      aes(
+        label = paste0(
+          formatC(100 * .data$percentile_at_target, format = "f", digits = 1),
+          "%",
+          " (",
+          target_week,
+          " weeks)"
+        )
+      )
+    ) +
+    # Orange line below the bars after the given target time, slightly below the x-axis
+    geom_segment(
+      data = percentile_calculation,
+      x = convert_weeks_to_months(target_week) - 0.5,
+      aes(xend = .data$target_percentile - 0.5),
+      y = segment_y,
+      yend = segment_y,
+      color = "#E69F00"
+    ) +
+    geom_text(
+      data = percentile_calculation,
+      y = text_y,
+      color = "#E69F00",
+      aes(
+        x = convert_weeks_to_months(target_week) +
+          ((.data$target_percentile - convert_weeks_to_months(target_week)) /
+            2),
+        label = ifelse(
+          is.na(
+            .data$percentile_between_target_week_and_target_percentile
+          ),
+          NA_character_,
+          paste0(
+            formatC(
+              100 *
+                .data$percentile_between_target_week_and_target_percentile,
+              format = "f",
+              digits = 1
+            ),
+            "%"
+          )
+        )
+      )
+    ) +
+    # Red line below the bars after the target percentile, slightly below the x-axis
+    geom_segment(
+      data = percentile_calculation,
+      xend = 12 + 0.5,
+      aes(x = .data$target_percentile - 0.5),
+      y = segment_y,
+      yend = segment_y,
+      color = "#D55E00"
+    ) +
+    geom_text(
+      data = percentile_calculation,
+      y = text_y,
+      color = "#D55E00",
+      aes(
+        x = .data$target_percentile +
+          ((12 - .data$target_percentile) /
+            2),
+        label = paste0(
+          formatC(
+            100 * .data$percentile_above_target_value,
+            format = "f",
+            digits = 1
+          ),
+          "%"
+        )
+      )
+    ) +
+    geom_vline(
+      data = percentile_calculation,
+      aes(
+        xintercept = .data$target_percentile - 0.5
+      ),
+      linetype = "dashed"
+    ) +
+    geom_text(
+      data = percentile_calculation,
+      aes(x = .data$target_percentile - 0.5),
+      y = Inf,
+      angle = 90,
+      label = paste0(target_value, "%ile"),
+      vjust = 1.5,
+      hjust = 1.5
+    ) +
+    theme_bw() +
+    labs(
+      x = "In the nth month of waiting",
+      y = "Number of people"
+    ) +
+    facet_wrap(
+      facets = vars(.data$wl_description),
+      nrow = 1
+    ) +
+    scale_x_continuous(
+      breaks = 0:12,
+      labels = \(x) ifelse(x == max(x), paste0(x + 1, "+"), x + 1)
+    ) +
+    scale_y_continuous(
+      expand = expansion(mult = c(0.15, 0.1))
+    )
+
+  return(p)
+}
+
 #' geom_step in the charts do not display the final observed or projected months
 #' well because the stepped line terminates at the start of the month. This
 #' function adds an artificial month onto the observed and projected
