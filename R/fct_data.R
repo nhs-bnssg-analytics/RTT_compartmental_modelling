@@ -38,6 +38,13 @@ get_rtt_data_with_progress <- function(
       )
     })()
 
+  # translate "Other - Total" to all the individual specialties so all of the "Other" data is downloaded
+  if (specialty_codes == "X01") {
+    specialty_codes_input <- paste0("X0", 1:6)
+  } else {
+    specialty_codes_input <- specialty_codes
+  }
+
   monthly_rtt <- all_dates |>
     purrr::imap(
       \(x, idx) {
@@ -49,11 +56,17 @@ get_rtt_data_with_progress <- function(
           trust_codes = trust_codes,
           commissioner_parent_codes = commissioner_parent_codes,
           commissioner_org_codes = commissioner_org_codes,
-          specialty_codes = specialty_codes
+          specialty_codes = specialty_codes_input
         )
       }
     ) |>
     purrr::list_rbind()
+
+  if (specialty_codes == "X01") {
+    # replace all of the Other category codes to the "Other - Total" code
+    monthly_rtt <- monthly_rtt |>
+      mutate(specialty = "X01")
+  }
 
   return(monthly_rtt)
 }

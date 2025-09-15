@@ -31,7 +31,12 @@ treatment_function_codes <- c(
   "(:?C_|[INA]P)?410" = "Rheumatology",
   "(:?C_|[INA]P)?430" = "Elderly Medicine",
   "(:?C_|[INA]P)?502" = "Gynaecology",
-  "X0[1-6]" = "Other",
+  "X01" = "Other - Total",
+  "X02" = "Other - Medical Services",
+  "X03" = "Other - Mental Health Services",
+  "X04" = "Other - Paediatric Services",
+  "X05" = "Other - Surgical Services",
+  "X06" = "Other - Other Services",
   "C_999" = "Total"
 )
 
@@ -76,16 +81,18 @@ specialty_lkp <- dplyr::tribble(
   "Gynaecology",
   "C_999",
   "Total",
+  "X01",
+  "Other - Total",
   "X02",
-  "Other",
+  "Other - Medical Services",
   "X03",
-  "Other",
+  "Other - Mental Health Services",
   "X04",
-  "Other",
+  "Other - Paediatric Services",
   "X05",
-  "Other",
+  "Other - Surgical Services",
   "X06",
-  "Other"
+  "Other - Other Services"
 )
 
 

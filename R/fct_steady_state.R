@@ -9,8 +9,6 @@
 #' @importFrom NHSRtt hist_percentile_calc
 #' @noRd
 append_current_status <- function(data, max_months_waited, percentile) {
-  # browser()
-
   period_lkp <- data |>
     distinct(.data$period) |>
     arrange(.data$period) |>
@@ -157,7 +155,7 @@ append_current_status <- function(data, max_months_waited, percentile) {
     allow_negative_params = FALSE,
     full_breakdown = FALSE
   )
-  # browser()
+
   # calculate pressure metric
   pressure <- data |>
     filter(
