@@ -322,7 +322,20 @@ mod_08_batch_server <- function(id) {
               "extdata",
               "rtt_12months.rds",
               package = "RTTshiny"
-            )) |>
+            ))
+
+            # raw_data currently doesn't have a 1 to 1 relationship period-period_id because
+            # some specialties have small numbers so they are missing, therefore
+            # we must create a consistent lkp here
+
+            period_lkp <- raw_data |>
+              distinct(.data$period) |>
+              arrange(.data$period) |>
+              mutate(period_id = dplyr::row_number())
+
+            raw_data <- raw_data |>
+              select(!c("period_id")) |>
+              left_join(period_lkp, by = join_by(period)) |>
               filter(trust %in% input$ss_trust_codes) |>
               filter(specialty %in% c(input$specialty_codes))
 
@@ -433,7 +446,7 @@ mod_08_batch_server <- function(id) {
 
                 historic_waiting_list <- raw_data |>
                   filter(
-                    .data$type == "Incomplete",
+                    .data$type %in% c("Incomplete", "Complete"),
                     .data$period %in%
                       c(
                         max(.data$period),
@@ -441,14 +454,25 @@ mod_08_batch_server <- function(id) {
                       )
                   ) |>
                   mutate(
-                    wl_description = format(.data$period, format = "%b %Y")
+                    wl_description = format(.data$period, format = "%b %Y"),
+                    type = case_when(
+                      .data$type == "Incomplete" ~ "wlsize",
+                      .data$type == "Complete" ~ "sigma",
+                      .default = NA_character_
+                    )
+                  ) |>
+                  tidyr::pivot_wider(
+                    names_from = "type",
+                    values_from = "value",
+                    values_fill = 0
                   ) |>
                   select(
                     "trust",
                     "specialty",
                     "period",
                     "months_waited_id",
-                    wlsize = "value",
+                    "wlsize",
+                    "sigma",
                     "wl_description"
                   ) |>
                   tidyr::nest(
@@ -456,14 +480,21 @@ mod_08_batch_server <- function(id) {
                       "period",
                       "months_waited_id",
                       "wlsize",
-                      "wl_description"
+                      "wl_description",
+                      "sigma"
                     )
                   )
 
                 reactive_values$optimised_waiting_list <- optimised_projections |>
                   select("trust", "specialty", "referrals_scenario", "wl_ss") |>
                   tidyr::unnest("wl_ss") |>
-                  select("trust", "specialty", "months_waited_id", "wlsize") |>
+                  select(
+                    "trust",
+                    "specialty",
+                    "months_waited_id",
+                    "wlsize",
+                    "sigma"
+                  ) |>
                   mutate(
                     wl_description = "Steady state"
                   ) |>
@@ -472,7 +503,7 @@ mod_08_batch_server <- function(id) {
                       "months_waited_id",
                       # "r",
                       # "service",
-                      # "sigma",
+                      "sigma",
                       "wlsize",
                       "wl_description"
                     )
@@ -517,7 +548,10 @@ mod_08_batch_server <- function(id) {
               reactive_values$optimised_waiting_list |>
                 dplyr::slice(i) |>
                 tidyr::pivot_longer(
-                  cols = c(steady_state_waiting_list, previous_waiting_list),
+                  cols = c(
+                    "steady_state_waiting_list",
+                    "previous_waiting_list"
+                  ),
                   names_to = "wl_type",
                   values_to = "wl_data"
                 ) |>
@@ -539,57 +573,6 @@ mod_08_batch_server <- function(id) {
                   target_week = input$target_week,
                   target_value = input$target_value
                 )
-
-              # percentile_calculation <- chart_data |>
-              #   select(
-              #     "trust",
-              #     "specialty",
-              #     "wl_description",
-              #     "months_waited_id",
-              #     "wlsize"
-              #   ) |>
-              #   tidyr::nest(wl_shape = c("months_waited_id", "wlsize")) |>
-              #   mutate(
-              #     target_percentile = purrr::map_dbl(
-              #       wl_shape,
-              #       ~ NHSRtt::hist_percentile_calc(
-              #         wl_structure = .x,
-              #         percentile = input$target_value / 100
-              #       )
-              #     )
-              #   ) |>
-              #   select(!c("wl_shape"))
-              # # browser()
-              # chart_data |>
-              #   left_join(
-              #     percentile_calculation,
-              #     by = join_by(trust, specialty, wl_description)
-              #   ) |>
-              #   mutate(
-              #     column_fill = case_when(
-              #       .data$months_waited_id <
-              #         floor(convert_weeks_to_months(input$target_week)) ~
-              #         "Within target week",
-              #       .data$months_waited_id ==
-              #         floor(convert_weeks_to_months(input$target_week)) ~
-              #         "Part within target week",
-              #       .data$months_waited_id < floor(.data$target_percentile) ~
-              #         "Below target percentile",
-              #       .data$months_waited_id > floor(.data$target_percentile) ~
-              #         "Above target percentile",
-              #       .default = "Part within target percentile"
-              #     ),
-              #     column_fill = factor(
-              #       .data$column_fill,
-              #       levels = c(
-              #         "Within target week",
-              #         "Part within target week",
-              #         "Below target percentile",
-              #         "Part within target percentile",
-              #         "Above target percentile"
-              #       )
-              #     )
-              #   )
             })
           })
         }
@@ -710,7 +693,29 @@ mod_08_batch_server <- function(id) {
                 definition = "The current target percentile waiting time divided by the expected target percentilile wait time"
               ),
               format = colFormat(digits = 2),
-              class = "divider-right"
+              class = "divider-right",
+              style = function(value) {
+                list(
+                  backgroundColor = cell_colour(
+                    currentval = value,
+                    lowval = c(
+                      "#94e994ff" = min(
+                        reactive_values$optimised_projections$pressure,
+                        0.5
+                      )
+                    ),
+                    midval = c(
+                      "#FCFAFA" = 1
+                    ),
+                    highval = c(
+                      "#FA7557" = max(
+                        reactive_values$optimised_projections$pressure,
+                        2
+                      )
+                    )
+                  )
+                )
+              }
             ),
             referrals_scenario = colDef(
               header = name_with_tooltip(
@@ -812,7 +817,7 @@ mod_08_batch_server <- function(id) {
               style = "padding: 16px;",
               plotOutput(
                 outputId = ns(paste0("plot_wl", index)),
-                height = "300px"
+                height = "600px"
               )
             )
           },
@@ -849,7 +854,7 @@ mod_08_batch_server <- function(id) {
                 )
               )
             ) |>
-            write.table(
+            utils::write.table(
               file = "clipboard",
               sep = "\t",
               row.names = FALSE

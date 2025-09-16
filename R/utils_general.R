@@ -108,21 +108,27 @@ calc_percentile_at_week <- function(
   mnth <- convert_weeks_to_months(week)
 
   remainder <- mnth %% 1
-  whole_months <- wl_shape |>
-    filter(!!rlang::sym(time_col) %in% 0:(floor(mnth) - 1)) |>
-    pull(!!rlang::sym(wlsize_col)) |>
-    sum()
 
-  remainder_months <- wl_shape |>
-    filter(!!rlang::sym(time_col) %in% floor(mnth)) |>
-    pull(!!rlang::sym(wlsize_col)) |>
-    (\(x) x * remainder)()
-  # whole_months <- sum(wl_shape[[wlsize_col]])[0:floor(mnth)]
-  # remainder_months <- remainder * wl_shape[[wlsize_col]][floor(mnth) + 1]
+  if (sum(wl_shape[[wlsize_col]]) != 0) {
+    whole_months <- wl_shape |>
+      filter(!!rlang::sym(time_col) %in% 0:(floor(mnth) - 1)) |>
+      pull(!!rlang::sym(wlsize_col)) |>
+      sum()
 
-  total_wl <- sum(wl_shape[[wlsize_col]])
+    remainder_months <- wl_shape |>
+      filter(!!rlang::sym(time_col) %in% floor(mnth)) |>
+      pull(!!rlang::sym(wlsize_col)) |>
+      (\(x) x * remainder)()
+    # whole_months <- sum(wl_shape[[wlsize_col]])[0:floor(mnth)]
+    # remainder_months <- remainder * wl_shape[[wlsize_col]][floor(mnth) + 1]
 
-  perc_calc <- (whole_months + remainder_months) / total_wl
+    total_wl <- sum(wl_shape[[wlsize_col]])
+
+    perc_calc <- (whole_months + remainder_months) / total_wl
+  } else {
+    perc_calc <- NA
+  }
+
   return(perc_calc)
 }
 
@@ -664,7 +670,7 @@ cell_colour <- function(currentval, lowval, midval, highval) {
 
   # Convert hex to RGB
   hex_to_rgb <- function(hex) {
-    rgb <- col2rgb(hex)
+    rgb <- grDevices::col2rgb(hex)
     return(as.numeric(rgb))
   }
 
@@ -676,7 +682,7 @@ cell_colour <- function(currentval, lowval, midval, highval) {
     rgb_interp <- rgb1 + ratio * (rgb2 - rgb1)
     rgb_interp <- pmax(0, pmin(255, rgb_interp)) # Clamp values
     rgb_interp <- round(rgb_interp)
-    rgb_interp <- rgb(
+    rgb_interp <- grDevices::rgb(
       rgb_interp[1],
       rgb_interp[2],
       rgb_interp[3],

@@ -662,6 +662,130 @@ test_that("plot_error works", {
 # test the waiting list plots for the steady state tab
 
 chart_data <- data.frame(
+  stringsAsFactors = FALSE,
+  trust = c(
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS BRISTOL AND WESTON NHS FOUNDATION TRUST"
+  ),
+  specialty = c(
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic",
+    "Trauma and Orthopaedic"
+  ),
+  id = c(
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L,
+    1L
+  ),
   wl_type = c(
     "steady_state_waiting_list",
     "steady_state_waiting_list",
@@ -744,45 +868,86 @@ chart_data <- data.frame(
     12,
     12
   ),
-  wlsize = c(
-    515.863580366944,
-    235.033272134513,
-    117.814204227977,
-    55.1352975464488,
-    29.6007443722297,
-    17.0348657994358,
-    11.1602249219391,
-    7.64245900007452,
-    5.88117350305859,
-    4.64322676490156,
-    3.93629800595832,
-    3.15584222893564,
-    1.75364439623187,
-    475,
-    515.571428571429,
-    287.714285714286,
-    291,
-    247.428571428571,
-    270.142857142857,
-    167.142857142857,
-    146.714285714286,
-    134,
-    112.142857142857,
-    94.2857142857143,
-    81.4285714285714,
-    94.7142857142857,
-    91.7142857142857,
-    93.8571428571429,
-    77.7142857142857,
-    115.857142857143,
-    75.5714285714286,
-    99.8571428571428,
-    54.2857142857143,
-    72.1428571428571,
+  sigma = c(
+    83.5700145838616,
+    70.9273975094256,
+    60.1973775224345,
+    51.090613610868,
+    43.3615367739602,
+    36.8017281162491,
+    17.07989548527,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    53.4285714285714,
+    57.4285714285714,
     33.7142857142857,
-    70,
-    12,
-    111,
+    46.1428571428571,
+    33,
+    24.8571428571429,
+    33.1428571428571,
+    42,
+    28.2857142857143,
+    33.5714285714286,
+    37.8571428571429,
+    39,
+    34.5714285714286,
+    22.4285714285714,
+    21.5714285714286,
+    25.8571428571429,
+    15.7142857142857,
+    21.7142857142857,
+    16.7142857142857,
+    20,
+    27,
+    20.4285714285714,
+    10.5714285714286,
+    7.71428571428571,
+    18.4285714285714,
+    3.85714285714286
+  ),
+  wlsize = c(
+    293.600007349678,
+    212.989791072222,
+    151.536705429482,
+    100.446091818614,
+    57.0845550446543,
+    17.5258626696373,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    328.571428571429,
+    363.428571428571,
+    300.714285714286,
+    252.428571428571,
+    300.714285714286,
+    222.857142857143,
+    201.285714285714,
+    192.857142857143,
+    180.142857142857,
+    175.142857142857,
+    135.142857142857,
+    133.285714285714,
+    111.571428571429,
+    115.142857142857,
+    106.714285714286,
+    68.1428571428571,
+    68.1428571428571,
+    64.7142857142857,
+    60.2857142857143,
+    26.7142857142857,
+    40.7142857142857,
+    19.5714285714286,
+    41.7142857142857,
+    5.71428571428571,
+    33.2857142857143,
     1
   ),
   period = c(
@@ -869,68 +1034,35 @@ chart_data <- data.frame(
   ))
 )
 
-perc_calc <- data.frame(
-  target_percentile = c(4.13905367647223, 11.228, 8.47017013232514),
-  wl_description = as.factor(c("Steady state", "May 2024", "May 2025"))
-)
 
-chart_data <- chart_data |>
-  left_join(
-    perc_calc,
-    by = join_by(wl_description)
-  ) |>
-  mutate(
-    column_fill = case_when(
-      .data$months_waited_id < floor(convert_weeks_to_months(targ_week)) ~
-        "Within target week",
-      .data$months_waited_id == floor(convert_weeks_to_months(targ_week)) ~
-        "Part within target week",
-      .data$months_waited_id < floor(.data$target_percentile) ~
-        "Below target percentile",
-      .data$months_waited_id > floor(.data$target_percentile) ~
-        "Above target percentile",
-      .default = "Part within target percentile"
-    ),
-    column_fill = factor(
-      .data$column_fill,
-      levels = c(
-        "Within target week",
-        "Part within target week",
-        "Below target percentile",
-        "Part within target percentile",
-        "Above target percentile"
-      )
-    )
-  )
-
-test_that("plot_waiting_lists returns a ggplot object", {
+test_that("plot_waiting_lists_chart returns a ggplot object", {
   targ_week <- 18
   targ_val <- 92
-  p <- chart_data |>
-    plot_waiting_lists(
-      target_week = targ_week,
-      percentile_data = perc_calc,
-      target_value = targ_val
-    )
+  p <- plot_waiting_lists_chart(
+    data = chart_data,
+    target_week = targ_week,
+    target_value = targ_val
+  )
 
   expect_s3_class(p, "ggplot")
 
-  vdiffr::expect_doppelganger(
-    title = "waiting lists chart",
-    p
+  suppressWarnings(
+    vdiffr::expect_doppelganger(
+      title = "waiting lists chart",
+      p
+    )
   )
 })
 
-test_that("plot_waiting_lists handles missing columns gracefully", {
+test_that("plot_waiting_lists_chart handles missing columns gracefully", {
   broken_data <- chart_data |>
     select(!c("months_waited_id"))
-  expect_snapshot(
-    plot_waiting_lists(
+  expect_error(
+    plot_waiting_lists_chart(
       data = broken_data,
       target_week = 12,
-      percentile_data = perc_calc,
       target_value = 90
     ),
-    error = TRUE
+    "Column `months_waited_id` doesn't exist."
   )
 })

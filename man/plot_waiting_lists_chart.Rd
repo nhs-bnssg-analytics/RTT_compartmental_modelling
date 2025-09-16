@@ -4,12 +4,13 @@
 \alias{plot_waiting_lists_chart}
 \title{Plot Waiting List Distributions with Target Indicators}
 \usage{
-plot_waiting_lists_chart(data, target_week, percentile_data, target_value)
+plot_waiting_lists_chart(data, target_week, target_value)
 }
 \arguments{
 \item{data}{A data frame containing waiting list information. Must include columns:
 - `months_waited_id`: numeric identifier for months waited
 - `wlsize`: number of people on the waiting list
+- `sigma`: the number of treatments for each compartment
 - `wl_description`: description used for faceting}
 
 \item{target_week}{Numeric value indicating the target number of weeks to wait.
