@@ -600,6 +600,7 @@ plot_waiting_lists_chart <- function(
     select(
       "trust",
       "specialty",
+      "referrals_scenario",
       "wl_description",
       "months_waited_id",
       "wlsize"
@@ -734,7 +735,13 @@ plot_waiting_lists_chart <- function(
     ) |>
     left_join(
       percentile_calculation,
-      by = c("trust", "specialty", "wl_description", "facet_join")
+      by = c(
+        "trust",
+        "specialty",
+        "referrals_scenario",
+        "wl_description",
+        "facet_join"
+      )
     ) |>
     ggplot(
       aes(

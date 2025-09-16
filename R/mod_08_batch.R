@@ -491,6 +491,7 @@ mod_08_batch_server <- function(id) {
                   select(
                     "trust",
                     "specialty",
+                    "referrals_scenario",
                     "months_waited_id",
                     "wlsize",
                     "sigma"
@@ -613,6 +614,7 @@ mod_08_batch_server <- function(id) {
           filterable = TRUE,
           showPageSizeOptions = TRUE,
           pageSizeOptions = c(10, 20, 50, 100),
+          height = 800, # this makes headers sticky and table scrollable
           defaultPageSize = 10,
           defaultColDef = colDef(
             vAlign = "center",
@@ -621,14 +623,16 @@ mod_08_batch_server <- function(id) {
           ),
           columns = list(
             trust = colDef(
-              header = name_with_tooltip("Trust", definition = "Trust name")
+              header = name_with_tooltip("Trust", definition = "Trust name"),
+              sticky = "left"
             ),
             specialty = colDef(
               header = name_with_tooltip(
                 "Specialty",
                 definition = "Specialty name"
               ),
-              class = "divider-right"
+              class = "divider-right",
+              sticky = "left"
             ),
             referrals_t1 = colDef(
               header = name_with_tooltip(
