@@ -603,3 +603,48 @@ test_that("Vectorized input returns correct vector of months", {
   expected <- input * 7 / (365.25 / 12)
   expect_equal(round(convert_weeks_to_months(input), 2), round(expected, 2))
 })
+
+
+test_that("calculates correct percentile for whole month", {
+  # Sample data frame for testing
+  sample_df <- data.frame(
+    months_waited_id = 0:5,
+    wlsize = c(10, 20, 30, 40, 50, 60)
+  )
+  result <- calc_percentile_at_week(sample_df, week = 8)
+  expect_equal(result, 0.127603402757407)
+})
+
+test_that("returns NA when total wlsize is zero", {
+  zero_df <- data.frame(
+    months_waited_id = 0:5,
+    wlsize = rep(0, 6)
+  )
+  result <- calc_percentile_at_week(zero_df, week = 10)
+  expect_true(is.na(result))
+})
+
+test_that("works with custom column names", {
+  # Sample data frame for testing
+  sample_df <- data.frame(
+    time = 0:5,
+    size = c(10, 20, 30, 40, 50, 60)
+  )
+  result <- calc_percentile_at_week(
+    sample_df,
+    week = 10,
+    wlsize_col = "size",
+    time_col = "time"
+  )
+  expect_type(result, "double")
+})
+
+test_that("returns 0 when week is 0", {
+  # Sample data frame for testing
+  sample_df <- data.frame(
+    months_waited_id = 0:5,
+    wlsize = c(10, 20, 30, 40, 50, 60)
+  )
+  result <- calc_percentile_at_week(sample_df, week = 0)
+  expect_equal(result, 0)
+})

@@ -110,21 +110,25 @@ calc_percentile_at_week <- function(
   remainder <- mnth %% 1
 
   if (sum(wl_shape[[wlsize_col]]) != 0) {
-    whole_months <- wl_shape |>
-      filter(!!rlang::sym(time_col) %in% 0:(floor(mnth) - 1)) |>
-      pull(!!rlang::sym(wlsize_col)) |>
-      sum()
+    if (mnth != 0) {
+      whole_months <- wl_shape |>
+        filter(!!rlang::sym(time_col) %in% 0:(floor(mnth) - 1)) |>
+        pull(!!rlang::sym(wlsize_col)) |>
+        sum()
 
-    remainder_months <- wl_shape |>
-      filter(!!rlang::sym(time_col) %in% floor(mnth)) |>
-      pull(!!rlang::sym(wlsize_col)) |>
-      (\(x) x * remainder)()
-    # whole_months <- sum(wl_shape[[wlsize_col]])[0:floor(mnth)]
-    # remainder_months <- remainder * wl_shape[[wlsize_col]][floor(mnth) + 1]
+      remainder_months <- wl_shape |>
+        filter(!!rlang::sym(time_col) %in% floor(mnth)) |>
+        pull(!!rlang::sym(wlsize_col)) |>
+        (\(x) x * remainder)()
+      # whole_months <- sum(wl_shape[[wlsize_col]])[0:floor(mnth)]
+      # remainder_months <- remainder * wl_shape[[wlsize_col]][floor(mnth) + 1]
 
-    total_wl <- sum(wl_shape[[wlsize_col]])
+      total_wl <- sum(wl_shape[[wlsize_col]])
 
-    perc_calc <- (whole_months + remainder_months) / total_wl
+      perc_calc <- (whole_months + remainder_months) / total_wl
+    } else {
+      perc_calc <- 0
+    }
   } else {
     perc_calc <- NA
   }
