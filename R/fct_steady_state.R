@@ -254,8 +254,54 @@ append_steady_state <- function(
     capacity_ss = results$mu,
     reneges_ss = referrals - results$mu,
     incompletes_ss = results$wlsize,
-    wl_ss = results$waiting_list
+    wl_ss = list(results$waiting_list)
   )
 
   return(output)
+}
+
+
+append_counterfactual <- function(
+  capacity,
+  referrals_start,
+  referrals_end,
+  incompletes_t0,
+  renege_capacity_params,
+  forecast_months,
+  target_week
+) {
+  cap_proj <- rep(capacity, forecast_months)
+
+  ref_proj <- seq(
+    from = referrals_start,
+    to = referrals_end,
+    length.out = forecast_months
+  )
+
+  out <- NHSRtt::apply_params_to_projections(
+    capacity_projections = cap_proj,
+    referrals_projections = ref_proj,
+    incomplete_pathways = incompletes_t0,
+    renege_capacity_params = renege_capacity_params,
+    max_months_waited = 12
+  ) |>
+    filter(.data$period_id == max(.data$period_id))
+
+  perf <- calc_percentile_at_week(
+    out,
+    week = target_week,
+    wlsize_col = "incompletes",
+    time_col = "months_waited_id"
+  )
+
+  out <- out |>
+    summarise(
+      across(
+        c("reneges", "incompletes"),
+        sum,
+        .names = "{.col}_counterf"
+      )
+    ) |>
+    mutate(perf_counterf = perf)
+  return(out)
 }

@@ -222,7 +222,8 @@ mod_08_batch_ui <- function(id) {
 #' @importFrom purrr map pmap list_rbind map2 map_dbl
 #' @importFrom tidyr unnest nest complete
 #' @importFrom dplyr filter mutate case_when select cross_join tibble row_number
-#'   summarise rename left_join join_by intersect all_of distinct slice
+#'   summarise rename left_join join_by intersect all_of distinct slice relocate
+#'   across
 #' @importFrom reactable reactable renderReactable colDef colFormat reactableOutput
 #'   colGroup
 #' @noRd
@@ -301,16 +302,6 @@ mod_08_batch_server <- function(id) {
               spec = input$specialty_codes
             )
 
-            # the latest month of data to use for calibrating the models
-            max_download_date <- NHSRtt::latest_rtt_date()
-
-            # min date is the 12th month prior to the latest month of data
-            min_download_date <- lubridate::floor_date(
-              max_download_date,
-              unit = "months"
-            ) %m-%
-              months(12)
-
             # pass codes into download function. AIM TO MAKE THIS PART SIMPLY LOOK
             # UP THE DATA FROM A TABLE STORED ON THE SERVER. THE DATA ON THE
             # SERVER SHOULD BE STRUCTURED LIKE raw_data FOLLOWING THIS CHUNK OF
@@ -338,6 +329,9 @@ mod_08_batch_server <- function(id) {
               left_join(period_lkp, by = join_by(period)) |>
               filter(trust %in% input$ss_trust_codes) |>
               filter(specialty %in% c(input$specialty_codes))
+
+            # the latest month of data to use for calibrating the models
+            max_download_date <- max(period_lkp$period)
 
             # calculate the number of months for projection period
             forecast_months <- lubridate::interval(
@@ -517,7 +511,41 @@ mod_08_batch_server <- function(id) {
                     by = join_by(trust, specialty)
                   )
 
+                # add in the counterfactual reneges and wl size
+                wl_t0 <- raw_data |>
+                  filter(
+                    .data$type == "Incomplete",
+                    .data$period == max(.data$period)
+                  ) |>
+                  select(!c("period", "period_id", "type")) |>
+                  rename(incompletes = "value") |>
+                  tidyr::nest(wl_t0 = c("months_waited_id", "incompletes"))
+
                 reactive_values$optimised_projections <- optimised_projections |>
+                  left_join(wl_t0, by = c("trust", "specialty")) |>
+                  mutate(
+                    counterfactual = purrr::pmap(
+                      list(
+                        cap = .data$capacity_t1,
+                        ref_start = .data$referrals_t1,
+                        ref_end = .data$referrals_ss,
+                        inc = .data$wl_t0,
+                        par = .data$params
+                      ),
+                      \(cap, ref_start, ref_end, inc, par) {
+                        append_counterfactual(
+                          capacity = cap,
+                          referrals_start = ref_start,
+                          referrals_end = ref_end,
+                          incompletes_t0 = inc,
+                          renege_capacity_params = par,
+                          forecast_months = forecast_months,
+                          target_week = input$target_week
+                        )
+                      }
+                    )
+                  ) |>
+                  tidyr::unnest("counterfactual") |>
                   dplyr::select(
                     !c(
                       "params",
@@ -525,10 +553,27 @@ mod_08_batch_server <- function(id) {
                       "id",
                       "renege_proportion",
                       "target",
-                      "wl_ss"
+                      "wl_ss",
+                      "wl_t0"
                     )
                   ) |>
-                  distinct()
+                  mutate(
+                    referrals_counterf = .data$referrals_ss,
+                    capacity_counterf = .data$capacity_t1
+                  ) |>
+                  distinct() |>
+                  dplyr::relocate(
+                    dplyr::all_of(
+                      c(
+                        "referrals_counterf",
+                        "capacity_counterf",
+                        "reneges_counterf",
+                        "incompletes_counterf",
+                        "perf_counterf"
+                      )
+                    ),
+                    .before = "referrals_ss"
+                  )
               }
             )
             reactive_values$show_results <- TRUE
@@ -584,6 +629,7 @@ mod_08_batch_server <- function(id) {
     # create the result table
     output$results_table <- reactable::renderReactable({
       if (reactive_values$show_results == TRUE) {
+        # browser()
         # create the grouping columns
         current_cols <- c(
           "referrals_t1",
@@ -595,13 +641,20 @@ mod_08_batch_server <- function(id) {
         )
 
         ss_cols <- c(
-          "referrals_scenario",
           "referrals_ss",
           "capacity_ss",
           "reneges_ss",
           "incompletes_ss"
         )
 
+        counterf_cols <- c(
+          "referrals_scenario",
+          "referrals_counterf",
+          "capacity_counterf",
+          "reneges_counterf",
+          "incompletes_counterf",
+          "perf_counterf"
+        )
         reactable::reactable(
           reactive_values$optimised_projections,
           columnGroups = list(
@@ -609,6 +662,7 @@ mod_08_batch_server <- function(id) {
               name = "Current",
               columns = current_cols
             ),
+            colGroup(name = "Do nothing scenario", columns = counterf_cols),
             colGroup(name = "Steady state", columns = ss_cols)
           ),
           filterable = TRUE,
@@ -726,6 +780,64 @@ mod_08_batch_server <- function(id) {
                 "Demand scenario",
                 definition = "The demand scenario based on the user inputs"
               )
+            ),
+            referrals_counterf = colDef(
+              header = name_with_tooltip(
+                "Demand",
+                definition = "The demand at the the target date based on the user inputs"
+              ),
+              format = colFormat(digits = 2)
+            ),
+            capacity_counterf = colDef(
+              header = name_with_tooltip(
+                "Treatments",
+                definition = "The calculated number of monthly treatments under the 'do nothing' scenario at the target date"
+              ),
+              format = colFormat(digits = 2)
+            ),
+            reneges_counterf = colDef(
+              header = name_with_tooltip(
+                "Reneges",
+                definition = "The calculated number of monthly reneges under the 'do nothing' scenario at the target date"
+              ),
+              format = colFormat(digits = 2)
+            ),
+            incompletes_counterf = colDef(
+              header = name_with_tooltip(
+                "Waiting list size",
+                definition = "The number of people on the waiting list under the 'do nothing' scenario at the target date"
+              ),
+              format = colFormat(digits = 0)
+            ),
+            perf_counterf = colDef(
+              header = name_with_tooltip(
+                paste0(input$target_week, " week performance"),
+                definition = "The proportion of people on the waiting list waiting less than the target time under the 'do nothing' scenario at the target date"
+              ),
+              format = colFormat(digits = 1, percent = TRUE),
+              class = "divider-right",
+              style = function(value) {
+                list(
+                  backgroundColor = cell_colour(
+                    currentval = value,
+                    lowval = c(
+                      "#FA7557" = min(
+                        reactive_values$optimised_projections$perf_counterf,
+                        0
+                      )
+                    ),
+                    midval = c(
+                      "#FCFAFA" = input$target_value
+                    ),
+                    highval = c(
+                      "#94e994ff" = max(
+                        reactive_values$optimised_projections$perf_counterf,
+                        1
+                      )
+                    )
+                  )
+                )
+              }
             ),
             referrals_ss = colDef(
               header = name_with_tooltip(
@@ -849,6 +961,11 @@ mod_08_batch_server <- function(id) {
                   "Current waiting list size" = "incompletes_t0",
                   "Current pressure" = "pressure",
                   "Demand scenario" = "referrals_scenario",
+                  "Do nothing demand" = "referrals_counterf",
+                  "Do nothing treatment capacity" = "capacity_counterf",
+                  "Do nothing reneges" = "reneges_counterf",
+                  "Do nothing waiting list size" = "incompletes_counterf",
+                  "Do nothing performance" = "perf_counterf",
                   "Steady state demand" = "referrals_ss",
                   "Steady state treatment capacity" = "capacity_ss",
                   "Steady state reneges" = "reneges_ss",
