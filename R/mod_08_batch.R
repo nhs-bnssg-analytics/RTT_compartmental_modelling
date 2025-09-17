@@ -992,14 +992,67 @@ mod_08_batch_server <- function(id) {
       }
     )
 
+    observeEvent(
+      c(input$copy_wl_results),
+      {
+        if (input$copy_wl_results > 0) {
+          reactive_values$optimised_waiting_list |>
+            dplyr::select(
+              "trust",
+              "specialty",
+              "referrals_scenario",
+              "steady_state_waiting_list"
+            ) |>
+            tidyr::unnest("steady_state_waiting_list") |>
+            mutate(
+              months_waited_id = case_when(
+                .data$months_waited_id == max(.data$months_waited_id) ~
+                  paste0(.data$months_waited_id + 1, "+"),
+                .default = as.character(.data$months_waited_id + 1)
+              )
+            ) |>
+            dplyr::select(
+              c(
+                "Trust" = "trust",
+                "Specialty" = "specialty",
+                "Demand scenario" = "referrals_scenario",
+                "nth month of waiting" = "months_waited_id",
+                "Steady state treatment capacity" = "sigma",
+                "Steady state incomplete pathways" = "wlsize"
+              )
+            ) |>
+            utils::write.table(
+              file = "clipboard",
+              sep = "\t",
+              row.names = FALSE
+            )
+          showModal(modalDialog(
+            title = "Copy success",
+            "Results copied to clipboard",
+            easyClose = TRUE,
+            footer = NULL
+          ))
+        }
+      }
+    )
+
     # dynamic display, only show if results have been created
     output$ss_results_ui <- renderUI({
       if (reactive_values$show_results == TRUE) {
         span(
-          actionButton(
-            inputId = ns("copy_results"),
-            label = "Copy results",
-            class = "copy-button"
+          layout_column_wrap(
+            width = "200px",
+            fixed_width = TRUE,
+            actionButton(
+              inputId = ns("copy_results"),
+              label = "Copy results",
+              class = "copy-button"
+            ),
+            actionButton(
+              inputId = ns("copy_wl_results"),
+              label = "Copy waiting list detail",
+              class = "copy-button"
+            )
           ),
           reactableOutput(
             ns("results_table")

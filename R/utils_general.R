@@ -702,9 +702,9 @@ cell_colour <- function(currentval, lowval, midval, highval) {
       is.na(currentval),
       is.na(lv),
       is.na(mv),
-      currentval == Inf,
-      lv == Inf,
-      mv == Inf
+      is.infinite(currentval),
+      is.infinite(lv),
+      is.infinite(mv)
     )
   ) {
     return("#a3a3a3ff")
