@@ -686,6 +686,7 @@ cell_colour <- function(currentval, lowval, midval, highval) {
     rgb_interp <- rgb1 + ratio * (rgb2 - rgb1)
     rgb_interp <- pmax(0, pmin(255, rgb_interp)) # Clamp values
     rgb_interp <- round(rgb_interp)
+
     rgb_interp <- grDevices::rgb(
       rgb_interp[1],
       rgb_interp[2],
@@ -696,7 +697,16 @@ cell_colour <- function(currentval, lowval, midval, highval) {
     return(rgb_interp)
   }
 
-  if (any(is.na(currentval), is.na(lv), is.na(mv))) {
+  if (
+    any(
+      is.na(currentval),
+      is.na(lv),
+      is.na(mv),
+      currentval == Inf,
+      lv == Inf,
+      mv == Inf
+    )
+  ) {
     return("#a3a3a3ff")
   } else {
     # Determine which range to interpolate
