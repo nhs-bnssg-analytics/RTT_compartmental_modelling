@@ -113,7 +113,7 @@ period_lkp <- dplyr::tibble(
     by = "months"
   )
 ) |>
-  mutate(
+  dplyr::mutate(
     period_id = dplyr::row_number() - 1
   )
 
@@ -130,26 +130,26 @@ sample_data <- purrr::map(
 ) |>
   purrr::list_rbind() |>
   dplyr::mutate(
-    months_waited_id = case_when(
+    months_waited_id = dplyr::case_when(
       !is.na(referrals) ~ 0L,
       .default = months_waited_id
     ),
-    value = case_when(
+    value = dplyr::case_when(
       !is.na(referrals) ~ referrals,
       !is.na(incompletes) ~ incompletes,
       !is.na(treatments) ~ treatments,
       .default = NA_real_
     ),
-    type = case_when(
+    type = dplyr::case_when(
       !is.na(referrals) ~ "Referrals",
       !is.na(incompletes) ~ "Incomplete",
       !is.na(treatments) ~ "Complete",
       .default = NA_character_
     )
   ) |>
-  left_join(
+  dplyr::left_join(
     period_lkp,
-    by = join_by(period_id)
+    by = dplyr::join_by(period_id)
   ) |>
   dplyr::relocate(
     period,
@@ -159,7 +159,7 @@ sample_data <- purrr::map(
     value,
     .after = dplyr::everything()
   ) |>
-  select(
+  dplyr::select(
     !c(
       "referrals",
       "incompletes",
@@ -172,7 +172,7 @@ sample_data <- purrr::map(
 example_chart_data <- read.csv(
   "tests/testthat/test_data_results.csv"
 ) |>
-  mutate(
+  dplyr::mutate(
     period = as.Date(period, format = "%d/%m/%Y")
   )
 
@@ -200,7 +200,7 @@ if (isTRUE(update_renege_rates)) {
           date_start = x,
           date_end = x
         ) |>
-          summarise(
+          dplyr::summarise(
             value = sum(value),
             .by = c("trust", "specialty", "period", "months_waited", "type")
           )
@@ -211,40 +211,40 @@ if (isTRUE(update_renege_rates)) {
 
   # generate counts by type for all England specialties
   aggregate_specialty <- data_raw |>
-    summarise(
+    dplyr::summarise(
       value = sum(value),
       .by = c("specialty", "period", "type")
     ) |>
-    mutate(
+    dplyr::mutate(
       specialty = replace_fun(
         .data$specialty,
         treatment_function_codes
       )
     ) |>
-    summarise(
+    dplyr::summarise(
       value = sum(value),
       .by = c("specialty", "period", "type")
     )
 
   # calculate the 92% performance for each month and specialty
   monthly_performance <- data_raw |>
-    filter(type == "Incomplete") |>
-    summarise(
+    dplyr::filter(type == "Incomplete") |>
+    dplyr::summarise(
       value = sum(value),
       .by = c("specialty", "period", "months_waited")
     ) |>
-    mutate(
+    dplyr::mutate(
       specialty = replace_fun(
         .data$specialty,
         treatment_function_codes
       ),
       months_waited_id = convert_months_waited_to_id(months_waited, 12)
     ) |>
-    summarise(
+    dplyr::summarise(
       value = sum(value),
       .by = c("specialty", "period", "months_waited_id")
     ) |>
-    group_by(specialty, period) |>
+    dplyr::group_by(specialty, period) |>
     calc_performance(4)
 
   england_reneges <- aggregate_specialty |>
@@ -252,43 +252,43 @@ if (isTRUE(update_renege_rates)) {
       names_from = type,
       values_from = value
     ) |>
-    arrange(
+    dplyr::arrange(
       specialty,
       period
     ) |>
-    mutate(
+    dplyr::mutate(
       incomplete_lag = dplyr::lag(Incomplete),
       renege = Referrals - (Complete + (incomplete_lag - Incomplete)),
       proportion_renege = renege / (Complete + renege),
       .by = "specialty"
     ) |>
-    left_join(
+    dplyr::left_join(
       monthly_performance,
       by = join_by(
         specialty,
         period
       )
     ) |>
-    filter(period != min(period)) |>
-    group_by(specialty) |>
-    arrange(period) |>
-    mutate(
+    dplyr::filter(period != min(period)) |>
+    dplyr::group_by(specialty) |>
+    dplyr::arrange(period) |>
+    dplyr::mutate(
       row_id = dplyr::row_number(), # Track original row positions
-      proportion_renege_NAs = case_when(
+      proportion_renege_NAs = dplyr::case_when(
         proportion_renege > 1 | proportion_renege < 0 ~ NA_real_,
         .default = proportion_renege
       )
     ) |>
-    select(
+    dplyr::select(
       !c("Incomplete", "Complete", "Referrals", "incomplete_lag", "renege")
     ) |>
-    nest(
+    tidyr::nest(
       data = c(period, proportion_renege, proportion_renege_NAs, row_id, prop)
     ) |>
-    mutate(
-      data = map(data, function(df_group) {
+    dplyr::mutate(
+      data = purrr::map(data, function(df_group) {
         # Filter out rows with NA in value
-        df_clean <- df_group |> filter(!is.na(proportion_renege_NAs))
+        df_clean <- df_group |> dplyr::filter(!is.na(proportion_renege_NAs))
 
         # Fit loess only on clean data
         fit <- loess(
@@ -300,17 +300,17 @@ if (isTRUE(update_renege_rates)) {
         df_clean$smoothed_value <- fit$fitted
 
         # Join back to original group data
-        left_join(
+        dplyr::left_join(
           df_group,
-          df_clean |> select(row_id, smoothed_value),
+          df_clean |> dplyr::select(row_id, smoothed_value),
           by = "row_id"
         )
       })
     ) |>
-    unnest(data) |>
-    select(-row_id) |>
-    ungroup() |>
-    mutate(
+    tidyr::unnest(data) |>
+    dplyr::select(-row_id) |>
+    dplyr::ungroup() |>
+    dplyr::mutate(
       recent_high_date = {
         # Filter rows where proportion_renege is between 0 and 1
         valid_rows <- smoothed_value > 0 &
@@ -328,9 +328,9 @@ if (isTRUE(update_renege_rates)) {
     )
 
   target_renege_proportions <- england_reneges |>
-    filter(recent_high_date == TRUE) |>
-    select(specialty, period, smoothed_value) |>
-    rename(renege_proportion = smoothed_value)
+    dplyr::filter(recent_high_date == TRUE) |>
+    dplyr::select(specialty, period, smoothed_value) |>
+    dplyr::rename(renege_proportion = smoothed_value)
 } else {
   target_renege_proportions <- RTTshiny:::target_renege_proportions
 }
