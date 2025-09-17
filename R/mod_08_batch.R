@@ -11,28 +11,47 @@
 #'   sliderInput hr
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   layout_columns card_body page_fillable bs_theme
+#' @importFrom shinyWidgets pickerInput
 mod_08_batch_ui <- function(id) {
   ns <- NS(id)
 
   filters_sidebar <- sidebar(
     open = TRUE,
     width = '35%',
-    pickerInput(ns("selectedregions"),
-                "Region(s):",
-                choices = sort(unique(org_lkp_ss_inputs$Region)),
-                options = list(`actions-box` = TRUE, `selected-text-format`= "count",`count-selected-text` = "{0} Selections (on a total of {1})"),
-                multiple = TRUE,
-                selected = sort(unique(org_lkp_ss_inputs$Region))[7]),
-    pickerInput(ns("selectedICBs"),
-                "ICB(s):",
-                choices = sort(unique(org_lkp_ss_inputs$ICB)),
-                options = list(`actions-box` = TRUE, `selected-text-format`= "count",`count-selected-text` = "{0} Selections (on a total of {1})"),
-                multiple = TRUE),
-    pickerInput(ns("selectedtrusts"),
-                "Trust(s):",
-                choices = sort(unique(org_lkp_ss_inputs$Trust)),
-                options = list(`actions-box` = TRUE, `selected-text-format`= "count",`count-selected-text` = "{0} Selections (on a total of {1})"),
-                multiple = TRUE),
+    pickerInput(
+      ns("selectedregions"),
+      "Region(s):",
+      choices = sort(unique(org_lkp_ss_inputs$Region)),
+      options = list(
+        `actions-box` = TRUE,
+        `selected-text-format` = "count",
+        `count-selected-text` = "{0} Selections (on a total of {1})"
+      ),
+      multiple = TRUE,
+      selected = sort(unique(org_lkp_ss_inputs$Region))[7]
+    ),
+    pickerInput(
+      ns("selectedICBs"),
+      "ICB(s):",
+      choices = sort(unique(org_lkp_ss_inputs$ICB)),
+      options = list(
+        `actions-box` = TRUE,
+        `selected-text-format` = "count",
+        `count-selected-text` = "{0} Selections (on a total of {1})"
+      ),
+      multiple = TRUE
+    ),
+    pickerInput(
+      ns("selectedtrusts"),
+      "Trust(s):",
+      choices = sort(unique(org_lkp_ss_inputs$Trust)),
+      options = list(
+        `actions-box` = TRUE,
+        `selected-text-format` = "count",
+        `count-selected-text` = "{0} Selections (on a total of {1})"
+      ),
+      multiple = TRUE
+    ),
     radioButtons(
       inputId = ns("ss_nhs_only"),
       label = NULL,
@@ -158,6 +177,7 @@ mod_08_batch_ui <- function(id) {
 #' @importFrom dplyr filter mutate case_when select cross_join tibble row_number
 #'   summarise rename left_join join_by intersect
 #' @importFrom DT datatable renderDT DTOutput
+#' @importFrom shinyWidgets updatePickerInput
 #' @noRd
 mod_08_batch_server <- function(id) {
   moduleServer(id, function(input, output, session) {
@@ -168,22 +188,42 @@ mod_08_batch_server <- function(id) {
     reactive_values$optimised_projections <- NULL # these are the outputs
 
     # Inputs
-    observeEvent(input$selectedregions, {
-      choicesI <- org_lkp_ss_inputs %>%
-        filter(Region %in% input$selectedregions) %>%
-        select(ICB) %>% unique() %>% arrange(ICB)
+    observeEvent(
+      input$selectedregions,
+      {
+        choicesI <- org_lkp_ss_inputs %>%
+          filter(Region %in% input$selectedregions) %>%
+          select(ICB) %>%
+          unique() %>%
+          arrange(ICB)
 
-      updatePickerInput(session = session, inputId = "selectedICBs",
-                        choices = choicesI$ICB, selected = choicesI$ICB)
-    }, ignoreInit = FALSE)
+        updatePickerInput(
+          session = session,
+          inputId = "selectedICBs",
+          choices = choicesI$ICB,
+          selected = choicesI$ICB
+        )
+      },
+      ignoreInit = FALSE
+    )
 
-    observeEvent(input$selectedICBs, {
-      choicesT <- org_lkp_ss_inputs %>%
-        filter(ICB %in% input$selectedICBs) %>%
-        select(Trust) %>% unique() %>% arrange(Trust)
-      updatePickerInput(session = session, inputId = "selectedtrusts",
-                        choices = choicesT$Trust, selected = choicesT$Trust)
-    }, ignoreInit = FALSE)
+    observeEvent(
+      input$selectedICBs,
+      {
+        choicesT <- org_lkp_ss_inputs %>%
+          filter(ICB %in% input$selectedICBs) %>%
+          select(Trust) %>%
+          unique() %>%
+          arrange(Trust)
+        updatePickerInput(
+          session = session,
+          inputId = "selectedtrusts",
+          choices = choicesT$Trust,
+          selected = choicesT$Trust
+        )
+      },
+      ignoreInit = FALSE
+    )
 
     # trust selection filtering based on other NHS only checkbox ----------------------
     reactive_org_tbl <- reactiveVal(org_lkp)
