@@ -16,16 +16,23 @@ mod_08_batch_ui <- function(id) {
 
   filters_sidebar <- sidebar(
     open = TRUE,
-    width = '25%',
-    selectizeInput(
-      inputId = ns("ss_trust_codes"),
-      label = "Select Trust(s)",
-      choices = sort(unique(org_lkp$`Provider Org Name`)),
-      options = list(
-        placeholder = "Select one or more"
-      ),
-      multiple = TRUE
-    ),
+    width = '35%',
+    pickerInput(ns("selectedregions"),
+                "Region(s):",
+                choices = sort(unique(org_lkp_ss_inputs$Region)),
+                options = list(`actions-box` = TRUE, `selected-text-format`= "count",`count-selected-text` = "{0} Selections (on a total of {1})"),
+                multiple = TRUE,
+                selected = sort(unique(org_lkp_ss_inputs$Region))[7]),
+    pickerInput(ns("selectedICBs"),
+                "ICB(s):",
+                choices = sort(unique(org_lkp_ss_inputs$ICB)),
+                options = list(`actions-box` = TRUE, `selected-text-format`= "count",`count-selected-text` = "{0} Selections (on a total of {1})"),
+                multiple = TRUE),
+    pickerInput(ns("selectedtrusts"),
+                "Trust(s):",
+                choices = sort(unique(org_lkp_ss_inputs$Trust)),
+                options = list(`actions-box` = TRUE, `selected-text-format`= "count",`count-selected-text` = "{0} Selections (on a total of {1})"),
+                multiple = TRUE),
     radioButtons(
       inputId = ns("ss_nhs_only"),
       label = NULL,
@@ -160,6 +167,24 @@ mod_08_batch_server <- function(id) {
     reactive_values$show_results <- FALSE # determines whether outputs are shown
     reactive_values$optimised_projections <- NULL # these are the outputs
 
+    # Inputs
+    observeEvent(input$selectedregions, {
+      choicesI <- org_lkp_ss_inputs %>%
+        filter(Region %in% input$selectedregions) %>%
+        select(ICB) %>% unique() %>% arrange(ICB)
+
+      updatePickerInput(session = session, inputId = "selectedICBs",
+                        choices = choicesI$ICB, selected = choicesI$ICB)
+    }, ignoreInit = FALSE)
+
+    observeEvent(input$selectedICBs, {
+      choicesT <- org_lkp_ss_inputs %>%
+        filter(ICB %in% input$selectedICBs) %>%
+        select(Trust) %>% unique() %>% arrange(Trust)
+      updatePickerInput(session = session, inputId = "selectedtrusts",
+                        choices = choicesT$Trust, selected = choicesT$Trust)
+    }, ignoreInit = FALSE)
+
     # trust selection filtering based on other NHS only checkbox ----------------------
     reactive_org_tbl <- reactiveVal(org_lkp)
 
@@ -183,13 +208,13 @@ mod_08_batch_server <- function(id) {
 
         # trust current selections
         current_provider <- dplyr::intersect(
-          input$ss_trust_codes,
+          input$selectedtrusts,
           unique(reactive_org_tbl[["Provider Org Name"]])
         )
 
         updateSelectizeInput(
           session,
-          inputId = "ss_trust_codes",
+          inputId = "selectedtrusts",
           choices = sort(unique(reactive_org_tbl[["Provider Org Name"]])),
           selected = current_provider
         )
@@ -202,7 +227,7 @@ mod_08_batch_server <- function(id) {
       c(input$batch_run_rtt_data),
       {
         if (input$batch_run_rtt_data > 0) {
-          if (is.null(input$ss_trust_codes) || is.null(input$specialty_codes)) {
+          if (is.null(input$selectedtrusts) || is.null(input$specialty_codes)) {
             # If input is empty, show a modal dialog (popup)
             showModal(
               modalDialog(
@@ -220,7 +245,7 @@ mod_08_batch_server <- function(id) {
               nhs_regions = NA,
               nhs_only = input$ss_nhs_only,
               trust_parents = NA,
-              trusts = input$ss_trust_codes,
+              trusts = input$selectedtrusts,
               comm_parents = NA,
               comms = NA,
               spec = input$specialty_codes
@@ -276,7 +301,7 @@ mod_08_batch_server <- function(id) {
               "rtt_12months.rds",
               package = "RTTshiny"
             )) |>
-              filter(trust %in% input$ss_trust_codes) |>
+              filter(trust %in% input$selectedtrusts) |>
               filter(specialty %in% c(input$specialty_codes))
 
             # calculate the referrals uplift value per specialty/trust (remember,

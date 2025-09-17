@@ -2,6 +2,12 @@
 
 org_lkp <- NHSRtt::latest_orgs()
 
+# Steady State Inputs
+org_lkp_ss_inputs <- org_lkp %>%
+  clean_names("upper_camel") %>%
+  distinct(Region = NhsRegionName, ICBFull = ProviderParentName, Trust = ProviderOrgName) %>%
+  mutate(ICB = gsub("NHS | INTEGRATED CARE BOARD", "", ICBFull))
+
 trust_lkp <- org_lkp |>
   dplyr::distinct(
     .data$`Provider Org Code`,
