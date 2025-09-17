@@ -1,10 +1,17 @@
-
-
 org_lkp <- NHSRtt::latest_orgs()
 
 # Steady State Inputs
-org_lkp_ss_inputs <- org_lkp %>%
-  distinct(Region = "NHS Region Name", ICBFull = "Provider Parent Name", Trust = "Provider Org Name") %>%
+org_lkp_ss_inputs <- org_lkp |>
+  distinct(
+    `NHS Region Name`,
+    `Provider Parent Name`,
+    `Provider Org Name`
+  ) |>
+  dplyr::select(
+    Region = "NHS Region Name",
+    ICBFull = "Provider Parent Name",
+    Trust = "Provider Org Name"
+  ) |>
   mutate(ICB = gsub("NHS | INTEGRATED CARE BOARD", "", ICBFull))
 
 trust_lkp <- org_lkp |>
@@ -26,7 +33,7 @@ treatment_function_codes <- c(
   "(:?C_|[INA]P)?120" = "Ear Nose and Throat",
   "(:?C_|[INA]P)?130" = "Ophthalmology",
   "(:?C_|[INA]P)?140" = "Oral Surgery",
-  "(:?C_|[INA]P)?150" ="Neurosurgical",
+  "(:?C_|[INA]P)?150" = "Neurosurgical",
   "(:?C_|[INA]P)?160" = "Plastic Surgery",
   "(:?C_|[INA]P)?170" = "Cardiothoracic Surgery",
   "C_300" = "General Internal Medicine",
@@ -43,31 +50,56 @@ treatment_function_codes <- c(
 )
 
 specialty_lkp <- dplyr::tribble(
-  ~Treatment.Function.Code,            ~Treatment.Function.Name,
-  "C_100",           "General Surgery",
-  "C_101",                   "Urology",
-  "C_110",    "Trauma and Orthopaedic",
-  "C_120",       "Ear Nose and Throat",
-  "C_130",             "Ophthalmology",
-  "C_140",              "Oral Surgery",
-  "C_150",             "Neurosurgical",
-  "C_160",           "Plastic Surgery",
-  "C_170",    "Cardiothoracic Surgery",
-  "C_300", "General Internal Medicine",
-  "C_301",          "Gastroenterology",
-  "C_320",                "Cardiology",
-  "C_330",               "Dermatology",
-  "C_340",      "Respiratory Medicine",
-  "C_400",                 "Neurology",
-  "C_410",              "Rheumatology",
-  "C_430",          "Elderly Medicine",
-  "C_502",               "Gynaecology",
-  "C_999",                     "Total",
-  "X02",                       "Other",
-  "X03",                       "Other",
-  "X04",                       "Other",
-  "X05",                       "Other",
-  "X06",                       "Other"
+  ~Treatment.Function.Code,
+  ~Treatment.Function.Name,
+  "C_100",
+  "General Surgery",
+  "C_101",
+  "Urology",
+  "C_110",
+  "Trauma and Orthopaedic",
+  "C_120",
+  "Ear Nose and Throat",
+  "C_130",
+  "Ophthalmology",
+  "C_140",
+  "Oral Surgery",
+  "C_150",
+  "Neurosurgical",
+  "C_160",
+  "Plastic Surgery",
+  "C_170",
+  "Cardiothoracic Surgery",
+  "C_300",
+  "General Internal Medicine",
+  "C_301",
+  "Gastroenterology",
+  "C_320",
+  "Cardiology",
+  "C_330",
+  "Dermatology",
+  "C_340",
+  "Respiratory Medicine",
+  "C_400",
+  "Neurology",
+  "C_410",
+  "Rheumatology",
+  "C_430",
+  "Elderly Medicine",
+  "C_502",
+  "Gynaecology",
+  "C_999",
+  "Total",
+  "X02",
+  "Other",
+  "X03",
+  "Other",
+  "X04",
+  "Other",
+  "X05",
+  "Other",
+  "X06",
+  "Other"
 )
 
 
@@ -78,10 +110,12 @@ date_end = as.Date("2024-12-01")
 period_lkp <- dplyr::tibble(
   period = seq(
     from = lubridate::floor_date(
-      date_start %m-% months(1), unit = "months"
+      date_start %m-% months(1),
+      unit = "months"
     ),
     to = lubridate::floor_date(
-      date_end, unit = "months"
+      date_end,
+      unit = "months"
     ),
     by = "months"
   )
@@ -95,12 +129,12 @@ max_months <- 12
 sample_data <- purrr::map(
   .x = c("referral", "incomplete", "complete"),
   .f = ~ NHSRtt::create_dummy_data(
-      type = .x,
-      max_months_waited = max_months,
-      number_periods = max(period_lkp$period_id),
-      seed  = 444
-    )
-  ) |>
+    type = .x,
+    max_months_waited = max_months,
+    number_periods = max(period_lkp$period_id),
+    seed = 444
+  )
+) |>
   purrr::list_rbind() |>
   dplyr::mutate(
     months_waited_id = case_when(
@@ -125,10 +159,12 @@ sample_data <- purrr::map(
     by = join_by(period_id)
   ) |>
   dplyr::relocate(
-    period, .before = dplyr::everything()
+    period,
+    .before = dplyr::everything()
   ) |>
   dplyr::relocate(
-    value, .after = dplyr::everything()
+    value,
+    .after = dplyr::everything()
   ) |>
   select(
     !c(
@@ -149,6 +185,7 @@ example_chart_data <- read.csv(
 
 usethis::use_data(
   org_lkp,
+  org_lkp_ss_inputs,
   trust_lkp,
   treatment_function_codes,
   specialty_lkp,

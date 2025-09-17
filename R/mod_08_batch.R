@@ -28,7 +28,7 @@ mod_08_batch_ui <- function(id) {
         `count-selected-text` = "{0} Selections (on a total of {1})"
       ),
       multiple = TRUE,
-      selected = sort(unique(org_lkp_ss_inputs$Region))[7]
+      selected = sort(unique(org_lkp_ss_inputs$Region))
     ),
     pickerInput(
       ns("selectedICBs"),
@@ -39,6 +39,7 @@ mod_08_batch_ui <- function(id) {
         `selected-text-format` = "count",
         `count-selected-text` = "{0} Selections (on a total of {1})"
       ),
+      selected = sort(unique(org_lkp_ss_inputs$ICB)),
       multiple = TRUE
     ),
     pickerInput(
@@ -50,6 +51,7 @@ mod_08_batch_ui <- function(id) {
         `selected-text-format` = "count",
         `count-selected-text` = "{0} Selections (on a total of {1})"
       ),
+      selected = sort(unique(org_lkp_ss_inputs$Trust)),
       multiple = TRUE
     ),
     radioButtons(
@@ -187,78 +189,85 @@ mod_08_batch_server <- function(id) {
     reactive_values$show_results <- FALSE # determines whether outputs are shown
     reactive_values$optimised_projections <- NULL # these are the outputs
 
+    # trust selection filtering based on other NHS only checkbox ----------------------
+    reactive_org_tbl <- reactiveVal(org_lkp_ss_inputs)
+
     # Inputs
     observeEvent(
-      input$selectedregions,
+      c(input$selectedregions, input$ss_nhs_only),
       {
-        choicesI <- org_lkp_ss_inputs %>%
-          filter(Region %in% input$selectedregions) %>%
-          select(ICB) %>%
-          unique() %>%
-          arrange(ICB)
-
-        updatePickerInput(
-          session = session,
-          inputId = "selectedICBs",
-          choices = choicesI$ICB,
-          selected = choicesI$ICB
-        )
-      },
-      ignoreInit = FALSE
-    )
-
-    observeEvent(
-      input$selectedICBs,
-      {
-        choicesT <- org_lkp_ss_inputs %>%
-          filter(ICB %in% input$selectedICBs) %>%
-          select(Trust) %>%
-          unique() %>%
-          arrange(Trust)
-        updatePickerInput(
-          session = session,
-          inputId = "selectedtrusts",
-          choices = choicesT$Trust,
-          selected = choicesT$Trust
-        )
-      },
-      ignoreInit = FALSE
-    )
-
-    # trust selection filtering based on other NHS only checkbox ----------------------
-    reactive_org_tbl <- reactiveVal(org_lkp)
-
-    observeEvent(
-      # reactively choose which trusts are displayed depending on the radio button selection
-      c(input$ss_nhs_only),
-      {
-        reactive_org_tbl <- org_lkp
-
+        reactive_org_tbl <- org_lkp_ss_inputs
+        # browser()
         if (input$ss_nhs_only == "nhs_only") {
           reactive_org_tbl <- reactive_org_tbl |>
             dplyr::filter(
-              grepl("NHS", .data$`Provider Org Name`)
+              grepl("NHS", .data$Trust)
             )
         } else if (input$ss_nhs_only == "non_nhs_only") {
           reactive_org_tbl <- reactive_org_tbl |>
             dplyr::filter(
-              !grepl("NHS", .data$`Provider Org Name`)
+              !grepl("NHS", .data$Trust)
             )
         }
+
+        choicesI <- reactive_org_tbl |>
+          dplyr::filter(Region %in% input$selectedregions) |>
+          dplyr::distinct(ICB) |>
+          dplyr::arrange(ICB)
+
+        # trust current selections
+        current_icbs <- dplyr::intersect(
+          input$selectedICBs,
+          unique(reactive_org_tbl[["ICB"]])
+        )
+
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "selectedICBs",
+          choices = choicesI$ICB,
+          selected = current_icbs
+        )
+      },
+      ignoreInit = FALSE
+    )
+
+    observeEvent(
+      c(input$selectedICBs, input$ss_nhs_only),
+      {
+        reactive_org_tbl <- org_lkp_ss_inputs
+
+        if (input$ss_nhs_only == "nhs_only") {
+          reactive_org_tbl <- reactive_org_tbl |>
+            dplyr::filter(
+              grepl("NHS", .data$Trust)
+            )
+        } else if (input$ss_nhs_only == "non_nhs_only") {
+          reactive_org_tbl <- reactive_org_tbl |>
+            dplyr::filter(
+              !grepl("NHS", .data$Trust)
+            )
+        }
+
+        choicesT <- reactive_org_tbl |>
+          filter(ICB %in% input$selectedICBs) |>
+          select(Trust) |>
+          unique() |>
+          arrange(Trust)
 
         # trust current selections
         current_provider <- dplyr::intersect(
           input$selectedtrusts,
-          unique(reactive_org_tbl[["Provider Org Name"]])
+          unique(reactive_org_tbl[["Trust"]])
         )
 
-        updateSelectizeInput(
-          session,
+        updatePickerInput(
+          session = session,
           inputId = "selectedtrusts",
-          choices = sort(unique(reactive_org_tbl[["Provider Org Name"]])),
+          choices = choicesT$Trust,
           selected = current_provider
         )
-      }
+      },
+      ignoreInit = FALSE
     )
 
     # perform modelling when batch run selected -------------------------------
