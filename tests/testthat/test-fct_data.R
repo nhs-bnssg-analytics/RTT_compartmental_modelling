@@ -473,3 +473,42 @@ test_that("split_and_model_calibration_data works", {
     info = "error_calc is calculated correctly (MAE)"
   )
 })
+
+
+test_that("clean_raw_data produces the correct number of rows", {
+  max_months_waited <- 12
+  raw_data <- readRDS(system.file(
+    "extdata",
+    "rtt_12months.rds",
+    package = "RTTshiny"
+  )) |>
+    dplyr::filter(grepl("BRISTOL", trust), grepl("General", specialty))
+
+  cleaned_data <- clean_raw_data(
+    raw_data = raw_data,
+    max_months_waited = max_months_waited
+  )
+  # check no NAs in cleaned_data
+  expect_true(
+    all(colSums(is.na(cleaned_data)) == 0)
+  )
+
+  all_periods <- seq(
+    from = min(raw_data$period),
+    to = max(raw_data$period),
+    by = "months"
+  )
+  # expected rows for 1 trust
+  single_trust <- (length(all_periods) *
+    13 * # number months waited
+    2) + # compl/incompl
+    length(all_periods) # referrals
+
+  n_trusts_specs <- nrow(distinct(raw_data, trust, specialty))
+
+  expect_equal(
+    n_trusts_specs * single_trust,
+    nrow(cleaned_data),
+    info = "cleaned_data has expected number of rows"
+  )
+})

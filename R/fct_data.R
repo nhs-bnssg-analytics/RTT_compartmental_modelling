@@ -204,6 +204,60 @@ aggregate_and_format_raw_data <- function(
   return(data)
 }
 
+#' Raw data often only contains values where they exist. This function
+#' expands the raw data so there are 0 values for periods that no
+#' counts existed. It also makes sure period and period_id are consistent
+#' between each specialty/trust combination
+#' @param data table of referrals, competes and incompletes (as different
+#'   types); data needs the following field names: trust, specialty, period_id,
+#'   type, months_waited_id, value
+#' @param max_months_waited integer; the stock to pool the stocks that have
+#'   waited longer into
+clean_raw_data <- function(raw_data, max_months_waited = 12) {
+  # raw_data currently doesn't have a 1 to 1 relationship period-period_id because
+  # some specialties have small numbers so they are missing, therefore
+  # we must create a consistent lkp here
+  all_periods <- raw_data |>
+    dplyr::pull(.data$period) |>
+    range() |>
+    (\(x) {
+      seq(
+        from = x[1],
+        to = x[2],
+        by = "months"
+      )
+    })()
+
+  period_lkp <- tibble(
+    period = all_periods
+  ) |>
+    dplyr::mutate(
+      period_id = dplyr::row_number()
+    )
+
+  raw_data <- raw_data |>
+    select(!c("period_id"))
+
+  raw_data <- raw_data |>
+    tidyr::complete(
+      type,
+      months_waited_id = 0:max_months_waited,
+      period = all_periods,
+      tidyr::nesting(trust, specialty),
+      fill = list(value = 0)
+    ) |>
+    dplyr::anti_join(
+      tibble(
+        type = "Referrals",
+        months_waited_id = seq_len(max_months_waited)
+      ),
+      by = c("type", "months_waited_id")
+    ) |>
+    left_join(period_lkp, by = "period")
+
+  return(raw_data)
+}
+
 #' convert string to date format, but check on format of string before
 #' conversion. If format is unrecognised then the function returns "ambiguous
 #' date format".
