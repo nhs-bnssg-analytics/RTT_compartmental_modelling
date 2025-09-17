@@ -692,13 +692,18 @@ cell_colour <- function(currentval, lowval, midval, highval) {
       rgb_interp[3],
       maxColorValue = 255
     )
+
     return(rgb_interp)
   }
 
-  # Determine which range to interpolate
-  if (currentval <= mv) {
-    return(interpolate_rgb(currentval, lv, mv, lc, mc))
+  if (any(is.na(currentval), is.na(lv), is.na(mv))) {
+    return("#a3a3a3ff")
   } else {
-    return(interpolate_rgb(currentval, mv, hv, mc, hc))
+    # Determine which range to interpolate
+    if (currentval <= mv) {
+      return(interpolate_rgb(currentval, lv, mv, lc, mc))
+    } else {
+      return(interpolate_rgb(currentval, mv, hv, mc, hc))
+    }
   }
 }

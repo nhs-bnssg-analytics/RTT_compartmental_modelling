@@ -313,25 +313,13 @@ mod_08_batch_server <- function(id) {
               "extdata",
               "rtt_12months.rds",
               package = "RTTshiny"
-            ))
-
-            # raw_data currently doesn't have a 1 to 1 relationship period-period_id because
-            # some specialties have small numbers so they are missing, therefore
-            # we must create a consistent lkp here
-
-            period_lkp <- raw_data |>
-              distinct(.data$period) |>
-              arrange(.data$period) |>
-              mutate(period_id = dplyr::row_number())
-
-            raw_data <- raw_data |>
-              select(!c("period_id")) |>
-              left_join(period_lkp, by = join_by(period)) |>
+            )) |>
+              clean_raw_data() |>
               filter(trust %in% input$ss_trust_codes) |>
               filter(specialty %in% c(input$specialty_codes))
 
             # the latest month of data to use for calibrating the models
-            max_download_date <- max(period_lkp$period)
+            max_download_date <- max(raw_data$period)
 
             # calculate the number of months for projection period
             forecast_months <- lubridate::interval(
@@ -376,7 +364,7 @@ mod_08_batch_server <- function(id) {
               value = 0,
               {
                 n <- nrow(current)
-
+                # browser()
                 optimised_projections <- current |>
                   # add historic renege rates by specialty
                   left_join(
@@ -530,9 +518,13 @@ mod_08_batch_server <- function(id) {
                         ref_start = .data$referrals_t1,
                         ref_end = .data$referrals_ss,
                         inc = .data$wl_t0,
-                        par = .data$params
+                        par = .data$params,
+                        t = .data$trust,
+                        sp = .data$specialty
                       ),
-                      \(cap, ref_start, ref_end, inc, par) {
+                      \(cap, ref_start, ref_end, inc, par, t, sp) {
+                        # cat(paste(t, sp))
+                        # cat("\n")
                         append_counterfactual(
                           capacity = cap,
                           referrals_start = ref_start,
@@ -722,7 +714,8 @@ mod_08_batch_server <- function(id) {
                     lowval = c(
                       "#94e994ff" = min(
                         reactive_values$optimised_projections$load,
-                        0.5
+                        0.5,
+                        na.rm = TRUE
                       )
                     ),
                     midval = c(
@@ -731,7 +724,8 @@ mod_08_batch_server <- function(id) {
                     highval = c(
                       "#FA7557" = max(
                         reactive_values$optimised_projections$load,
-                        2
+                        2,
+                        na.rm = TRUE
                       )
                     )
                   )
@@ -759,7 +753,8 @@ mod_08_batch_server <- function(id) {
                     lowval = c(
                       "#94e994ff" = min(
                         reactive_values$optimised_projections$pressure,
-                        0.5
+                        0.5,
+                        na.rm = TRUE
                       )
                     ),
                     midval = c(
@@ -768,7 +763,8 @@ mod_08_batch_server <- function(id) {
                     highval = c(
                       "#FA7557" = max(
                         reactive_values$optimised_projections$pressure,
-                        2
+                        2,
+                        na.rm = TRUE
                       )
                     )
                   )
@@ -823,7 +819,8 @@ mod_08_batch_server <- function(id) {
                     lowval = c(
                       "#FA7557" = min(
                         reactive_values$optimised_projections$perf_counterf,
-                        0
+                        0,
+                        na.rm = TRUE
                       )
                     ),
                     midval = c(
@@ -832,7 +829,8 @@ mod_08_batch_server <- function(id) {
                     highval = c(
                       "#94e994ff" = max(
                         reactive_values$optimised_projections$perf_counterf,
-                        1
+                        1,
+                        na.rm = TRUE
                       )
                     )
                   )
@@ -881,7 +879,8 @@ mod_08_batch_server <- function(id) {
                     lowval = c(
                       "#94e994ff" = min(
                         reactive_values$optimised_projections$current_vs_ss_wl_ratio,
-                        0.5
+                        0.5,
+                        na.rm = TRUE
                       )
                     ),
                     midval = c(
@@ -890,7 +889,8 @@ mod_08_batch_server <- function(id) {
                     highval = c(
                       "#FA7557" = max(
                         reactive_values$optimised_projections$current_vs_ss_wl_ratio,
-                        2
+                        2,
+                        na.rm = TRUE
                       )
                     )
                   )
@@ -910,7 +910,8 @@ mod_08_batch_server <- function(id) {
                     lowval = c(
                       "#94e994ff" = min(
                         reactive_values$optimised_projections$monthly_removals,
-                        -1
+                        -1,
+                        na.rm = TRUE
                       )
                     ),
                     midval = c(
@@ -919,7 +920,8 @@ mod_08_batch_server <- function(id) {
                     highval = c(
                       "#FA7557" = max(
                         reactive_values$optimised_projections$monthly_removals,
-                        2
+                        2,
+                        na.rm = TRUE
                       )
                     )
                   )
