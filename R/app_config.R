@@ -42,3 +42,9 @@ get_golem_config <- function(
     use_parent = use_parent
   )
 }
+
+#' Prevent check warnings
+#' This is receommended here : https://r-pkgs.org/dependencies-in-practice.html#sec-dependencies-in-imports-r-code
+ignore_unused_imports <- function() {
+  pkgload::load_all
+}

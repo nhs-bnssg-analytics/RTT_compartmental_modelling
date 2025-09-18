@@ -211,9 +211,9 @@ mod_08_batch_server <- function(id) {
         }
 
         choicesI <- reactive_org_tbl |>
-          dplyr::filter(Region %in% input$selectedregions) |>
-          dplyr::distinct(ICB) |>
-          dplyr::arrange(ICB)
+          dplyr::filter(.data$Region %in% input$selectedregions) |>
+          dplyr::distinct(.data$ICB) |>
+          dplyr::arrange(.data$ICB)
 
         # trust current selections
         current_icbs <- dplyr::intersect(
@@ -249,10 +249,10 @@ mod_08_batch_server <- function(id) {
         }
 
         choicesT <- reactive_org_tbl |>
-          filter(ICB %in% input$selectedICBs) |>
-          select(Trust) |>
+          filter(.data$ICB %in% input$selectedICBs) |>
+          select(.data$Trust) |>
           unique() |>
-          arrange(Trust)
+          arrange(.data$Trust)
 
         # trust current selections
         current_provider <- dplyr::intersect(
