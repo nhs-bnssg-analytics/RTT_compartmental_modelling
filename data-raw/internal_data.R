@@ -1,5 +1,19 @@
 org_lkp <- NHSRtt::latest_orgs()
 
+# Steady State Inputs
+org_lkp_ss_inputs <- org_lkp |>
+  distinct(
+    `NHS Region Name`,
+    `Provider Parent Name`,
+    `Provider Org Name`
+  ) |>
+  dplyr::select(
+    Region = "NHS Region Name",
+    ICBFull = "Provider Parent Name",
+    Trust = "Provider Org Name"
+  ) |>
+  mutate(ICB = gsub("NHS | INTEGRATED CARE BOARD", "", ICBFull))
+
 trust_lkp <- org_lkp |>
   dplyr::distinct(
     .data$`Provider Org Code`,
@@ -19,6 +33,7 @@ treatment_function_codes <- c(
   "(:?C_|[INA]P)?120" = "Ear Nose and Throat",
   "(:?C_|[INA]P)?130" = "Ophthalmology",
   "(:?C_|[INA]P)?140" = "Oral Surgery",
+  "(:?C_|[INA]P)?150" = "Neurosurgical",
   "(:?C_|[INA]P)?150" = "Neurosurgical",
   "(:?C_|[INA]P)?160" = "Plastic Surgery",
   "(:?C_|[INA]P)?170" = "Cardiothoracic Surgery",
@@ -338,6 +353,7 @@ if (isTRUE(update_renege_rates)) {
 
 usethis::use_data(
   org_lkp,
+  org_lkp_ss_inputs,
   trust_lkp,
   treatment_function_codes,
   specialty_lkp,
