@@ -10,12 +10,12 @@ between each specialty/trust combination}
 clean_raw_data(raw_data, max_months_waited = 12)
 }
 \arguments{
-\item{max_months_waited}{integer; the stock to pool the stocks that have
-waited longer into}
-
-\item{data}{table of referrals, competes and incompletes (as different
+\item{raw_data}{table of referrals, competes and incompletes (as different
 types); data needs the following field names: trust, specialty, period_id,
 type, months_waited_id, value}
+
+\item{max_months_waited}{integer; the stock to pool the stocks that have
+waited longer into}
 }
 \description{
 Raw data often only contains values where they exist. This function

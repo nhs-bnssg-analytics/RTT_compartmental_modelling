@@ -12,3 +12,65 @@
 .reactable .divider-right {
   border-right: 2px solid #a1a0a0ff;
 }
+
+.picker-class {
+  font-size: 0.7rem;
+}
+
+.dropdown-item .selected span.check-mark {
+  float: left;
+  margin-right: 8px;
+}
+
+.dropdown-menu {
+  overflow-x: auto !important;
+  white-space: nowrap;
+  max-width: 400px; /* Adjust as needed */
+  /* width:50px; */
+  
+}
+.dropdown-menu li a {
+  display: inline-block;
+  min-width: 150px; /* Optional: control item width */
+}
+
+.dropdown-menu ul {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+
+.open .dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.open .dropdown-menu ul {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.open .dropdown-menu li {
+  /* min-width: 150px; */
+  display: inline-block;
+  white-space: nowrap;
+}
+/* Optional: style scrollbar */
+.open .dropdown-menu ul::-webkit-scrollbar {
+  height: 10px;
+}
+.open .dropdown-menu ul::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 5px;
+}
+.open .dropdown-menu ul::-webkit-scrollbar-track {
+  background-color: #f1f1f1;
+}

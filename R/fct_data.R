@@ -208,7 +208,7 @@ aggregate_and_format_raw_data <- function(
 #' expands the raw data so there are 0 values for periods that no
 #' counts existed. It also makes sure period and period_id are consistent
 #' between each specialty/trust combination
-#' @param data table of referrals, competes and incompletes (as different
+#' @param raw_data table of referrals, competes and incompletes (as different
 #'   types); data needs the following field names: trust, specialty, period_id,
 #'   type, months_waited_id, value
 #' @param max_months_waited integer; the stock to pool the stocks that have

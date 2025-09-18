@@ -28,7 +28,36 @@ mod_08_batch_ui <- function(id) {
         `selected-text-format` = "count",
         `count-selected-text` = "{0} Selections (on a total of {1})"
       ),
-      selected = sort(unique(org_lkp_ss_inputs$Trust)),
+      multiple = TRUE,
+      selected = sort(unique(org_lkp_ss_inputs$Region)),
+      choicesOpt = list(
+        class = rep("picker-class", length(unique(org_lkp_ss_inputs$Region)))
+      )
+    ),
+    pickerInput(
+      ns("selectedICBs"),
+      "ICB(s):",
+      choices = sort(unique(org_lkp_ss_inputs$ICB)),
+      options = list(
+        `actions-box` = TRUE,
+        `selected-text-format` = "count",
+        `count-selected-text` = "{0} Selections (on a total of {1})"
+      ),
+      selected = sort(unique(org_lkp_ss_inputs$ICB)),
+      multiple = TRUE
+    ),
+    pickerInput(
+      ns("selectedtrusts"),
+      "Trust(s):",
+      choices = sort(unique(org_lkp_ss_inputs$Trust)),
+      options = list(
+        `actions-box` = TRUE,
+        `selected-text-format` = "count",
+        `count-selected-text` = "{0} Selections (on a total of {1})",
+        `live-search` = TRUE,
+        `size` = 15 # Show max 15 items at once in dropdown
+      ),
+      selected = NULL,
       multiple = TRUE
     ),
     radioButtons(
@@ -242,14 +271,14 @@ mod_08_batch_server <- function(id) {
     reactive_values$optimised_waiting_list <- NULL # these are the outputs
 
     # trust selection filtering based on other NHS only checkbox ----------------------
-    reactive_org_tbl <- reactiveVal(org_lkp_ss_inputs) 
+    reactive_org_tbl <- reactiveVal(org_lkp_ss_inputs)
 
     # Inputs
     observeEvent(
       c(input$selectedregions, input$ss_nhs_only),
       {
         reactive_org_tbl <- org_lkp_ss_inputs
-        
+
         if (input$ss_nhs_only == "nhs_only") {
           reactive_org_tbl <- reactive_org_tbl |>
             dplyr::filter(
@@ -277,7 +306,10 @@ mod_08_batch_server <- function(id) {
           session = session,
           inputId = "selectedICBs",
           choices = choicesI$ICB,
-          selected = current_icbs
+          selected = current_icbs,
+          choicesOpt = list(
+            class = rep("picker-class", length(choicesI$ICB))
+          )
         )
       },
       ignoreInit = FALSE
@@ -316,7 +348,10 @@ mod_08_batch_server <- function(id) {
           session = session,
           inputId = "selectedtrusts",
           choices = choicesT$Trust,
-          selected = current_provider
+          selected = current_provider,
+          choicesOpt = list(
+            class = rep("picker-class", length(choicesT$Trust))
+          )
         )
       },
       ignoreInit = FALSE
@@ -352,12 +387,6 @@ mod_08_batch_server <- function(id) {
               spec = input$specialty_codes
             )
 
-            # pass codes into download function. AIM TO MAKE THIS PART SIMPLY LOOK
-            # UP THE DATA FROM A TABLE STORED ON THE SERVER. THE DATA ON THE
-            # SERVER SHOULD BE STRUCTURED LIKE raw_data FOLLOWING THIS CHUNK OF
-            # CODE (action: EI). The data on the server here will also be used in
-            # module 2.
-
             # RDS VERSION
             raw_data <- readRDS(system.file(
               "extdata",
@@ -365,8 +394,8 @@ mod_08_batch_server <- function(id) {
               package = "RTTshiny"
             )) |>
               clean_raw_data() |>
-              filter(.data$trust %in% input$ss_trust_codes) |>
-              filter(.data$specialty %in% c(input$specialty_codes))
+              filter(trust %in% input$selectedtrusts) |>
+              filter(specialty %in% c(input$specialty_codes))
 
             # the latest month of data to use for calibrating the models
             max_download_date <- max(raw_data$period)
@@ -402,184 +431,175 @@ mod_08_batch_server <- function(id) {
                     input$referral_bin_medium,
                     input$referral_bin_high
                   )
-                )
+                ) |>
+                  filter(!is.na(.data$referral_change))
               ) |>
               mutate(
-                # value = furrr::future_map2(
-                value = purrr::map2(
-                  .x = .data$cal_period,
-                  .y = .data$referral_change,
-                  ~ forecast_function(
-                    # this is in the functions.R script
-                    rtt_table = .x,
-                    number_timesteps = forecast_months,
-                    method = "Linear",
-                    percent_change = .y
+                id = dplyr::row_number()
+              )
+
+            shiny::withProgress(
+              message = "Processing trusts/specialties/scenarios",
+              value = 0,
+              {
+                n <- nrow(current)
+                # browser()
+                optimised_projections <- current |>
+                  # add historic renege rates by specialty
+                  left_join(
+                    target_renege_proportions |>
+                      dplyr::select("specialty", "renege_proportion"),
+                    by = "specialty"
+                  ) |>
+                  # calculate steady state demand
+                  mutate(
+                    referrals_ss = .data$referrals_t1 +
+                      ((.data$referrals_t1 * .data$referral_change / 100) *
+                        forecast_months /
+                        12),
+                    target = case_when(
+                      input$ss_method == "treatments" ~ .data$capacity_t1,
+                      input$ss_method == "renege_rates" ~
+                        .data$renege_proportion,
+                      .default = NA_real_
+                    ),
+                    ss_calcs = purrr::pmap(
+                      list(
+                        ref_ss = .data$referrals_ss,
+                        targ = .data$target,
+                        par = .data$params,
+                        id = .data$id
+                      ),
+                      \(ref_ss, targ, par, id) {
+                        out <- append_steady_state(
+                          referrals = ref_ss,
+                          target = targ,
+                          renege_params = par$renege_param,
+                          percentile = input$target_value / 100,
+                          target_time = input$target_week,
+                          method = input$ss_method
+                        )
+
+                        shiny::incProgress(
+                          1 / n,
+                          detail = paste("Completed combination", id, "of", n)
+                        )
+
+                        return(out)
+                      }
+                    )
+                  ) |>
+                  unnest("ss_calcs") |>
+                  mutate(
+                    current_vs_ss_wl_ratio = round(
+                      .data$incompletes_t0 / .data$incompletes_ss,
+                      2
+                    ),
+                    monthly_removals = (.data$incompletes_t0 -
+                      .data$incompletes_ss) /
+                      forecast_months,
+                    referrals_scenario = gsub(
+                      "_referrals",
+                      "",
+                      .data$referrals_scenario
+                    )
                   )
-                )
-              ) |>
-              select(!c("cal_period", "referral_change")) |>
-              tidyr::unnest("value") |>
-              # adjust referrals that are less than 0 to 0
-              mutate(
-                value = case_when(
-                  .data$value < 0 ~ 0,
-                  .default = .data$value
-                ),
-                period_id = dplyr::row_number() +
-                  max(raw_data$period_id),
-                .by = c("trust", "specialty", "referrals_scenario")
-              ) |>
-              tidyr::nest(
-                ref_projections = c(
-                  "period_id",
-                  "value"
-                )
-              )
 
-            # calculate the capacity for the first projected timestep
-            projection_capacity <- raw_data |>
-              filter(
-                type == "Complete",
-                .data$period != min(.data$period)
-              ) |>
-              summarise(
-                value = sum(.data$value),
-                .by = c(
-                  "trust",
-                  "specialty",
-                  "period_id",
-                  "period"
-                )
-              ) |>
-              tidyr::nest(
-                cal_period = c("period", "period_id", "value")
-              ) |>
-              mutate(
-                t_1_capacity = purrr::map_dbl(
-                  .data$cal_period,
-                  calculate_t1_value
-                )
-              ) |>
-              select(!c("cal_period"))
+                historic_waiting_list <- raw_data |>
+                  filter(
+                    .data$type %in% c("Incomplete", "Complete"),
+                    .data$period %in%
+                      c(
+                        max(.data$period),
+                        max(.data$period) %m-% months(12)
+                      )
+                  ) |>
+                  mutate(
+                    wl_description = format(.data$period, format = "%b %Y"),
+                    type = case_when(
+                      .data$type == "Incomplete" ~ "wlsize",
+                      .data$type == "Complete" ~ "sigma",
+                      .default = NA_character_
+                    )
+                  ) |>
+                  tidyr::pivot_wider(
+                    names_from = "type",
+                    values_from = "value",
+                    values_fill = 0
+                  ) |>
+                  select(
+                    "trust",
+                    "specialty",
+                    "period",
+                    "months_waited_id",
+                    "wlsize",
+                    "sigma",
+                    "wl_description"
+                  ) |>
+                  tidyr::nest(
+                    previous_waiting_list = c(
+                      "period",
+                      "months_waited_id",
+                      "wlsize",
+                      "wl_description",
+                      "sigma"
+                    )
+                  )
 
-            # INCOMPLETES at t = 0
+                reactive_values$optimised_waiting_list <- optimised_projections |>
+                  select("trust", "specialty", "referrals_scenario", "wl_ss") |>
+                  tidyr::unnest("wl_ss") |>
+                  select(
+                    "trust",
+                    "specialty",
+                    "referrals_scenario",
+                    "months_waited_id",
+                    "wlsize",
+                    "sigma"
+                  ) |>
+                  mutate(
+                    wl_description = "Steady state"
+                  ) |>
+                  tidyr::nest(
+                    steady_state_waiting_list = c(
+                      "months_waited_id",
+                      # "r",
+                      # "service",
+                      "sigma",
+                      "wlsize",
+                      "wl_description"
+                    )
+                  ) |>
+                  mutate(
+                    id = dplyr::row_number()
+                  ) |>
+                  left_join(
+                    historic_waiting_list,
+                    by = join_by(trust, specialty)
+                  )
 
-            # Here we use the latest observed waiting list as the starting point
-            # for the projections
-            incompletes_at_t0 <- raw_data |>
-              filter(
-                .data$type == "Incomplete",
-                .data$period_id == max(.data$period_id)
-              ) |>
-              select(!c("period", "period_id", "type")) |>
-              tidyr::complete(
-                specialty = selections_labels$specialties$selected_name,
-                months_waited_id = setdiff(
-                  1,
-                  unique(raw_data$months_waited_id)
-                ), # removes first period
-                trust = selections_labels$trusts$selected_name,
-                fill = list(value = 0)
-              ) |>
-              rename(
-                incompletes = "value"
-              ) |>
-              tidyr::nest(
-                incompletes_t0 = c("months_waited_id", "incompletes")
-              )
+                # add in the counterfactual reneges and wl size
+                wl_t0 <- raw_data |>
+                  filter(
+                    .data$type == "Incomplete",
+                    .data$period == max(.data$period)
+                  ) |>
+                  select(!c("period", "period_id", "type")) |>
+                  rename(incompletes = "value") |>
+                  tidyr::nest(wl_t0 = c("months_waited_id", "incompletes"))
 
-            # combine referral, t1 capacity, t0 incompletes, and params into one
-            # dataset where each row is a different trust, specialty and referral
-            # scenario
-            all_projection_data <- projection_capacity |>
-              left_join(
-                projection_referrals,
-                by = join_by(
-                  trust,
-                  specialty
-                ),
-                relationship = "one-to-many"
-              ) |>
-              left_join(
-                incompletes_at_t0,
-                by = join_by(
-                  trust,
-                  specialty
-                ),
-                relationship = "many-to-one"
-              ) |>
-              left_join(
-                params,
-                by = join_by(
-                  trust,
-                  specialty
-                ),
-                relationship = "many-to-one"
-              )
-
-            # create period to period_id lookup
-            period_lkp <- dplyr::tibble(
-              period_id = seq_len(max(raw_data$period_id) + forecast_months),
-              period = seq(
-                from = min(raw_data$period),
-                to = input$target_date,
-                by = "months"
-              )
-            )
-
-            # ignore specialties-trust combinations where lower than threshold number of
-            # treatments have occurred in calibration year
-            threshold <- 50
-
-            poor_calibration <- raw_data |>
-              filter(
-                .data$type == "Complete"
-              ) |>
-              summarise(
-                value = sum(.data$value),
-                .by = c(
-                  "trust",
-                  "specialty"
-                )
-              ) |>
-              tidyr::complete(
-                .data$specialty,
-                .data$trust,
-                fill = list(value = 0)
-              ) |>
-              filter(
-                .data$value <= threshold
-              ) |>
-              select("trust", "specialty") |>
-              mutate(status = "low_completed_pathways_in_calibration_period")
-
-            # optimise capacity to achieve target - NOTE, THIS IS THE OTHER PART
-            # WHERE THE RESULTS CAN BE STORED ON THE SERVER. PREFERABLY, THE USER
-            # WOULD SELECT ALL OF THEIR PREFERRED INPUTS, AND THEN THE MODULE
-            # WOULD LOOK TO A DATABASE OF RESULTS AND IF THERE ARE RESULTS FOR
-            # THAT COMBINATION OF TRUST/SPECIALTY/REFERRAL SCENARIO/TARGET AND
-            # TARGET DATE, IT WOULD PRESENT THE RESULTS IMMEDIATELY, OTHERWISE IT
-            # WOULD CALCULATE THEM (action: EI)
-            reactive_values$optimised_projections <- all_projection_data |>
-              left_join(
-                poor_calibration,
-                by = join_by(
-                  trust,
-                  specialty
-                ),
-                relationship = "many-to-one"
-              ) |>
-              mutate(
-                annual_linear_uplift = case_when(
-                  # is.na(.data$status) = furrr::future_pmap(
-                  is.na(.data$status) ~
-                    purrr::pmap(
-                      .l = list(
-                        .data$t_1_capacity,
-                        .data$ref_projections,
-                        .data$incompletes_t0,
-                        .data$params
+                reactive_values$optimised_projections <- optimised_projections |>
+                  left_join(wl_t0, by = c("trust", "specialty")) |>
+                  mutate(
+                    counterfactual = purrr::pmap(
+                      list(
+                        cap = .data$capacity_t1,
+                        ref_start = .data$referrals_t1,
+                        ref_end = .data$referrals_ss,
+                        inc = .data$wl_t0,
+                        par = .data$params,
+                        t = .data$trust,
+                        sp = .data$specialty
                       ),
                       \(cap, ref_start, ref_end, inc, par, t, sp) {
                         # cat(paste(t, sp))
@@ -669,7 +689,8 @@ mod_08_batch_server <- function(id) {
                 plot_waiting_lists_chart(
                   target_week = input$target_week,
                   target_value = input$target_value
-                )
+                ) #,
+              # width = "1000px"
             })
           })
         }

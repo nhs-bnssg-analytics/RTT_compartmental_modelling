@@ -15,24 +15,12 @@ append_current_status <- function(
   percentile,
   percentile_month
 ) {
-  period_lkp <- data |>
-    distinct(.data$period) |>
-    arrange(.data$period) |>
-    mutate(period_id = dplyr::row_number())
-
   data <- data |>
-    select(!c("period_id")) |>
     tidyr::complete(
-      # tidyr::nesting(.data$trust, .data$specialty),
-      # tidyr::nesting(.data$type, .data$months_waited_id),
       tidyr::nesting(trust, specialty),
       tidyr::nesting(type, months_waited_id),
-      period = period_lkp$period,
+      period = period,
       fill = list(value = 0)
-    ) |>
-    left_join(
-      period_lkp,
-      by = join_by(period)
     )
 
   # calculate referrals uplift

@@ -10,6 +10,7 @@
 #'   dateRangeInput dateInput selectInput icon downloadLink downloadButton hr br
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   bs_theme page_fluid card_body layout_columns tooltip
+#' @importFrom shinyWidgets numericInputIcon
 mod_02_planner_ui <- function(id) {
   ns <- NS(id)
 
@@ -190,12 +191,14 @@ mod_02_planner_ui <- function(id) {
       layout_columns(
         col_widths = c(3, 2),
         span("Percentage change in referrals (between -20% and 200%):"),
-        numericInput(
+        shinyWidgets::numericInputIcon(
           inputId = ns("referral_growth"),
           label = NULL,
           value = 0,
           min = -20,
-          max = 200
+          max = 200,
+          icon = list(NULL, icon("percent")),
+          size = "sm"
         ),
         fill = FALSE
       ),
@@ -287,6 +290,7 @@ mod_02_planner_ui <- function(id) {
 #' @importFrom purrr map2 map
 #' @importFrom bslib tooltip value_box value_box_theme
 #' @importFrom rlang .data
+#' @importFrom shinyWidgets numericInputIcon
 #' @noRd
 mod_02_planner_server <- function(id, r) {
   moduleServer(id, function(input, output, session) {
@@ -1407,13 +1411,15 @@ mod_02_planner_server <- function(id, r) {
                     placement = "right"
                   )
                 ),
-                numericInput(
+                shinyWidgets::numericInputIcon(
                   # INPUT (note, the package requires the 100% - x of this value, eg, 65% performance = a target_value of 35%)
                   inputId = ns("target_value"),
                   label = NULL,
                   min = 0,
                   max = 100,
-                  value = reactive_values$default_target
+                  value = reactive_values$default_target,
+                  icon = list(NULL, shiny::icon("percent")),
+                  size = "sm"
                 ),
                 fill = FALSE
               )
@@ -1695,12 +1701,14 @@ mod_02_planner_server <- function(id, r) {
             span(
               "Percentage change for treatment capacity (between -20% and 20%):"
             ),
-            numericInput(
+            shinyWidgets::numericInputIcon(
               inputId = ns("capacity_growth"),
               label = NULL,
               value = 0,
               min = -20,
-              max = 200
+              max = 200,
+              icon = list(NULL, icon("percent")),
+              size = "sm"
             ),
             fill = FALSE
           ),
