@@ -37,25 +37,28 @@ mod_03_results_ui <- function(id) {
 }
 
 #' 03_results Server Functions
-#' @importFrom DT renderDT formatRound datatable
+#' @importFrom DT renderDT formatRound datatable formatDate
 #' @importFrom dplyr group_by rename summarise tribble
 #' @importFrom rlang .data
 #' @importFrom bslib value_box layout_column_wrap
 #' @importFrom shiny updateActionButton showModal modalDialog downloadHandler
-#'   actionButton p hr uiOutput
+#'   actionButton p hr uiOutput modalButton removeModal
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    reactive_data <- reactiveValues()
-    reactive_data$plot_click_info <- NULL
-    reactive_data$plot_clicked <- NULL
-    reactive_data$btn_val <- NULL
-    reactive_data$plot_data <- NULL
-    reactive_data$show_plot <- FALSE
-    reactive_data$show_table <- FALSE
+
+    reactive_data <- reactiveValues(
+      plot_click_info = NULL,
+      plot_clicked = NULL,
+      btn_val = NULL,
+      plot_data = NULL,
+      show_plot = FALSE,
+      show_table = FALSE,
+      temp_data = NULL
+    )
 
     # dynamic sidebar ---------------------------------------------------------
 
@@ -133,6 +136,7 @@ mod_03_results_server <- function(id, r) {
             `data-bs-trigger` = "hover",
             title = "The 18 week performance over the period"
           ),
+
           actionButton(
             inputId = ns("btn_shortfall"),
             label = "Performance shortfall",
@@ -140,8 +144,7 @@ mod_03_results_server <- function(id, r) {
             class = "results_button",
             `data-bs-trigger` = "hover",
             title = "The number of additional long waiters that, when removed, would results in achieving performance"
-          ), ## NC (COMPLETE) - need to make action button here for the shortfall chart
-
+          ), 
           p(
             "Reneges",
             class = "results_button",
@@ -330,6 +333,7 @@ mod_03_results_server <- function(id, r) {
           tempReport,
           overwrite = TRUE
         )
+
         params <- list(
           waiting_list = r$waiting_list,
           trust = r$chart_specification$trust,
@@ -522,7 +526,10 @@ mod_03_results_server <- function(id, r) {
         }
         output$results_plot <- renderPlot(
           {
-            if (is.null(r$waiting_list) | identical(r$waiting_list, tibble())) {
+            if (
+              is.null(r$waiting_list) |
+                identical(r$waiting_list, tibble())
+            ) {
               holding_chart(type = "model")
             } else if (is.null(reactive_data$btn_val)) {
               holding_chart(type = "select_chart")
@@ -629,6 +636,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- TRUE
                 include_target_line <- TRUE
+
               } else if (reactive_data$btn_val == "btn_shortfall") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::rename(value = "incompletes") |>
@@ -656,7 +664,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
-                ## NC (WIP) - will need another "else if" statement here to calculate the data for the plot
+                
               }
 
               if (
@@ -693,7 +701,23 @@ mod_03_results_server <- function(id, r) {
           ns("results_table")
         )
       } else {
+
+        # if no button has been selected then display results_plot
         if (is.null(reactive_data$btn_val)) {
+          plotOutput(
+            ns("results_plot"),
+            click = shiny::clickOpts(
+              id = ns("plot_click")
+            ),
+            height = "600px"
+          )
+        } else {
+          # if calculating performance from capacity inputs then we need to show the editing options
+          if (
+            r$chart_specification$scenario_type ==
+              "Estimate performance (from treatment capacity inputs)"
+          ) {
+            if (is.null(reactive_data$btn_val)) {
           div(
             plotOutput(
               ns("results_plot"),
@@ -759,7 +783,12 @@ mod_03_results_server <- function(id, r) {
                 value = 96,
                 step = 8
               )
-            )
+            ),
+              actionButton(
+                ns("edit_data"),
+                "Edit input data",
+                class = "btn-primary"
+              )
           )
         } else {
           div(
@@ -779,14 +808,185 @@ mod_03_results_server <- function(id, r) {
                 max = 144,
                 value = 96,
                 step = 8
+                 )
+            ),
+              actionButton(
+                ns("edit_data"),
+                "Edit input data",
+                class = "btn-primary"
+              )
+          )
+          } else {
+            div(
+              plotOutput(
+                ns("results_plot"),
+                click = shiny::clickOpts(
+                  id = ns("plot_click")
+                ),
+                height = "600px"
+              ),
+              div(
+                class = "label-left",
+                sliderInput(
+                  inputId = ns("chart_res"),
+                  label = "Select chart resolution (pixels per inch)",
+                  min = 72,
+                  max = 144,
+                  value = 96,
+                  step = 8
+                )
+
               )
             )
-          )
+          }
         }
       }
     })
 
+    # Show modal when edit button is clicked
+    observeEvent(input$edit_data, {
+      reactive_data$temp_data <- r$waiting_list |>
+        dplyr::filter(
+          .data$period_type == "Projected"
+        ) |>
+        dplyr::summarise(
+          across(
+            c("adjusted_referrals", "calculated_treatments"),
+            ~ round(sum(.x, na.rm = TRUE), 2)
+          ),
+          .by = c("period")
+        )
+
+      showModal(
+        modalDialog(
+          title = "Edit Inputs",
+          size = "l",
+          DTOutput(
+            ns("data_table")
+          ),
+          footer = tagList(
+            actionButton(
+              ns("save_changes"),
+              "Save Changes",
+              class = "btn-success"
+            ),
+            actionButton(
+              ns("reset_data"),
+              "Reset",
+              class = "btn-secondary"
+            ),
+            modalButton("Cancel")
+          )
+
+        }
+      }
+    })
+
+    # Render editable data table
+    output$data_table <- renderDT({
+      datatable(
+        reactive_data$temp_data,
+        editable = list(
+          target = "cell",
+          disable = list(
+            columns = 0 # indices here start at 0 for column 1
+          ), # disable editing the first column
+          numeric = 2:3 # allow only numeric values - indices here start at 1 for column 1
+        ),
+        options = list(
+          pageLength = 15,
+          dom = 't',
+          ordering = FALSE
+        ),
+        rownames = FALSE,
+        colnames = c(
+          "Month start date",
+          "Referrals",
+          "Treatment capacity"
+        ),
+        caption = "Double-click on a cell to edit the value"
+      ) |>
+        DT::formatRound(
+          columns = 2:3
+        ) |>
+        DT::formatDate(
+          columns = 1,
+          method = 'toLocaleDateString',
+          params = list('fr-FR')
+        )
+    })
+
+    # Handle table edits
+    observeEvent(input$data_table_cell_edit, {
+      info <- input$data_table_cell_edit
+      # Create a copy of the data to avoid reference issues
+      temp_copy <- reactive_data$temp_data
+
+      # Update the specific cell
+      temp_copy[info$row, info$col + 1] <- as.numeric(info$value)
+
+      # Update the reactive value
+      reactive_data$temp_data <- temp_copy |>
+        dplyr::mutate(
+          across(
+            c("adjusted_referrals", "calculated_treatments"),
+            \(x) ifelse(x < 0, 0, x)
+          )
+        )
+    })
+
+    # Save changes
+    observeEvent(input$save_changes, {
+      removeModal()
+
+      r$waiting_list <- calculate_customised_projections(
+        original_wl_data = r$chart_specification$original_data$waiting_list,
+        new_referrals_capacity = reactive_data$temp_data,
+        original_params = r$chart_specification$params
+      )
+
+      # pass information in the charts
+      r$chart_specification$referrals_percent_change <- ""
+      r$chart_specification$referrals_change_type <- "manual"
+      r$chart_specification$scenario_type <- "Estimate performance (from treatment capacity inputs)"
+      r$chart_specification$capacity_percent_change <- ""
+      r$chart_specification$capacity_change_type <- "manually adjusted"
+    })
+
+    # Reset to original data
+    observeEvent(input$reset_data, {
+      original_referrals_capacity <- r$chart_specification$original_data$waiting_list |>
+        filter(
+          .data$period_type == "Projected"
+        ) |>
+        summarise(
+          across(
+            c("adjusted_referrals", "calculated_treatments"),
+            ~ sum(.x, na.rm = TRUE)
+          ),
+          .by = c("period")
+        )
+
+      removeModal()
+
+      r$waiting_list <- calculate_customised_projections(
+        original_wl_data = r$chart_specification$original_data$waiting_list,
+        new_referrals_capacity = original_referrals_capacity,
+        original_params = r$chart_specification$params
+      )
+
+      # pass information in the charts
+      r$chart_specification$referrals_percent_change <- r$chart_specification$original_data$referrals_percent_change
+      r$chart_specification$referrals_change_type <- r$chart_specification$original_data$referrals_change_type
+      r$chart_specification$scenario_type <- r$chart_specification$original_data$scenario_type
+      r$chart_specification$capacity_percent_change <- r$chart_specification$original_data$capacity_percent_change
+      r$chart_specification$capacity_change_type <- r$chart_specification$original_data$capacity_change_type
+
+      r$chart_specification$optimise_status <- NULL
+    })
+
     # plot clicks -------------------------------------------------------------
+
 
     observeEvent(
       c(input$plot_click),
@@ -841,13 +1041,13 @@ mod_03_results_server <- function(id, r) {
           "btn_performance",
           "Performance information",
           "Performance",
+
           "percent",
           "btn_shortfall",
           "Performance shortfall information",
           "Shortfall",
           "number"
-          ## NC (COMPLETE?) - add another line onto this "tribble" above. This gets passed into the value box that pops up when the charts are clicked
-          ## NC - the information passed to the "value_box" is created from the "click_info()" function on line 684 (which is in the fct_charts.R script)
+
         ) |>
           dplyr::filter(
             .data$button == reactive_data$btn_val

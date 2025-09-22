@@ -18,6 +18,7 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 </g>
 <defs>
   <clipPath id='cpNDAuNjJ8NzE0LjUyfDU3Ljg0fDUzNC44NA=='>
@@ -40,7 +41,7 @@
 <polyline points='548.17,534.84 548.17,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='602.28,534.84 602.28,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='656.69,534.84 656.69,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='710.50,534.84 710.50,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='710.80,534.84 710.80,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='40.62,479.74 714.52,479.74 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='40.62,345.87 714.52,345.87 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='40.62,212.01 714.52,212.01 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
@@ -62,6 +63,11 @@
 <line x1='683.89' y1='534.84' x2='683.89' y2='57.84' style='stroke-width: 1.07; stroke: #000000; stroke-opacity: 0.30; stroke-linecap: butt;' />
 <polyline points='71.25,429.58 89.58,429.58 89.58,500.74 107.32,500.74 107.32,513.16 125.65,513.16 125.65,498.15 143.40,498.15 143.40,300.70 161.73,300.70 161.73,266.27 180.06,266.27 180.06,219.08 197.80,219.08 197.80,79.52 216.13,79.52 216.13,237.14 233.87,237.14 233.87,212.19 252.20,212.19 252.20,129.05 270.54,129.05 270.54,167.16 287.09,167.16 287.09,167.16 ' style='stroke-width: 1.07; stroke-linecap: butt;' />
 <polyline points='287.09,240.83 305.42,240.83 305.42,139.03 323.17,139.03 323.17,213.30 341.50,213.30 341.50,300.27 359.24,300.27 359.24,289.10 377.57,289.10 377.57,289.61 395.90,289.61 395.90,290.95 413.64,290.95 413.64,288.34 431.97,288.34 431.97,286.50 449.71,286.50 449.71,285.20 468.05,285.20 468.05,280.88 486.38,280.88 486.38,276.02 502.94,276.02 502.94,272.46 521.27,272.46 521.27,269.03 539.01,269.03 539.01,266.92 557.34,266.92 557.34,265.15 575.08,265.15 575.08,262.74 593.41,262.74 593.41,259.88 611.74,259.88 611.74,256.77 629.48,256.77 629.48,253.38 647.82,253.38 647.82,249.84 665.56,249.84 665.56,246.14 683.89,246.14 683.89,246.14 ' style='stroke-width: 1.07; stroke: #0000FF; stroke-dasharray: 5.69,5.69; stroke-linecap: butt;' />
+<polygon points='538.42,534.84 538.42,57.84 521.27,57.84 521.27,534.84 ' style='stroke-width: 0.00; stroke: none; stroke-linecap: butt; fill: #737373; fill-opacity: 0.50;' />
+<polyline points='538.42,534.84 538.42,57.84 ' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt;' />
+<polyline points='521.27,57.84 521.27,534.84 ' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt;' />
+<text transform='translate(537.51,530.70) rotate(-90)' style='font-size: 11.00px; fill: #000000; fill-opacity: 0.80; font-family: sans;' textLength='165.72px' lengthAdjust='spacingAndGlyphs'>Apr 26 performance target: 57.1%</text>
+<line x1='40.62' y1='272.25' x2='714.52' y2='272.25' style='stroke-width: 1.07; stroke: #FF0000; stroke-dasharray: 1.42,4.27; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
 <text x='35.69' y='482.77' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='17.61px' lengthAdjust='spacingAndGlyphs'>54%</text>

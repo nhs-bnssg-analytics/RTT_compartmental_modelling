@@ -1,126 +1,142 @@
-test_that("get_rtt_data_with_progress works", {
+# Mock the function to return the mock data
 
-  # Mock the function to return the mock data
-  mocked_get_rtt_data <- function(
-    date_start = as.Date("2024-01-01"),
-    date_end = as.Date("2024-12-01"),
-    trust_parent_codes = NA,
-    commissioner_parent_codes = NA,
-    commissioner_org_codes = NA,
-    trust_codes = NA,
-    specialty_codes = NA,
-    show_progress = FALSE,
-    progress) {
-
-    period_lkp <- dplyr::tibble(
-      period = seq(
-        from = lubridate::floor_date(
-          date_start %m-% months(1), unit = "months"
-        ),
-        to = lubridate::floor_date(
-          date_end, unit = "months"
-        ),
-        by = "months"
-      )
-    ) |>
-      mutate(
-        period_id = dplyr::row_number() - 1
-      )
-
-    df <- tidyr::expand_grid(
-      typ = c("referral", "incomplete", "complete"),
-      tpc = trust_parent_codes,
-      cpc = commissioner_parent_codes,
-      coc = commissioner_org_codes,
-      tc = trust_codes,
-      sc = specialty_codes
+mocked_get_rtt_data <- function(
+  date_start = as.Date("2024-01-01"),
+  date_end = as.Date("2024-12-01"),
+  trust_parent_codes = NA,
+  commissioner_parent_codes = NA,
+  commissioner_org_codes = NA,
+  trust_codes = NA,
+  specialty_codes = NA,
+  show_progress = FALSE,
+  progress
+) {
+  period_lkp <- dplyr::tibble(
+    period = seq(
+      from = lubridate::floor_date(
+        date_start %m-% months(1),
+        unit = "months"
+      ),
+      to = lubridate::floor_date(
+        date_end,
+        unit = "months"
+      ),
+      by = "months"
+    )
+  ) |>
+    mutate(
+      period_id = dplyr::row_number() - 1
     )
 
-    max_months <- 12
+  df <- tidyr::expand_grid(
+    typ = c("referral", "incomplete", "complete"),
+    tpc = trust_parent_codes,
+    cpc = commissioner_parent_codes,
+    coc = commissioner_org_codes,
+    tc = trust_codes,
+    sc = specialty_codes
+  )
 
-    out <- purrr::pmap(
-        .l = df,
-        .f = \(typ, tpc, cpc, coc, tc, sc) {
-          NHSRtt::create_dummy_data(
-              type = typ,
-              max_months_waited = max_months,
-              number_periods = max(period_lkp$period_id),
-              seed  = 444
-            ) |>
-            mutate(
-              trust_parent_org_code = tpc,
-              commissioner_parent_org_code = cpc,
-              commissioner_org_code = coc,
-              trust = tc,
-              specialty = sc
-            )
-        }
+  max_months <- 12
+
+  out <- purrr::pmap(
+    .l = df,
+    .f = \(typ, tpc, cpc, coc, tc, sc) {
+      NHSRtt::create_dummy_data(
+        type = typ,
+        max_months_waited = max_months,
+        number_periods = max(period_lkp$period_id),
+        seed = 444
       ) |>
-      purrr::list_rbind() |>
-      dplyr::mutate(
-        months_waited = case_when(
-          !is.na(referrals) ~ "<1",
-          months_waited_id == max_months ~ paste0(max_months, "+"),
-          .default = paste0(months_waited_id, "-", months_waited_id + 1)
-        ),
-        value = case_when(
-          !is.na(referrals) ~ referrals,
-          !is.na(incompletes) ~ incompletes,
-          !is.na(treatments) ~ treatments,
-          .default = NA_real_
-        ),
-        type = case_when(
-          !is.na(referrals) ~ "Referrals",
-          !is.na(incompletes) ~ "Incomplete",
-          !is.na(treatments) ~ "Complete",
-          .default = NA_character_
+        mutate(
+          trust_parent_org_code = tpc,
+          commissioner_parent_org_code = cpc,
+          commissioner_org_code = coc,
+          trust = tc,
+          specialty = sc
         )
-      ) |>
-      left_join(
-        period_lkp,
-        by = join_by(period_id)
-      ) |>
-      dplyr::relocate(
-        period, .before = dplyr::everything()
-      ) |>
-      dplyr::relocate(
-        value, .after = dplyr::everything()
-      ) |>
-      select(
-        !c(
-          "referrals",
-          "incompletes",
-          "treatments",
-          "period_id",
-          "months_waited_id"
-        )
+    }
+  ) |>
+    purrr::list_rbind() |>
+    dplyr::mutate(
+      months_waited = case_when(
+        !is.na(referrals) ~ "<1",
+        months_waited_id == max_months ~ paste0(max_months, "+"),
+        .default = paste0(months_waited_id, "-", months_waited_id + 1)
+      ),
+      value = case_when(
+        !is.na(referrals) ~ referrals,
+        !is.na(incompletes) ~ incompletes,
+        !is.na(treatments) ~ treatments,
+        .default = NA_real_
+      ),
+      type = case_when(
+        !is.na(referrals) ~ "Referrals",
+        !is.na(incompletes) ~ "Incomplete",
+        !is.na(treatments) ~ "Complete",
+        .default = NA_character_
       )
+    ) |>
+    left_join(
+      period_lkp,
+      by = join_by(period_id)
+    ) |>
+    dplyr::relocate(
+      period,
+      .before = dplyr::everything()
+    ) |>
+    dplyr::relocate(
+      value,
+      .after = dplyr::everything()
+    ) |>
+    select(
+      !c(
+        "referrals",
+        "incompletes",
+        "treatments",
+        "period_id",
+        "months_waited_id"
+      )
+    )
 
-    return(out)
-  }
+  return(out)
+}
 
-  # Use local_mocked_bindings to mock the function
-  local_mocked_bindings(
-    get_rtt_data_with_progress = function(...) mocked_get_rtt_data(...)
-  )
+# Use local_mocked_bindings to mock the function
+local_mocked_bindings(
+  get_rtt_data_with_progress = function(...) mocked_get_rtt_data(...)
+)
 
-  specialty_codes <- c("C_100", "C_999")
-  trust_codes <- c("RA7", "R0D")
+# Mock a simple progress object for testing
+# We need to make sure 'self' refers to the mock_progress object itself
+# in the set function for it to update correctly.
+mock_progress <- new.env()
+mock_progress$value <- 0
+mock_progress$set <- function(value) {
+  mock_progress$value <- value
+}
 
-  dates <- seq(
-    from = as.Date("2024-10-01"),
-    to = as.Date("2024-11-01"),
-    by = "months"
-  )
+# Reset mock progress for each test
+mock_progress$value <- 0
 
-  result <- get_rtt_data_with_progress(
-    date_start = min(dates),
-    date_end = max(dates),
-    trust_codes = trust_codes,
-    specialty_codes = specialty_codes,
-    progress = list()
-  )
+specialty_codes <- c("C_100", "C_999")
+trust_codes <- c("RA7", "R0D")
 
+dates <- seq(
+  from = as.Date("2024-10-01"),
+  to = as.Date("2024-11-01"),
+  by = "months"
+)
+
+result <- get_rtt_data_with_progress(
+  date_start = min(dates),
+  date_end = max(dates),
+  trust_codes = trust_codes,
+  specialty_codes = specialty_codes,
+  progress = mock_progress
+)
+
+test_that("get_rtt_data_with_progress works", {
   # Assertions
   expect_s3_class(
     result,
@@ -138,7 +154,7 @@ test_that("get_rtt_data_with_progress works", {
       length(trust_codes) *
       (3 * (1 + 13 + 13)), # eg, 3 periods, where each period has 1 referral record, and 13 complete/incomplete records (as it pools at 12+ months)
     info = "correct number of rows from get_rtt_data"
-    )
+  )
 
   expect_equal(
     names(result),
@@ -171,7 +187,6 @@ test_that("get_rtt_data_with_progress works", {
 
 # Test suite for check_imported_data
 test_that("Test check_imported_data", {
-
   # Test case 1: Valid data passes without errors
   valid_data <- sample_data # sample data is an internal dataset
   result <- check_imported_data(valid_data)
@@ -294,7 +309,6 @@ test_that("Test check_imported_data", {
     info = "Incomplete data with missing periods returns NULL data"
   )
 
-
   # Test case 6: Empty Dataframe
   empty_data <- data.frame()
   result <- check_imported_data(empty_data)
@@ -326,15 +340,12 @@ test_that("Test check_imported_data", {
 
 
 test_that("convert_to_date works", {
-
-
   dts1 <- c("2022-04-01", "2021-04-05", "2012-12-12", "2000-01-01")
 
   expect_false(
     any(is.na(convert_to_date(dts1))),
     info = "all dates with format yyyy-mm-dd are converted successfully"
   )
-
 
   dts2 <- c("12/12/2022", "24/05/2021", "25/12/2022", "01/01/2019")
   expect_false(
@@ -347,5 +358,177 @@ test_that("convert_to_date works", {
     any(is.na(convert_to_date(dts3))),
     info = "string vetor with multiple date formats produce NAs"
   )
+})
 
+test_that("aggregate_and_format_raw_data works", {
+  specialty_codes <- "General Surgery"
+  processed_results <- aggregate_and_format_raw_data(
+    data = result |> filter(specialty == "C_100"),
+    trust_aggregate = "Aggregated",
+    specialty_aggregate = "General Surgery",
+    selected_specialties = specialty_codes,
+    min_date = min(dates),
+    max_date = max(dates)
+  )
+
+  expect_equal(
+    dim(processed_results),
+    c(81, 7),
+    info = "correct number of columns and rows in processed data"
+  )
+
+  expect_true(
+    all(colSums(is.na(processed_results)) == 0),
+    info = "all columns are not NA"
+  )
+})
+
+test_that("update_sample_data works", {
+  final_month <- as.Date("2024-11-01")
+  updated_sample_data <- update_sample_data(final_month)
+  expect_equal(
+    final_month,
+    max(updated_sample_data$period),
+    info = "sample data is updated to the final month"
+  )
+
+  expect_true(
+    all(diff(sort(unique(updated_sample_data$period))) %in% 28:31),
+    info = "all periods in sample data have been progressed so no months are missing in the data"
+  )
+})
+
+
+test_that("split_and_model_calibration_data works", {
+  modified_sample_data <- sample_data |>
+    mutate(
+      trust = "ABC",
+      specialty = "DEF",
+      period_id = dplyr::row_number(),
+      .by = c("type", "months_waited_id")
+    )
+  cal_data_modelled <- split_and_model_calibration_data(
+    data = modified_sample_data,
+    referrals_uplift = TRUE
+  )
+
+  # check that number of periods in the modelled data is the correct number based on the number of unique periods in the sample data
+  sample_data_periods <- unique(modified_sample_data$period)
+  if (length(sample_data_periods) %% 2 == 0) {
+    expected_num_periods <- length(sample_data_periods) / 2
+  } else {
+    expected_num_periods <- (length(sample_data_periods) - 1) / 2
+  }
+
+  expect_equal(
+    length(unique(cal_data_modelled$period_id)),
+    expected_num_periods,
+    info = "number of periods in modelled data is correct"
+  )
+
+  # there are no NAs in the modelled data
+  expect_false(
+    any(is.na(cal_data_modelled)),
+    info = "no NAs in modelled data"
+  )
+
+  # check the uplift part of the split_and_model_calibration_data function works
+  expect_equal(
+    suppressWarnings(
+      modified_sample_data |>
+        mutate(
+          value = case_when(
+            type == "Referrals" ~ value / 2,
+            .default = value
+          )
+        ) |>
+        filter(period != max(period)) |>
+        split_and_model_calibration_data(
+          referrals_uplift = TRUE
+        ) |>
+        dim()
+    ),
+    c(65, 4),
+    info = "when supplying too few referrals, the referrals uplift section is implemented and the function returns the correct dimensions"
+  )
+
+  # the mean average percentage error is consistently calculated
+  expect_equal(
+    error_calc(
+      data = cal_data_modelled
+    ),
+    "20.74%",
+    info = "error_calc is calculated correctly (MAPE)"
+  )
+
+  # mean absolute error is consistently calculated
+  expect_equal(
+    error_calc(
+      data = cal_data_modelled |>
+        mutate(across(c("modelled_incompletes", "original"), \(x) {
+          x - min(cal_data_modelled$original)
+        }))
+    ),
+    "397.94",
+    info = "error_calc is calculated correctly (MAE)"
+  )
+})
+
+
+test_that("clean_raw_data produces the correct number of rows", {
+  full_data <- sample_data |>
+    dplyr::cross_join(
+      tidyr::expand_grid(
+        trust = c("a", "b", "c"),
+        specialty = c("x", "y", "z")
+      )
+    )
+  period_lkp <- full_data |>
+    distinct(period) |>
+    arrange(period) |>
+    mutate(period_id = dplyr::row_number())
+
+  set.seed(1234)
+
+  nrows_to_remove <- floor(nrow(full_data) / 10)
+  random_rows <- sample(
+    seq_len(nrow(full_data)),
+    size = nrows_to_remove,
+    replace = FALSE
+  )
+  data_with_missings <- full_data
+  data_with_missings$value[random_rows] <- NA
+
+  data_with_missings <- data_with_missings |>
+    filter(!is.na(value)) |>
+    left_join(period_lkp, by = "period")
+
+  max_months_waited <- 12
+  cleaned_data <- clean_raw_data(
+    raw_data = data_with_missings,
+    max_months_waited = max_months_waited
+  )
+  # check no NAs in cleaned_data
+  expect_true(
+    all(colSums(is.na(cleaned_data)) == 0)
+  )
+
+  all_periods <- seq(
+    from = min(full_data$period),
+    to = max(full_data$period),
+    by = "months"
+  )
+  # expected rows for 1 trust
+  single_trust <- (length(all_periods) *
+    13 * # number months waited
+    2) + # compl/incompl
+    length(all_periods) # referrals
+
+  n_trusts_specs <- nrow(distinct(full_data, trust, specialty))
+
+  expect_equal(
+    n_trusts_specs * single_trust,
+    nrow(cleaned_data),
+    info = "cleaned_data has expected number of rows"
+  )
 })

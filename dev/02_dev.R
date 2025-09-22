@@ -33,6 +33,7 @@ golem::add_module(name = "07_stories", with_test = FALSE) # Name of the module
 golem::add_fct("calibration", with_test = TRUE)
 golem::add_fct("charts", with_test = TRUE)
 golem::add_fct("data", with_test = TRUE)
+golem::add_fct("steady_state", with_test = TRUE)
 golem::add_utils("forecast", with_test = TRUE)
 golem::add_utils("general", with_test = TRUE)
 

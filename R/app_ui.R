@@ -47,10 +47,10 @@ app_ui <- function(request) {
     page_navbar(
       title = HTML(
         paste0(
-        'RTT Planner ',
-        '<span style="font-size: 0.7rem;">(v',
-        packageVersion("RTTshiny"),
-        ') </span>'
+          'RTT Planner ',
+          '<span style="font-size: 0.7rem;">(v',
+          packageVersion("RTTshiny"),
+          ') </span>'
         )
       ),
       navbar_options = navbar_options(
@@ -71,6 +71,11 @@ app_ui <- function(request) {
         title = "Results",
         value = "tab_results",
         mod_03_results_ui("03_results_1")
+      ),
+      nav_panel(
+        title = "Steady state",
+        value = "tab_batch",
+        mod_08_batch_ui("08_batch_1")
       ),
       nav_spacer(),
       nav_panel(
@@ -102,10 +107,10 @@ app_ui <- function(request) {
           p(
             HTML(
               paste0(
-              "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a> or send feedback to
+                "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a> or send feedback to
              <a href='mailto:sebastian.fox3@nhs.net?subject=RTT planning tool (version ",
-              packageVersion("RTTshiny"),
-              ")'>sebastian.fox3@nhs.net</a>"
+                packageVersion("RTTshiny"),
+                ")'>sebastian.fox3@nhs.net</a>"
               )
             ),
             class = "text-center text-muted"

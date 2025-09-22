@@ -15,6 +15,7 @@
 #' @noRd
 calc_performance <- function(incompletes_data, target_bin) {
   # check one record per month waited per period
+
   check_counts <- incompletes_data |>
     dplyr::count(
       .data$period,
@@ -88,7 +89,6 @@ calc_performance <- function(incompletes_data, target_bin) {
   return(performance)
 }
 
-
 #' Calculates performance by period from a given data set and target stock
 #'
 #' @param incompletes_data tibble; requires column headers of "period",
@@ -153,6 +153,48 @@ calc_shortfall <- function(incompletes_data, target_bin, target_performance) {
   return(shortfall_tbl)
 }
 
+#' Calculate the percentile waiting at a given week
+#' @param wl_shape a tibble with columns for the number of months waited (where 0 is 0-1 month)
+#'  and volume waiting
+#' @param week numeric; the week to calculate the percentile for
+#' @param wlsize_col character length 1; the name of the column containing the volume waiting
+#' @param time_col character length 1; the name of the column containing the number of months waiting
+calc_percentile_at_week <- function(
+  wl_shape,
+  week,
+  wlsize_col = "wlsize",
+  time_col = "months_waited_id"
+) {
+  mnth <- convert_weeks_to_months(week)
+
+  remainder <- mnth %% 1
+
+  if (sum(wl_shape[[wlsize_col]]) != 0) {
+    if (mnth != 0) {
+      whole_months <- wl_shape |>
+        filter(!!rlang::sym(time_col) %in% 0:(floor(mnth) - 1)) |>
+        pull(!!rlang::sym(wlsize_col)) |>
+        sum()
+
+      remainder_months <- wl_shape |>
+        filter(!!rlang::sym(time_col) %in% floor(mnth)) |>
+        pull(!!rlang::sym(wlsize_col)) |>
+        (\(x) x * remainder)()
+      # whole_months <- sum(wl_shape[[wlsize_col]])[0:floor(mnth)]
+      # remainder_months <- remainder * wl_shape[[wlsize_col]][floor(mnth) + 1]
+
+      total_wl <- sum(wl_shape[[wlsize_col]])
+
+      perc_calc <- (whole_months + remainder_months) / total_wl
+    } else {
+      perc_calc <- 0
+    }
+  } else {
+    perc_calc <- NA
+  }
+
+  return(perc_calc)
+}
 
 #' @importFrom dplyr as_tibble filter pull
 #' @param lm_object the output from a lm() function
@@ -192,11 +234,40 @@ extract_first_number <- function(text) {
   return(as.integer(start_month))
 }
 
+convert_month_to_factor <- function(months_waited_id) {
+  months_waited_character <- ifelse(
+    months_waited_id < 12,
+    paste0(months_waited_id, "-", months_waited_id + 1, " months"),
+    "12+ months"
+  )
+
+  months_waited_factor <- factor(
+    months_waited_character,
+    levels = paste(
+      c(
+        paste0(0:11, "-", 1:12),
+        "12+"
+      ),
+      "months"
+    )
+  )
+  return(months_waited_factor)
+}
+
+convert_weeks_to_months <- function(wks) {
+  dys_in_year <- 365.25
+  mnths_in_year <- dys_in_year / 12
+
+  mnths <- wks * 7 / mnths_in_year
+
+  return(mnths)
+}
+
 #' Replaces values in a string vector with corresponding values from a named
 #' vector
 #' @param string_vector A character vector
 #' @param replacement_vector A named vector where names correspond to values in
-#'   string_vector, adn can be regular expressions, and values are the
+#'   string_vector, and can be regular expressions, and values are the
 #'   replacements
 #' @return A character vector with replaced values
 #' @noRd
@@ -210,7 +281,7 @@ replace_fun <- function(string_vector, replacement_vector) {
 
   for (pattern in names(replacement_vector)) {
     replaced_vector <- ifelse(
-      grepl(pattern, replaced_vector),
+      grepl(paste0("^", pattern, "$"), replaced_vector),
       replacement_vector[pattern],
       replaced_vector
     )
@@ -293,7 +364,8 @@ org_name_lkp <- function(names = NULL, type) {
 #' @param comm_parents character; vector of full names for commissioner parents
 #' @param comms character; vector of full names for commissioners
 #' @param spec character; vector of full names for specialties
-#'
+#' @param nhs_only character; one of "nhs_only", "non_nhs_only" or "all"
+#' @param nhs_regions character; vector of NHS regions
 #' @returns a nested list with five nests. The five nests are named
 #'   trust_parents, trusts, commissioner_parents, commissioners, and
 #'   specialties. Within each of these there are 3 items; selected_name,
@@ -320,6 +392,16 @@ filters_displays <- function(
   comms,
   spec
 ) {
+
+  nhs_only <- match.arg(
+    nhs_only,
+    c(
+      "nhs_only",
+      "non_nhs_only",
+      "all"
+    )
+  )
+
   selected_trust_parents <- org_name_lkp(
     names = trust_parents,
     type = "Provider Parent"
@@ -335,10 +417,15 @@ filters_displays <- function(
   ) {
     data_table <- org_lkp
 
-    if (isTRUE(nhs_only)) {
+    if (nhs_only == "nhs_only") {
       data_table <- data_table |>
         dplyr::filter(
           grepl("NHS", .data$`Provider Org Name`)
+        )
+    } else if (nhs_only == "non_nhs_only") {
+      data_table <- data_table |>
+        dplyr::filter(
+          !grepl("NHS", .data$`Provider Org Name`)
         )
     }
 
@@ -534,4 +621,160 @@ value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NA) {
   }
 
   return(out)
+}
+
+#' Create a text string for the latest performance based on the r$all_data dataset
+#' @param data the r$all_data dataset
+#' @noRd
+#' @importFrom dplyr filter pull mutate
+latest_performance_text <- function(data) {
+  text <- data |>
+    filter(
+      .data$type == "Incomplete",
+      .data$period == max(.data$period)
+    ) |>
+    calc_performance(
+      target_bin = 4
+    ) |>
+    mutate(
+      text = paste0(
+        "The performance at ",
+        format(.data$period, '%b %y'),
+        " was ",
+        format(
+          100 * .data$prop,
+          format = "f",
+          digits = 2,
+          nsmall = 1
+        ),
+        "%"
+      )
+    ) |>
+    pull(.data$text)
+
+  return(text)
+}
+
+name_with_tooltip <- function(name, definition) {
+  wrap_hover_text <- function(text, width = 30) {
+    # Split the string into words
+    words <- unlist(strsplit(text, " "))
+    wrapped <- ""
+    line <- ""
+
+    for (word in words) {
+      # Check if adding the next word exceeds the width
+      if (nchar(line) + nchar(word) + 1 > width) {
+        # Add the current line to wrapped text
+        wrapped <- paste0(wrapped, line, "\n")
+        line <- word
+      } else {
+        # Add word to the current line
+        if (nchar(line) == 0) {
+          line <- word
+        } else {
+          line <- paste(line, word)
+        }
+      }
+    }
+
+    # Add the last line
+    wrapped <- paste0(wrapped, line)
+
+    return(wrapped)
+  }
+
+  wrapped_definition <- wrap_hover_text(
+    definition,
+    30
+  )
+
+  wrapped_definition <- gsub("^\\n", "", wrapped_definition)
+
+  withTags(
+    span(
+      name,
+      title = wrapped_definition,
+      class = "table-headers"
+    )
+  )
+}
+
+cell_colour <- function(currentval, lowval, midval, highval) {
+  # check each input length 1
+  if (!all(length(lowval) == 1, length(midval) == 1, length(highval) == 1)) {
+    stop("All inputs must be length 1")
+  }
+
+  # check each input is a named vector
+  if (
+    any(is.null(names(lowval)), is.null(names(midval)), is.null(names(highval)))
+  ) {
+    stop("All inputs must have a name")
+  }
+
+  # check all names are hex vals
+  pat <- "^#(0x|0X)?[a-fA-F0-9]+$"
+  if (
+    any(
+      !grepl(pat, names(lowval)),
+      !grepl(pat, names(midval)),
+      !grepl(pat, names(midval))
+    )
+  ) {
+    stop("All names must be hex value")
+  }
+
+  # Extract numeric values and hex color names
+  lv <- as.numeric(lowval)
+  lc <- names(lowval)
+  mv <- as.numeric(midval)
+  mc <- names(midval)
+  hv <- as.numeric(highval)
+  hc <- names(highval)
+
+  # Convert hex to RGB
+  hex_to_rgb <- function(hex) {
+    rgb <- grDevices::col2rgb(hex)
+    return(as.numeric(rgb))
+  }
+
+  # Interpolate between two RGB colors
+  interpolate_rgb <- function(val, val1, val2, col1, col2) {
+    ratio <- (val - val1) / (val2 - val1)
+    rgb1 <- hex_to_rgb(col1)
+    rgb2 <- hex_to_rgb(col2)
+    rgb_interp <- rgb1 + ratio * (rgb2 - rgb1)
+    rgb_interp <- pmax(0, pmin(255, rgb_interp)) # Clamp values
+    rgb_interp <- round(rgb_interp)
+
+    rgb_interp <- grDevices::rgb(
+      rgb_interp[1],
+      rgb_interp[2],
+      rgb_interp[3],
+      maxColorValue = 255
+    )
+
+    return(rgb_interp)
+  }
+
+  if (
+    any(
+      is.na(currentval),
+      is.na(lv),
+      is.na(mv),
+      is.infinite(currentval),
+      is.infinite(lv),
+      is.infinite(mv)
+    )
+  ) {
+    return("#a3a3a3ff")
+  } else {
+    # Determine which range to interpolate
+    if (currentval <= mv) {
+      return(interpolate_rgb(currentval, lv, mv, lc, mc))
+    } else {
+      return(interpolate_rgb(currentval, mv, hv, mc, hc))
+    }
+  }
 }

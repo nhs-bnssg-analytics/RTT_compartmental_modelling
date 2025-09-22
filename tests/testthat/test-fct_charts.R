@@ -131,7 +131,7 @@ test_that("plot_output function", {
       p_trust = "Example trust",
       p_speciality = "specialty selection",
       p_chart = "net reneges by months waiting",
-      p_scenario = "Estimate treatment capacity (from performance inputs)",
+      p_scenario = "Estimate treatment capacity (from performance targets)",
       p_cap_change = 5,
       p_cap_skew = 1,
       p_cap_change_type = "linear",
@@ -158,7 +158,7 @@ test_that("plot_output function", {
       p_trust = "Example trust",
       p_speciality = "specialty selection",
       p_chart = "waiting list size",
-      p_scenario = "Estimate treatment capacity (from performance inputs)",
+      p_scenario = "Estimate treatment capacity (from performance targets)",
       p_cap_change = 5,
       p_cap_skew = 1,
       p_cap_change_type = "uniform",
@@ -214,7 +214,7 @@ test_that("plot_output function", {
       p_trust = "Example trust",
       p_speciality = "specialty selection",
       p_chart = "18 weeks performance",
-      p_scenario = "Estimate treatment capacity (from performance inputs)",
+      p_scenario = "Estimate treatment capacity (from performance targets)",
       p_cap_change = 5,
       p_cap_skew = 1,
       p_cap_change_type = "uniform",
@@ -227,6 +227,7 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
+
 
   # performance chart
   vdiffr::expect_doppelganger(
@@ -255,6 +256,33 @@ test_that("plot_output function", {
       p_target_data = target_data,
       p_referrals_percent_change = 3,
       p_referrals_change_type = "uniform",
+      p_perc = FALSE,
+      p_facet = FALSE,
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
+      ))
+
+  # customised referrals chart
+  vdiffr::expect_doppelganger(
+    title = "customised referrals chart",
+    plot_output(
+      data = example_chart_data |>
+        dplyr::filter(.data$months_waited_id == "0-1 months") |>
+        dplyr::mutate(
+          p_var = sum(.data$adjusted_referrals),
+          .by = c("period", "period_type")
+        ) |>
+        extend_period_type_data(),
+      p_trust = "Example trust",
+      p_speciality = "specialty selection",
+      p_chart = "referrals",
+      p_scenario = "Estimate performance (from treatment capacity inputs)",
+      p_cap_change = "",
+      p_cap_skew = 1,
+      p_cap_change_type = "manually adjusted",
+      p_target_data = NULL,
+      p_referrals_percent_change = "",
+      p_referrals_change_type = "manual",
       p_perc = FALSE,
       p_facet = FALSE,
       p_target_line = FALSE,
@@ -615,7 +643,7 @@ test_that("tooltip testing", {
     uniform_tooltip()
   )
 
-  expect_snapshot(
+  golem::expect_shinytag(
     linear_uniform_tooltip(
       uniform_id = "dummy_uniform",
       linear_id = "dummy_linear"
@@ -624,5 +652,333 @@ test_that("tooltip testing", {
 
   expect_snapshot(
     skew_tooltip()
+  )
+})
+
+test_that("plot_error works", {
+  modified_sample_data <- sample_data |>
+    mutate(
+      trust = "ABC",
+      specialty = "DEF",
+      period_id = dplyr::row_number(),
+      .by = c("type", "months_waited_id")
+    )
+  cal_data_modelled <- split_and_model_calibration_data(
+    data = modified_sample_data,
+    referrals_uplift = TRUE
+  )
+
+  vdiffr::expect_doppelganger(
+    title = "plot_error",
+    fig = plot_error(
+      modelled_data = cal_data_modelled |>
+        left_join(
+          modified_sample_data |>
+            distinct(
+              period,
+              period_id
+            ),
+          by = join_by(
+            period_id
+          )
+        ),
+      observed_data = modified_sample_data |>
+        filter(
+          type == "Incomplete",
+          period_id < min(cal_data_modelled$period_id),
+          period_id > min(period_id)
+        )
+    )
+  )
+})
+
+
+# test the waiting list plots for the steady state tab
+
+chart_data <- data.frame(
+  stringsAsFactors = FALSE,
+  wl_type = c(
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "steady_state_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list",
+    "previous_waiting_list"
+  ),
+  months_waited_id = c(
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    0,
+    0,
+    1,
+    1,
+    2,
+    2,
+    3,
+    3,
+    4,
+    4,
+    5,
+    5,
+    6,
+    6,
+    7,
+    7,
+    8,
+    8,
+    9,
+    9,
+    10,
+    10,
+    11,
+    11,
+    12,
+    12
+  ),
+  sigma = c(
+    83.5700145838616,
+    70.9273975094256,
+    60.1973775224345,
+    51.090613610868,
+    43.3615367739602,
+    36.8017281162491,
+    17.07989548527,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    53.4285714285714,
+    57.4285714285714,
+    33.7142857142857,
+    46.1428571428571,
+    33,
+    24.8571428571429,
+    33.1428571428571,
+    42,
+    28.2857142857143,
+    33.5714285714286,
+    37.8571428571429,
+    39,
+    34.5714285714286,
+    22.4285714285714,
+    21.5714285714286,
+    25.8571428571429,
+    15.7142857142857,
+    21.7142857142857,
+    16.7142857142857,
+    20,
+    27,
+    20.4285714285714,
+    10.5714285714286,
+    7.71428571428571,
+    18.4285714285714,
+    3.85714285714286
+  ),
+  wlsize = c(
+    293.600007349678,
+    212.989791072222,
+    151.536705429482,
+    100.446091818614,
+    57.0845550446543,
+    17.5258626696373,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    328.571428571429,
+    363.428571428571,
+    300.714285714286,
+    252.428571428571,
+    300.714285714286,
+    222.857142857143,
+    201.285714285714,
+    192.857142857143,
+    180.142857142857,
+    175.142857142857,
+    135.142857142857,
+    133.285714285714,
+    111.571428571429,
+    115.142857142857,
+    106.714285714286,
+    68.1428571428571,
+    68.1428571428571,
+    64.7142857142857,
+    60.2857142857143,
+    26.7142857142857,
+    40.7142857142857,
+    19.5714285714286,
+    41.7142857142857,
+    5.71428571428571,
+    33.2857142857143,
+    1
+  ),
+  period = c(
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    NA,
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01",
+    "2024-05-01",
+    "2025-05-01"
+  ),
+  wl_description = as.factor(c(
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "Steady state",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025",
+    "May 2024",
+    "May 2025"
+  ))
+) |>
+  mutate(
+    trust = "a",
+    specialty = "b",
+    referrals_scenario = "mid"
+  )
+
+
+test_that("plot_waiting_lists_chart returns a ggplot object", {
+  targ_week <- 18
+  targ_val <- 92
+  p <- plot_waiting_lists_chart(
+    data = chart_data,
+    target_week = targ_week,
+    target_value = targ_val
+  )
+
+  expect_s3_class(p, "ggplot")
+
+  suppressWarnings(
+    vdiffr::expect_doppelganger(
+      title = "waiting lists chart",
+      p
+    )
+  )
+})
+
+test_that("plot_waiting_lists_chart handles missing columns gracefully", {
+  broken_data <- chart_data |>
+    select(!c("months_waited_id"))
+  expect_error(
+    plot_waiting_lists_chart(
+      data = broken_data,
+      target_week = 12,
+      target_value = 90
+    ),
+    "Column `months_waited_id` doesn't exist."
   )
 })

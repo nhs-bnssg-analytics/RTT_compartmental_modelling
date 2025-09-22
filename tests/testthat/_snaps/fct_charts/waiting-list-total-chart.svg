@@ -18,6 +18,7 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 </g>
 <defs>
   <clipPath id='cpNDkuOTJ8NzE0LjUyfDU3Ljg0fDUzNC44NA=='>
@@ -40,7 +41,7 @@
 <polyline points='550.47,534.84 550.47,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='603.83,534.84 603.83,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='657.48,534.84 657.48,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='710.55,534.84 710.55,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='710.85,534.84 710.85,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='49.92,402.29 714.52,402.29 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='49.92,244.38 714.52,244.38 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='49.92,86.47 714.52,86.47 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
@@ -113,7 +114,7 @@
 <text x='356.26' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='9.17px' lengthAdjust='spacingAndGlyphs'>to</text>
 <text x='368.49' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='37.92px' lengthAdjust='spacingAndGlyphs'>achieve</text>
 <text x='409.47' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='6.12px' lengthAdjust='spacingAndGlyphs'>a</text>
-<text x='418.64' y='40.22' style='font-size: 11.00px; font-weight: bold; fill: #FF0000; font-family: sans;' textLength='28.13px' lengthAdjust='spacingAndGlyphs'>target</text>
+<text x='418.64' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='28.13px' lengthAdjust='spacingAndGlyphs'>target</text>
 <text x='449.83' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='9.17px' lengthAdjust='spacingAndGlyphs'>of</text>
 <text x='462.06' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='31.19px' lengthAdjust='spacingAndGlyphs'>57.1%</text>
 <text x='496.31' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='20.78px' lengthAdjust='spacingAndGlyphs'>(Apr</text>
