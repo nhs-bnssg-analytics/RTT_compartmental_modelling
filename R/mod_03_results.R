@@ -49,7 +49,6 @@ mod_03_results_server <- function(id, r) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-
     reactive_data <- reactiveValues(
       plot_click_info = NULL,
       plot_clicked = NULL,
@@ -136,7 +135,6 @@ mod_03_results_server <- function(id, r) {
             `data-bs-trigger` = "hover",
             title = "The 18 week performance over the period"
           ),
-
           actionButton(
             inputId = ns("btn_shortfall"),
             label = "Performance shortfall",
@@ -144,7 +142,7 @@ mod_03_results_server <- function(id, r) {
             class = "results_button",
             `data-bs-trigger` = "hover",
             title = "The number of additional long waiters that, when removed, would results in achieving performance"
-          ), 
+          ),
           p(
             "Reneges",
             class = "results_button",
@@ -368,7 +366,7 @@ mod_03_results_server <- function(id, r) {
         "waiting_list_ttl",
         "waiting_list_mnth",
         "performance",
-        "shortfall", ## NC (COMPLETE) - add in shortfall button name here to identify when it has been clicked
+        "shortfall",
         "data",
         "report_ui"
       ),
@@ -388,6 +386,7 @@ mod_03_results_server <- function(id, r) {
               session = session,
               inputId = reactive_data$btn_val,
               icon = shiny::icon("star", class = "fa-solid fa-star")
+              # icon = shiny::icon("calendar")
             )
           }
           reactive_data$plot_clicked <- FALSE
@@ -514,7 +513,7 @@ mod_03_results_server <- function(id, r) {
         input$btn_waiting_list_ttl,
         input$btn_waiting_list_mnth,
         input$btn_performance,
-        input$btn_shortfall, ## NC (COMPLETE) - add in the shortfall button here
+        input$btn_shortfall,
         input$btn_data,
         input$btn_report_ui
       ),
@@ -636,8 +635,19 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- TRUE
                 include_target_line <- TRUE
-
               } else if (reactive_data$btn_val == "btn_shortfall") {
+                if (is.null(input$shortf_targ_bin)) {
+                  targ_bin <- 4
+                } else {
+                  targ_bin <- input$shortf_targ_bin
+                }
+
+                if (is.null(input$shortfall_target_value)) {
+                  targ_prop <- 0.92
+                } else {
+                  targ_prop <- input$shortfall_target_value / 100
+                }
+
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::rename(value = "incompletes") |>
                   dplyr::group_by(.data$period_type) |>
@@ -647,8 +657,8 @@ mod_03_results_server <- function(id, r) {
                     )
                   ) |>
                   calc_shortfall(
-                    target_bin = input$shortf_targ_bin,
-                    target_performance = input$shortfall_target_value / 100
+                    target_bin = targ_bin,
+                    target_performance = targ_prop
                   ) |>
                   ungroup() |>
                   rename(p_var = "shortfall") |>
@@ -656,15 +666,14 @@ mod_03_results_server <- function(id, r) {
 
                 chart_type <- paste0(
                   "Performance shortfall (",
-                  round(input$shortfall_target_value, 1),
+                  round(targ_prop * 100, 1),
                   "% waiting less than ",
-                  input$shortf_targ_bin,
+                  targ_bin,
                   " months)"
                 )
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
-                
               }
 
               if (
@@ -696,12 +705,12 @@ mod_03_results_server <- function(id, r) {
 
     # dynamic ui --------------------------------------------------------------
     output$results_ui <- renderUI({
+      # browser()
       if (reactive_data$show_table == TRUE) {
         DTOutput(
           ns("results_table")
         )
       } else {
-
         # if no button has been selected then display results_plot
         if (is.null(reactive_data$btn_val)) {
           plotOutput(
@@ -717,105 +726,85 @@ mod_03_results_server <- function(id, r) {
             r$chart_specification$scenario_type ==
               "Estimate performance (from treatment capacity inputs)"
           ) {
-            if (is.null(reactive_data$btn_val)) {
-          div(
-            plotOutput(
-              ns("results_plot"),
-              click = shiny::clickOpts(
-                id = ns("plot_click")
-              ),
-              height = "600px"
-            ),
-            div(
-              class = "label-left",
-              sliderInput(
-                inputId = ns("chart_res"),
-                label = "Select chart resolution (pixels per inch)",
-                min = 72,
-                max = 144,
-                value = 96,
-                step = 8
+            if (reactive_data$btn_val == "btn_shortfall") {
+              div(
+                plotOutput(
+                  ns("results_plot"),
+                  click = shiny::clickOpts(
+                    id = ns("plot_click")
+                  ),
+                  height = "600px"
+                ),
+                layout_columns(
+                  col_widths = c(3, 1, -8),
+                  span(
+                    "Number of months on the waiting list below which the performance target applies:"
+                  ),
+                  numericInput(
+                    inputId = ns("shortf_targ_bin"),
+                    label = NULL,
+                    value = 4,
+                    min = 1,
+                    max = 12,
+                    step = 1
+                  ),
+                  span(
+                    "Performance target:"
+                  ),
+                  shinyWidgets::numericInputIcon(
+                    inputId = ns("shortfall_target_value"),
+                    label = NULL,
+                    min = 0,
+                    max = 100,
+                    value = 92,
+                    icon = list(NULL, shiny::icon("percent")),
+                    size = "sm"
+                  )
+                ),
+                div(
+                  class = "label-left",
+                  sliderInput(
+                    inputId = ns("chart_res"),
+                    label = "Select chart resolution (pixels per inch)",
+                    min = 72,
+                    max = 144,
+                    value = 96,
+                    step = 8
+                  )
+                ),
+                actionButton(
+                  ns("edit_data"),
+                  "Edit input data",
+                  class = "btn-primary"
+                )
               )
-            )
-          )
-        } else if (reactive_data$btn_val == "btn_shortfall") {
-          div(
-            plotOutput(
-              ns("results_plot"),
-              click = shiny::clickOpts(
-                id = ns("plot_click")
-              ),
-              height = "600px"
-            ),
-            layout_columns(
-              col_widths = c(3, 1, -8),
-              span(
-                "Number of months on the waiting list below which the performance target applies:"
-              ),
-              numericInput(
-                inputId = ns("shortf_targ_bin"),
-                label = NULL,
-                value = 4,
-                min = 1,
-                max = 12,
-                step = 1
-              ),
-              span(
-                "Performance target:"
-              ),
-              shinyWidgets::numericInputIcon(
-                inputId = ns("shortfall_target_value"),
-                label = NULL,
-                min = 0,
-                max = 100,
-                value = 92,
-                icon = list(NULL, shiny::icon("percent")),
-                size = "sm"
+            } else {
+              div(
+                plotOutput(
+                  ns("results_plot"),
+                  click = shiny::clickOpts(
+                    id = ns("plot_click")
+                  ),
+                  height = "600px"
+                ),
+                div(
+                  class = "label-left",
+                  sliderInput(
+                    inputId = ns("chart_res"),
+                    label = "Select chart resolution (pixels per inch)",
+                    min = 72,
+                    max = 144,
+                    value = 96,
+                    step = 8
+                  ),
+                  actionButton(
+                    ns("edit_data"),
+                    "Edit input data",
+                    class = "btn-primary"
+                  )
+                )
               )
-            ),
-            div(
-              class = "label-left",
-              sliderInput(
-                inputId = ns("chart_res"),
-                label = "Select chart resolution (pixels per inch)",
-                min = 72,
-                max = 144,
-                value = 96,
-                step = 8
-              )
-            ),
-              actionButton(
-                ns("edit_data"),
-                "Edit input data",
-                class = "btn-primary"
-              )
-          )
-        } else {
-          div(
-            plotOutput(
-              ns("results_plot"),
-              click = shiny::clickOpts(
-                id = ns("plot_click")
-              ),
-              height = "600px"
-            ),
-            div(
-              class = "label-left",
-              sliderInput(
-                inputId = ns("chart_res"),
-                label = "Select chart resolution (pixels per inch)",
-                min = 72,
-                max = 144,
-                value = 96,
-                step = 8
-                 )
-            ),
-              actionButton(
-                ns("edit_data"),
-                "Edit input data",
-                class = "btn-primary"
-              )
-          )
+            }
           } else {
             div(
               plotOutput(
@@ -835,7 +824,6 @@ mod_03_results_server <- function(id, r) {
                   value = 96,
                   step = 8
                 )
-
               )
             )
           }
@@ -877,9 +865,8 @@ mod_03_results_server <- function(id, r) {
             ),
             modalButton("Cancel")
           )
-
-        }
-      }
+        )
+      )
     })
 
     # Render editable data table
@@ -987,7 +974,6 @@ mod_03_results_server <- function(id, r) {
 
     # plot clicks -------------------------------------------------------------
 
-
     observeEvent(
       c(input$plot_click),
       {
@@ -1041,13 +1027,7 @@ mod_03_results_server <- function(id, r) {
           "btn_performance",
           "Performance information",
           "Performance",
-
-          "percent",
-          "btn_shortfall",
-          "Performance shortfall information",
-          "Shortfall",
-          "number"
-
+          "percent"
         ) |>
           dplyr::filter(
             .data$button == reactive_data$btn_val

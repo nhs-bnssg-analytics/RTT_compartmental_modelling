@@ -60,11 +60,11 @@ calc_performance <- function(incompletes_data, target_bin) {
     ) |>
     dplyr::summarise(
       value = sum(.data$value),
-      .by = c("period", "perf", current_groupings)
+      .by = dplyr::all_of(c("period", "perf", current_groupings))
     ) |>
     dplyr::mutate(
       prop = .data$value / sum(.data$value),
-      .by = c("period", current_groupings)
+      .by = dplyr::all_of(c("period", current_groupings))
     ) |>
     dplyr::filter(
       .data$perf == "Below"
@@ -106,7 +106,11 @@ calc_performance <- function(incompletes_data, target_bin) {
 #'   and have been waiting longer than the `target_bin` length that, if removed,
 #'   will results in a performance equal to the `target_performance`
 #' @noRd
-calc_shortfall <- function(incompletes_data, target_bin, target_performance) {
+calc_shortfall <- function(
+  incompletes_data,
+  target_bin = 4,
+  target_performance = 0.92
+) {
   # check target_performance between 0 and 1
   if (!dplyr::between(target_performance, 0, 1)) {
     stop("target_performance must be between 0 and 1")
@@ -130,7 +134,7 @@ calc_shortfall <- function(incompletes_data, target_bin, target_performance) {
     dplyr::summarise(
       wl_total = sum(.data$value),
       wl_above_target = sum(.data$value[.data$months_waited_id >= target_bin]),
-      .by = c("period", current_groupings)
+      .by = dplyr::all_of(c("period", current_groupings))
     ) |>
     dplyr::mutate(
       shortfall = (.data$wl_above_target -
@@ -392,7 +396,6 @@ filters_displays <- function(
   comms,
   spec
 ) {
-
   nhs_only <- match.arg(
     nhs_only,
     c(
