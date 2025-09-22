@@ -588,7 +588,18 @@ mod_02_planner_server <- function(id, r) {
           max_months_waited = 12,
           redistribute_m0_reneges = FALSE,
           referrals_uplift = reactive_values$referrals_uplift,
-          allow_negative_params = FALSE
+          # negative renege parameters are rare when the data are aggregated.
+          # It is more common for  the independent sector, where  patients are
+          # added to RTT waiting lists without an accompanying clock-start.
+          # A negative renege parameter then occurs in locations beyong the first
+          # compartment. Here we allow it to occur to enable better short term
+          # modelling for the independent sector. It still causes issues
+          # because the renege parameter is related to list size (eg, the larger
+          # the list size the more reneging). When the renege parameter is
+          # negative, then the larger the list size, the more people are entering
+          # the list - this is unlikely to occur in reality with the independent
+          # sector but has the effect of exponentially growing the list size
+          allow_negative_params = TRUE
         )
 
         # data frame of counts by period which get supplied to the 3rd module
@@ -1080,7 +1091,7 @@ mod_02_planner_server <- function(id, r) {
             max_months_waited = 12,
             referrals_uplift = NULL,
             redistribute_m0_reneges = FALSE,
-            allow_negative_params = FALSE
+            allow_negative_params = TRUE
           )
 
           # data frame of counts by period which get supplied to the 3rd module
