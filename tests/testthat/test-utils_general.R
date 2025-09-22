@@ -183,7 +183,6 @@ test_that("org_name_lkp errors", {
 })
 
 test_that("org_name_lkp works", {
-
   expect_equal(
     org_name_lkp(
       names = c("London", "South West"),
@@ -241,14 +240,15 @@ test_that("org_name_lkp works", {
 
 
 test_that("filters_displays works", {
-
   specs <- c("General Surgery", "Total")
 
   lbls <- filters_displays(
     trust_parents = "NHS LANCASHIRE AND SOUTH CUMBRIA INTEGRATED CARE BOARD",
     trusts = "FULWOOD HALL HOSPITAL",
-    comm_parents = c("NHS SOUTH YORKSHIRE INTEGRATED CARE BOARD",
-                     "NHS NORTH EAST LONDON INTEGRATED CARE BOARD"),
+    comm_parents = c(
+      "NHS SOUTH YORKSHIRE INTEGRATED CARE BOARD",
+      "NHS NORTH EAST LONDON INTEGRATED CARE BOARD"
+    ),
     comms = NULL,
     spec = specs
   )
@@ -294,7 +294,91 @@ test_that("filters_displays works", {
 
   expect_equal(
     sw_trusts,
-    c("RA9", "RH8", "RK9", "RD1", "RN3", "RNZ", "RTE", "RH5", "REF", "RJ8", "RA7", "RVJ", "R0D", "RBD"),
+    c(
+      "RA9",
+      "RH8",
+      "RK9",
+      "RD1",
+      "RN3",
+      "RNZ",
+      "RTE",
+      "RH5",
+      "REF",
+      "RJ8",
+      "RA7",
+      "RVJ",
+      "R0D",
+      "RBD"
+    ),
     info = "Trusts in SW are identified when region and NHS only are provieded"
   )
+})
+
+
+test_that("calc_shortfall returns correct shortfall calculation", {
+  test_data <- tibble(
+    period = rep("2025-09", 4),
+    months_waited_id = c(1, 2, 3, 4),
+    value = c(10, 20, 30, 40),
+    group = c("A", "A", "A", "A")
+  ) |>
+    group_by(group)
+
+  result <- calc_shortfall(test_data, target_bin = 3, target_performance = 0.8)
+
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("period", "group", "shortfall"))
+  expect_equal(nrow(result), 1)
+
+  # Manual calculation:
+  # wl_total = 100
+  # wl_above_target = 30 + 40 = 70
+  # shortfall = (70 - ((1 - 0.8) * 100)) / 0.8 = (70 - 20) / 0.8 = 62.5
+  expect_equal(result$shortfall, 62.5)
+})
+
+test_that("calc_shortfall throws error for invalid target_performance", {
+  test_data <- tibble(
+    period = "2025-09",
+    months_waited_id = 1,
+    value = 10
+  )
+
+  expect_error(
+    calc_shortfall(test_data, target_bin = 1, target_performance = -0.1),
+    "target_performance must be between 0 and 1"
+  )
+
+  expect_error(
+    calc_shortfall(test_data, target_bin = 1, target_performance = 1.5),
+    "target_performance must be between 0 and 1"
+  )
+})
+
+test_that("calc_shortfall throws error for invalid target_bin", {
+  test_data <- tibble(
+    period = "2025-09",
+    months_waited_id = c(1, 2),
+    value = c(10, 20)
+  )
+
+  expect_error(
+    calc_shortfall(test_data, target_bin = 5, target_performance = 0.5),
+    "target_bin not a valid month waited in the incompletes_data"
+  )
+})
+
+test_that("calc_shortfall respects grouping", {
+  test_data <- tibble(
+    period = rep("2025-09", 6),
+    months_waited_id = c(1, 2, 3, 1, 2, 3),
+    value = c(10, 20, 30, 5, 15, 25),
+    group = c("A", "A", "A", "B", "B", "B")
+  ) |>
+    group_by(group)
+
+  result <- calc_shortfall(test_data, target_bin = 2, target_performance = 0.5)
+
+  expect_equal(nrow(result), 2)
+  expect_true(all(result$group %in% c("A", "B")))
 })
