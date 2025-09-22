@@ -1879,6 +1879,22 @@ mod_02_planner_server <- function(id, r) {
             months(1) +
             1
 
+          # recalculate period_lkp
+
+          # create period_lkp table from the first time period in the calibration data
+          # to the final time period in the projection period
+
+          r$period_lkp <- dplyr::tibble(
+            period = seq(
+              from = min(r$all_data$period),
+              to = as.Date(input$forecast_date),
+              by = "months"
+            )
+          ) |>
+            mutate(
+              period_id = dplyr::row_number()
+            )
+
           unadjusted_projections_referrals <- r$all_data |>
             filter(
               .data$type == "Referrals",
@@ -2066,6 +2082,21 @@ mod_02_planner_server <- function(id, r) {
             r$chart_specification$trust <- input$file_description
             r$chart_specification$specialty <- ""
           }
+
+          # recalculate period_lkp
+
+          # create period_lkp table from the first time period in the calibration data
+          # to the final time period in the projection period
+          r$period_lkp <- dplyr::tibble(
+            period = seq(
+              from = min(r$all_data$period),
+              to = as.Date(input$forecast_date),
+              by = "months"
+            )
+          ) |>
+            mutate(
+              period_id = dplyr::row_number()
+            )
 
           skew <- dplyr::tibble(
             skew_param = seq(
