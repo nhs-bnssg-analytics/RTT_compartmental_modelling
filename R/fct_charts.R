@@ -85,6 +85,12 @@ plot_output <- function(
     p_cap_change
   }
 
+  if (p_speciality == "") {
+    chart_title <- paste0("<b>", p_trust, "</b>")
+  } else {
+    chart_title <- paste0("<b>", p_trust, "</b> : ", p_speciality)
+  }
+
   p <- ggplot2::ggplot() +
     geom_vline(
       data = dplyr::filter(
@@ -122,7 +128,7 @@ plot_output <- function(
   if (p_scenario == "Estimate performance (from treatment capacity inputs)") {
     p <- p +
       labs(
-        title = paste0("<b>", p_trust, "</b> : ", p_speciality),
+        title = chart_title,
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
           p_chart,
@@ -159,7 +165,7 @@ plot_output <- function(
 
     p <- p +
       labs(
-        title = paste0("<b>", p_trust, "</b> : ", p_speciality),
+        title = chart_title,
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
           p_chart,
@@ -191,7 +197,7 @@ plot_output <- function(
     txt <- performance_text(p_target_data)
     p <- p +
       labs(
-        title = paste0("<b>", p_trust, "</b> : ", p_speciality),
+        title = chart_title,
         subtitle = paste0(
           "<span style='color:black'>**Observed**</span><span style='color:#425563'> and </span><span style='color:blue'>**projected** </span><span style='color:#425563'>",
           p_chart,
