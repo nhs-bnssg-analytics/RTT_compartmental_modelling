@@ -52,29 +52,25 @@ calc_performance <- function(incompletes_data, target_bin) {
   }
 
   performance <- incompletes_data |>
-    mutate(
-      perf = case_when(
+    dplyr::mutate(
+      perf = dplyr::case_when(
         .data$months_waited_id < target_bin ~ "Below",
         .default = "Above"
       )
     ) |>
-    summarise(
+    dplyr::summarise(
       value = sum(.data$value),
-      .by = all_of(
-        c("period", "perf", current_groupings)
-      )
+      .by = c("period", "perf", current_groupings)
     ) |>
-    mutate(
+    dplyr::mutate(
       prop = .data$value / sum(.data$value),
-      .by = all_of(
-        c("period", current_groupings)
-      )
+      .by = c("period", current_groupings)
     ) |>
-    filter(
+    dplyr::filter(
       .data$perf == "Below"
     ) |>
-    select(
-      all_of(
+    dplyr::select(
+      dplyr::all_of(
         c(
           "period",
           "prop",
@@ -91,6 +87,70 @@ calc_performance <- function(incompletes_data, target_bin) {
     )
 
   return(performance)
+}
+
+#' Calculates performance by period from a given data set and target stock
+#'
+#' @param incompletes_data tibble; requires column headers of "period",
+#'   "months_waited_id" and "value", where value is the count of incomplete
+#'   pathways by period and the number of months the patients have waited
+#' @param target_bin integer; the number of months waited where patients that
+#'   have waited for greater or equal to that number of months have breached
+#'   performance
+#' @param target_performance numeric of length 1; must be between 0 and 1. The
+#'   value is the number of patients on the waiting list that have waited for
+#'   less than the `target_bin` time, as a proportion of the total waiting
+#'   list
+#' @return A two column tibble containing "period" and "shortfall" columns, where
+#'   shortfall is the number of additional patients that are on the waiting list
+#'   and have been waiting longer than the `target_bin` length that, if removed,
+#'   will results in a performance equal to the `target_performance`
+#' @noRd
+calc_shortfall <- function(incompletes_data, target_bin, target_performance) {
+  # check target_performance between 0 and 1
+  if (!dplyr::between(target_performance, 0, 1)) {
+    stop("target_performance must be between 0 and 1")
+  }
+
+  # check target_bin within the range of bins available
+  if (!(target_bin %in% incompletes_data[["months_waited_id"]])) {
+    stop("target_bin not a valid month waited in the incompletes_data")
+  }
+
+  current_groupings <- dplyr::group_vars(
+    incompletes_data
+  )
+
+  # ungroup so the following methods work
+  incompletes_data <- dplyr::ungroup(
+    incompletes_data
+  )
+
+  shortfall_tbl <- incompletes_data |>
+    dplyr::summarise(
+      wl_total = sum(.data$value),
+      wl_above_target = sum(.data$value[.data$months_waited_id >= target_bin]),
+      .by = c("period", current_groupings)
+    ) |>
+    dplyr::mutate(
+      shortfall = (.data$wl_above_target -
+        ((1 - target_performance) * .data$wl_total)) /
+        target_performance
+    ) |>
+    dplyr::select(
+      dplyr::all_of(
+        c("period", current_groupings, "shortfall")
+      )
+    ) |>
+    dplyr::group_by(
+      dplyr::across(
+        dplyr::all_of(
+          current_groupings
+        )
+      )
+    )
+
+  return(shortfall_tbl)
 }
 
 #' Calculate the percentile waiting at a given week
@@ -332,6 +392,7 @@ filters_displays <- function(
   comms,
   spec
 ) {
+
   nhs_only <- match.arg(
     nhs_only,
     c(

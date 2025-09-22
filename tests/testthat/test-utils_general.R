@@ -644,7 +644,77 @@ test_that("returns 0 when week is 0", {
   sample_df <- data.frame(
     months_waited_id = 0:5,
     wlsize = c(10, 20, 30, 40, 50, 60)
+
   )
   result <- calc_percentile_at_week(sample_df, week = 0)
   expect_equal(result, 0)
+})
+
+
+test_that("calc_shortfall returns correct shortfall calculation", {
+  test_data <- tibble(
+    period = rep("2025-09", 4),
+    months_waited_id = c(1, 2, 3, 4),
+    value = c(10, 20, 30, 40),
+    group = c("A", "A", "A", "A")
+  ) |>
+    group_by(group)
+
+  result <- calc_shortfall(test_data, target_bin = 3, target_performance = 0.8)
+
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("period", "group", "shortfall"))
+  expect_equal(nrow(result), 1)
+
+  # Manual calculation:
+  # wl_total = 100
+  # wl_above_target = 30 + 40 = 70
+  # shortfall = (70 - ((1 - 0.8) * 100)) / 0.8 = (70 - 20) / 0.8 = 62.5
+  expect_equal(result$shortfall, 62.5)
+})
+
+test_that("calc_shortfall throws error for invalid target_performance", {
+  test_data <- tibble(
+    period = "2025-09",
+    months_waited_id = 1,
+    value = 10
+  )
+
+  expect_error(
+    calc_shortfall(test_data, target_bin = 1, target_performance = -0.1),
+    "target_performance must be between 0 and 1"
+  )
+
+  expect_error(
+    calc_shortfall(test_data, target_bin = 1, target_performance = 1.5),
+    "target_performance must be between 0 and 1"
+  )
+})
+
+test_that("calc_shortfall throws error for invalid target_bin", {
+  test_data <- tibble(
+    period = "2025-09",
+    months_waited_id = c(1, 2),
+    value = c(10, 20)
+  )
+
+  expect_error(
+    calc_shortfall(test_data, target_bin = 5, target_performance = 0.5),
+    "target_bin not a valid month waited in the incompletes_data"
+  )
+})
+
+test_that("calc_shortfall respects grouping", {
+  test_data <- tibble(
+    period = rep("2025-09", 6),
+    months_waited_id = c(1, 2, 3, 1, 2, 3),
+    value = c(10, 20, 30, 5, 15, 25),
+    group = c("A", "A", "A", "B", "B", "B")
+  ) |>
+    group_by(group)
+
+  result <- calc_shortfall(test_data, target_bin = 2, target_performance = 0.5)
+
+  expect_equal(nrow(result), 2)
+  expect_true(all(result$group %in% c("A", "B")))
 })

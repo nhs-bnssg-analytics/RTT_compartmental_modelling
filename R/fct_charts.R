@@ -49,6 +49,7 @@
 #' @return A ggplot2 plot object of selected values
 #' @noRd
 
+
 plot_output <- function(
   data,
   p_trust,
@@ -90,6 +91,7 @@ plot_output <- function(
   } else {
     chart_title <- paste0("<b>", p_trust, "</b> : ", p_speciality)
   }
+
 
   p <- ggplot2::ggplot() +
     geom_vline(

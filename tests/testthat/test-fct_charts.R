@@ -228,6 +228,40 @@ test_that("plot_output function", {
     )
   )
 
+
+  # performance chart
+  vdiffr::expect_doppelganger(
+    title = "shortfall chart",
+    plot_output(
+      data = example_chart_data |>
+        dplyr::rename(value = "incompletes") |>
+        dplyr::group_by(.data$period_type) |>
+        mutate(
+          months_waited_id = extract_first_number(.data$months_waited_id)
+        ) |>
+        calc_shortfall(
+          target_bin = 4,
+          target_performance = 0.92
+        ) |>
+        ungroup() |>
+        rename(p_var = "shortfall") |>
+        extend_period_type_data(),
+      p_trust = "Example trust",
+      p_speciality = "specialty selection",
+      p_chart = "Performance shortfall (92% waiting less than 4 months)",
+      p_scenario = "Estimate performance (from treatment capacity inputs)",
+      p_cap_change = 5,
+      p_cap_skew = 1,
+      p_cap_change_type = "uniform",
+      p_target_data = target_data,
+      p_referrals_percent_change = 3,
+      p_referrals_change_type = "uniform",
+      p_perc = FALSE,
+      p_facet = FALSE,
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08")
+      ))
+
   # customised referrals chart
   vdiffr::expect_doppelganger(
     title = "customised referrals chart",
