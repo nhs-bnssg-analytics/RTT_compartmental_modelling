@@ -139,7 +139,7 @@ mod_03_results_server <- function(id, r) {
             icon = shiny::icon("star"),
             class = "results_button",
             `data-bs-trigger` = "hover",
-            title = "18 week performance shortfall against a specified target"
+            title = "The number of additional long waiters that, when removed, would results in achieving performance"
           ), ## NC (COMPLETE) - need to make action button here for the shortfall chart
 
           p(
@@ -639,14 +639,20 @@ mod_03_results_server <- function(id, r) {
                     )
                   ) |>
                   calc_shortfall(
-                    target_bin = 4,
-                    target_performance = 0.92
+                    target_bin = input$shortf_targ_bin,
+                    target_performance = input$shortfall_target_value / 100
                   ) |>
                   ungroup() |>
                   rename(p_var = "shortfall") |>
                   extend_period_type_data()
 
-                chart_type <- "Performance shortfall"
+                chart_type <- paste0(
+                  "Performance shortfall (",
+                  round(input$shortfall_target_value, 1),
+                  "% waiting less than ",
+                  input$shortf_targ_bin,
+                  " months)"
+                )
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
@@ -687,26 +693,96 @@ mod_03_results_server <- function(id, r) {
           ns("results_table")
         )
       } else {
-        div(
-          plotOutput(
-            ns("results_plot"),
-            click = shiny::clickOpts(
-              id = ns("plot_click")
-            ),
-            height = "600px"
-          ),
+        if (is.null(reactive_data$btn_val)) {
           div(
-            class = "label-left",
-            sliderInput(
-              inputId = ns("chart_res"),
-              label = "Select chart resolution (pixels per inch)",
-              min = 72,
-              max = 144,
-              value = 96,
-              step = 8
+            plotOutput(
+              ns("results_plot"),
+              click = shiny::clickOpts(
+                id = ns("plot_click")
+              ),
+              height = "600px"
+            ),
+            div(
+              class = "label-left",
+              sliderInput(
+                inputId = ns("chart_res"),
+                label = "Select chart resolution (pixels per inch)",
+                min = 72,
+                max = 144,
+                value = 96,
+                step = 8
+              )
             )
           )
-        )
+        } else if (reactive_data$btn_val == "btn_shortfall") {
+          div(
+            plotOutput(
+              ns("results_plot"),
+              click = shiny::clickOpts(
+                id = ns("plot_click")
+              ),
+              height = "600px"
+            ),
+            layout_columns(
+              col_widths = c(3, 1, -8),
+              span(
+                "Number of months on the waiting list below which the performance target applies:"
+              ),
+              numericInput(
+                inputId = ns("shortf_targ_bin"),
+                label = NULL,
+                value = 4,
+                min = 1,
+                max = 12,
+                step = 1
+              ),
+              span(
+                "Performance target:"
+              ),
+              shinyWidgets::numericInputIcon(
+                inputId = ns("shortfall_target_value"),
+                label = NULL,
+                min = 0,
+                max = 100,
+                value = 92,
+                icon = list(NULL, shiny::icon("percent")),
+                size = "sm"
+              )
+            ),
+            div(
+              class = "label-left",
+              sliderInput(
+                inputId = ns("chart_res"),
+                label = "Select chart resolution (pixels per inch)",
+                min = 72,
+                max = 144,
+                value = 96,
+                step = 8
+              )
+            )
+          )
+        } else {
+          div(
+            plotOutput(
+              ns("results_plot"),
+              click = shiny::clickOpts(
+                id = ns("plot_click")
+              ),
+              height = "600px"
+            ),
+            div(
+              class = "label-left",
+              sliderInput(
+                inputId = ns("chart_res"),
+                label = "Select chart resolution (pixels per inch)",
+                min = 72,
+                max = 144,
+                value = 96,
+                step = 8
+              )
+            )
+          )
+        }
       }
     })
 
