@@ -5,6 +5,8 @@
 * Allows for filtering providers by NHS and non-NHS providers.
 * includes information about model error once data has been imported/downloaded.
 * A new "Steady state" tab has been introduced. This applies a new methodology to allow users to model multiple trusts and specialties together. The modelling provides a view of what a healthy waiting list looks like when it is in steady state (e.g., clock starts equals clock stops) and achieving a specific target.
+* A new "Performance shortfall" chart is displayed when using the Scenario Planner to predict performance from capacity inputs. This displays the number of additional 'long-waiter' clock stops that would be required to achieve a particular performance target.
+* When data are uploaded to the Scenario Planner, the user is now required to enter a data description, which is used as the chart title.
 
 # RTTshiny 1.0.2
 

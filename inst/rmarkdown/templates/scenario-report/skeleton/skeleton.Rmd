@@ -350,4 +350,45 @@ This plot show the historic and projected 18 week waiting list performance for t
       
 ```
 
+## Performance shortfall
 
+This plot shows the historic and projected additional treatment required, where only the patients waiting 4+ months are treated, to achieve the 19 week performance.
+
+```{r}
+#| label: wl_shortfall
+#| results: 'asis'
+#| fig-height: 7
+#| fig-width: 12
+#| warnings: FALSE
+ 
+      wl_perf_dat <- params$waiting_list |>
+        dplyr::rename(value = "incompletes") |>
+        dplyr::group_by(.data$period_type) |>
+        mutate(
+          months_waited_id = extract_first_number(.data$months_waited_id)
+        ) |> 
+        calc_shortfall(
+          target_bin = 4,
+          target_performance = 0.92
+        ) |>
+        ungroup() |>
+        rename(p_var = "shortfall") |>
+        extend_period_type_data()
+
+
+      plot_output(data = wl_perf_dat,
+                  p_trust = params$chart_specification$trust,
+                  p_speciality = params$chart_specification$specialty,
+                  p_chart = "Performance shortfall (92% waiting less than 4 months)",
+                  p_scenario = params$chart_specification$scenario_type,
+                  p_cap_change = params$chart_specification$capacity_percent_change,
+                  p_cap_skew = params$chart_specification$capacity_skew,
+                  p_cap_change_type = params$chart_specification$capacity_change_type,
+                  p_target_data = params$chart_specification$target_data,
+                  p_referrals_percent_change = params$chart_specification$referrals_percent_change,
+                  p_referrals_change_type = params$chart_specification$referrals_change_type,
+                  p_perc = F,
+                  p_facet = FALSE,
+                  p_target_line = F)
+      
+```
