@@ -411,7 +411,7 @@ test_that("extract_percent works", {
 
   expect_equal(
     extract_percent("This sentence finishes with 50"),
-    numeric(),
+    NA,
     info = "extract_percent works"
   )
 })
@@ -444,7 +444,29 @@ test_that("latest_performance_text works", {
     latest_performance_text(
       data = sample_data
     ),
-    "The performance at Dec 24 was 49.4%"
+    "Dec 2024: 49.4%"
+  )
+})
+
+test_that("latest_performance_text works", {
+  expect_equal(
+    nov24_performance_text(
+      data = sample_data,
+      data_source = "upload"
+    ),
+    "The performance at Nov 2024 was 50.8%"
+  )
+})
+
+test_that("performance_text_planner works", {
+  expect_equal(
+    performance_text_planner(
+      data = sample_data,
+      data_source = "upload"
+    ),
+    HTML(
+      "<b>The performance at Nov 2024 was 50.8%</b><br><small><p>Dec 2024: 49.4%</p></small>"
+    )
   )
 })
 
@@ -644,7 +666,6 @@ test_that("returns 0 when week is 0", {
   sample_df <- data.frame(
     months_waited_id = 0:5,
     wlsize = c(10, 20, 30, 40, 50, 60)
-
   )
   result <- calc_percentile_at_week(sample_df, week = 0)
   expect_equal(result, 0)

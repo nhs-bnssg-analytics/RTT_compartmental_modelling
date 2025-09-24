@@ -220,16 +220,17 @@ extract_pval <- function(lm_object, input_term) {
   return(p_val)
 }
 
-#' extracts the percentage value at the end of a string
+#' extracts the first percentage value in a string
 #' @noRd
 extract_percent <- function(text) {
-  match <- regmatches(text, regexpr("\\d+(\\.\\d+)?%$", text))
-  if (length(match) > 0 && match != "") {
-    return(
-      as.numeric(sub("%$", "", match))
-    )
+  # Use regular expression to find percentage values
+  matches <- regmatches(text, gregexpr("\\d+(\\.\\d+)?%", text))[[1]]
+
+  # Return the first match if any found
+  if (length(matches) > 0) {
+    return(as.numeric(gsub("%", "", matches[1])))
   } else {
-    return(numeric(0)) # Return empty numeric vector if no match
+    return(NA) # Return NA if no percentage found
   }
 }
 
@@ -641,9 +642,9 @@ latest_performance_text <- function(data) {
     ) |>
     mutate(
       text = paste0(
-        "The performance at ",
-        format(.data$period, '%b %y'),
-        " was ",
+        # "The performance at ",
+        format(.data$period, '%b %Y'),
+        ": ",
         format(
           100 * .data$prop,
           format = "f",
@@ -656,6 +657,121 @@ latest_performance_text <- function(data) {
     pull(.data$text)
 
   return(text)
+}
+
+#' @param data_source can be "upload" or "download"
+#' @noRd
+nov24_performance_text <- function(
+  data,
+  trust_parent_codes = NULL,
+  trust_codes = NULL,
+  commissioner_parent_codes = NULL,
+  commissioner_org_codes = NULL,
+  specialty_codes = NULL,
+  data_source
+) {
+  # november 2024 target ---------------------------------------------------
+
+  if (as.Date("2024-11-01") %in% data$period) {
+    nov_24_data <- data |>
+      dplyr::filter(
+        .data$period == as.Date("2024-11-01"),
+        .data$type == "Incomplete"
+      )
+  } else {
+    if (data_source == "download") {
+      shiny::withProgress(
+        message = "Downloading Nov 24 benchmarking data...",
+        value = 0,
+        {
+          nov_24_data <- NHSRtt::get_rtt_data(
+            date_start = as.Date("2024-11-01"),
+            date_end = as.Date("2024-11-01"),
+            trust_parent_codes = trust_parent_codes,
+            trust_codes = trust_codes,
+            commissioner_parent_codes = commissioner_parent_codes,
+            commissioner_org_codes = commissioner_org_codes,
+            specialty_codes = specialty_codes,
+          ) |>
+            filter(.data$type == "Incomplete") |>
+            dplyr::summarise(
+              value = sum(.data$value),
+              .by = c("period", "months_waited")
+            ) |>
+            mutate(
+              months_waited_id = NHSRtt::convert_months_waited_to_id(
+                .data$months_waited,
+                max_months_waited = 12
+              )
+            ) |>
+            dplyr::summarise(
+              value = sum(.data$value),
+              .by = c("period", "months_waited_id")
+            )
+          shiny::incProgress(1, detail = "Complete")
+        }
+      )
+    } else {
+      nov_24_data <- tibble(data = numeric())
+    }
+  }
+
+  if (nrow(nov_24_data) > 0) {
+    nov_24_benchmark <- nov_24_data |>
+      calc_performance(
+        target_bin = 4
+      ) |>
+      dplyr::pull(.data$prop)
+
+    nov_24_benchmark <- paste0(
+      "The performance at Nov 2024 was ",
+      format(
+        100 * nov_24_benchmark,
+        format = "f",
+        digits = 2,
+        nsmall = 1
+      ),
+      "%"
+    )
+  } else {
+    nov_24_benchmark <- ""
+  }
+
+  return(nov_24_benchmark)
+}
+
+#' @param data_source can be "upload" or "download"
+#' @noRd
+performance_text_planner <- function(
+  data,
+  trust_parent_codes = NULL,
+  trust_codes = NULL,
+  commissioner_parent_codes = NULL,
+  commissioner_org_codes = NULL,
+  specialty_codes = NULL,
+  data_source
+) {
+  nov_performance <- nov24_performance_text(
+    data,
+    trust_parent_codes = NULL,
+    trust_codes = NULL,
+    commissioner_parent_codes = NULL,
+    commissioner_org_codes = NULL,
+    specialty_codes = NULL,
+    data_source = data_source
+  )
+
+  latest_performance <- latest_performance_text(data)
+
+  performance_text <- paste0(
+    "<b>",
+    nov_performance,
+    "</b><br><small><p>",
+    latest_performance,
+    "</p></small>"
+  )
+
+  return(HTML(performance_text))
 }
 
 name_with_tooltip <- function(name, definition) {

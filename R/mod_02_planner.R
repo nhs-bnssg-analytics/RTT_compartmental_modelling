@@ -642,8 +642,14 @@ mod_02_planner_server <- function(id, r) {
             period_type = "Observed"
           )
 
-        reactive_values$latest_performance <- latest_performance_text(
-          r$all_data
+        reactive_values$latest_performance <- performance_text_planner(
+          data = r$all_data,
+          trust_parent_codes = selections_labels$trust_parents$selected_code,
+          trust_codes = selections_labels$trusts$selected_code,
+          commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
+          commissioner_org_codes = selections_labels$commissioners$selected_code,
+          specialty_codes = selections_labels$specialties$selected_code,
+          data_source = "download"
         )
 
         reactive_values$default_target <- min(
@@ -1135,8 +1141,14 @@ mod_02_planner_server <- function(id, r) {
               period_type = "Observed"
             )
 
-          reactive_values$latest_performance <- latest_performance_text(
-            r$all_data
+          reactive_values$latest_performance <- performance_text_planner(
+            data = r$all_data,
+            trust_parent_codes = selections_labels$trust_parents$selected_code,
+            trust_codes = selections_labels$trusts$selected_code,
+            commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
+            commissioner_org_codes = selections_labels$commissioners$selected_code,
+            specialty_codes = selections_labels$specialties$selected_code,
+            data_source = "upload"
           )
 
           reactive_values$default_target <- min(
@@ -1263,7 +1275,7 @@ mod_02_planner_server <- function(id, r) {
         layout_column_wrap(
           width = 1 / 2,
           value_box(
-            title = "Latest performance",
+            title = "Performance benchmark",
             value = h5(reactive_values$latest_performance),
             showcase = shiny::icon("chart-line"),
             theme = value_box_theme(bg = "#FFB81C", fg = "#231f20"),
