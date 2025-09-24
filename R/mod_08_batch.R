@@ -1146,7 +1146,42 @@ mod_08_batch_server <- function(id) {
           optimised_wl = reactive_values$optimised_waiting_list,
           optimised_projections = reactive_values$optimised_projections,
           target_week = input$target_week,
-          target_value = input$target_value
+          target_value = input$target_value,
+          settings = dplyr::tibble(
+            "User input" = c(
+              "Low referral scenario (% annual uplift)",
+              "Medium referral scenario (% annual uplift)",
+              "High referral scenario (% annual uplift)",
+              "Target"
+            ),
+            "Value" = c(
+              c(
+                ifelse(
+                  is.null(input$referral_bin_low),
+                  NA,
+                  input$referral_bin_low
+                ),
+                ifelse(
+                  is.null(input$referral_bin_medium),
+                  NA,
+                  input$referral_bin_medium
+                ),
+                ifelse(
+                  is.null(input$referral_bin_high),
+                  NA,
+                  input$referral_bin_high
+                )
+              ),
+              paste0(
+                input$target_value,
+                "% waiting less than ",
+                input$target_week,
+                " weeks by ",
+                format(input$target_date, "%d %b %Y")
+              )
+            )
+          ) |>
+            dplyr::filter(!is.na(.data$Value))
         )
 
         rmarkdown::render(
