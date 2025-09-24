@@ -49,7 +49,6 @@
 #' @return A ggplot2 plot object of selected values
 #' @noRd
 
-
 plot_output <- function(
   data,
   p_trust,
@@ -91,7 +90,6 @@ plot_output <- function(
   } else {
     chart_title <- paste0("<b>", p_trust, "</b> : ", p_speciality)
   }
-
 
   p <- ggplot2::ggplot() +
     geom_vline(
@@ -597,13 +595,15 @@ plot_error <- function(modelled_data, observed_data) {
 #' }
 #'
 #' @import ggplot2
+#' @importFrom dplyr mutate select cross_join tibble case_when bind_rows left_join
+#' @importFrom tidyr nest pivot_longer replace_na
+#' @importFrom purrr map_dbl
 #' @export
 plot_waiting_lists_chart <- function(
   data,
   target_week,
   target_value
 ) {
-  # browser()
   percentile_calculation <- data |>
     select(
       "trust",

@@ -1072,6 +1072,8 @@ mod_08_batch_server <- function(id) {
       }
     )
 
+    # copy WL results button -------------------------------------------------
+
     observeEvent(
       c(input$copy_wl_results),
       {
@@ -1116,6 +1118,48 @@ mod_08_batch_server <- function(id) {
       }
     )
 
+    # create PPT button ------------------------------------------------------
+
+    output$create_ppt <- downloadHandler(
+      filename <- paste0(
+        "Steady-state results ",
+        format(Sys.time(), format = "%Y%m%d %H%M%S"),
+        ".pptx"
+      ),
+      content = function(file) {
+        tempReport <- file.path(tempdir(), "skeleton.Rmd")
+
+        file.copy(
+          system.file(
+            "rmarkdown",
+            "templates",
+            "steady-state",
+            "skeleton",
+            "skeleton.Rmd",
+            package = "RTTshiny"
+          ),
+          tempReport,
+          overwrite = TRUE
+        )
+
+        params <- list(
+          optimised_wl = reactive_values$optimised_waiting_list,
+          optimised_projections = reactive_values$optimised_projections,
+          target_week = input$target_week,
+          target_value = input$target_value
+        )
+
+        rmarkdown::render(
+          tempReport,
+          output_file = file,
+          params = params,
+          envir = new.env(parent = globalenv())
+        )
+
+        unlink(tempReport)
+      }
+    )
+
     # dynamic display, only show if results have been created
     output$ss_results_ui <- renderUI({
       if (reactive_values$show_results == TRUE) {
@@ -1132,6 +1176,11 @@ mod_08_batch_server <- function(id) {
               inputId = ns("copy_wl_results"),
               label = "Copy waiting list detail",
               class = "copy-button"
+            ),
+            downloadButton(
+              outputId = ns("create_ppt"),
+              label = "Create PowerPoint of results",
+              class = "ppt-button"
             )
           ),
           reactableOutput(
