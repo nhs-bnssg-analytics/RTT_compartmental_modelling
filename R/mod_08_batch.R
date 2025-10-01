@@ -438,6 +438,13 @@ mod_08_batch_server <- function(id) {
                 id = dplyr::row_number()
               )
 
+            # calculate s profiles for the calibration period
+            s_given <- calculate_s_given(
+              data = raw_data,
+              max_months_waited = 12,
+              method = "mean"
+            )
+
             shiny::withProgress(
               message = "Processing trusts/specialties/scenarios",
               value = 0,
@@ -445,6 +452,11 @@ mod_08_batch_server <- function(id) {
                 n <- nrow(current)
                 # browser()
                 optimised_projections <- current |>
+                  # add historic s
+                  left_join(
+                    s_given,
+                    by = c("trust", "specialty")
+                  ) |>
                   # add historic renege rates by specialty
                   left_join(
                     target_renege_proportions |>
@@ -458,7 +470,14 @@ mod_08_batch_server <- function(id) {
                         forecast_months /
                         12),
                     target = case_when(
-                      input$ss_method == "treatments" ~ .data$capacity_t1,
+                      input$ss_method == "treatments" ~
+                        ifelse(
+                          .data$capacity_t1 > .data$referrals_ss,
+                          0,
+                          # holding the proportion of treatments of the total departures the same
+                          # should result in the same number of treatments as the current number
+                          1 - (.data$capacity_t1 / .data$referrals_ss)
+                        ),
                       input$ss_method == "renege_rates" ~
                         .data$renege_proportion,
                       .default = NA_real_
@@ -468,16 +487,19 @@ mod_08_batch_server <- function(id) {
                         ref_ss = .data$referrals_ss,
                         targ = .data$target,
                         par = .data$params,
+                        s = .data$s_given,
                         id = .data$id
                       ),
-                      \(ref_ss, targ, par, id) {
+                      \(ref_ss, targ, par, s, id) {
                         out <- append_steady_state(
                           referrals = ref_ss,
                           target = targ,
                           renege_params = par$renege_param,
                           percentile = input$target_value / 100,
                           target_time = input$target_week,
-                          method = input$ss_method
+                          s_given = s,
+                          # method =
+                          method = "lp"
                         )
 
                         shiny::incProgress(
@@ -625,7 +647,8 @@ mod_08_batch_server <- function(id) {
                       "renege_proportion",
                       "target",
                       "wl_ss",
-                      "wl_t0"
+                      "wl_t0",
+                      "s_given"
                     )
                   ) |>
                   mutate(

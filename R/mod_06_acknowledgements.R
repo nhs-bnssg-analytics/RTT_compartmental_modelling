@@ -52,20 +52,22 @@ mod_06_acknowledgements_server <- function(id) {
     ns <- session$ns
 
     timeline_data <- data.frame(
-      id = 1:5,
+      id = 1:6,
       content = c(
         "Single-stock RTT research",
         "Multi-stock RTT collaboration",
         "ICS collaboration",
         "ICS and NHS England development",
-        "First release"
+        "First release",
+        "Second release"
       ),
       date = c(
         "October 2022",
         "Winter 2024",
         "November 2024",
         "December 2024 to March 2025",
-        "May 2025"
+        "May 2025",
+        "Oct 2025"
       ),
       description = c(
         paste0(
@@ -79,9 +81,17 @@ mod_06_acknowledgements_server <- function(id) {
         ),
         "NHS BNSSG ICB and NHS Devon ICB, who have also been working on stock-and-flow models, agree to develop common RTT model to reduce multiplication. This is facilitated by the South West Decision Support Network's 'At Scale Analytics' workstream.",
         "Collaboration expands to include NHS England South West team and NHS Gloucestershire ICB, and the development of the interactive online tool begins.",
-        "First release of the online tool occurs."
+        "First release of the online tool occurs.",
+        "A 'healthy waiting list' solution developed and included in the second release of the online tool"
       ),
-      colour = c("#330072", "#AE2573", "#8A1538", "#ED8B00", "#FFB81C")
+      colour = c(
+        "#330072",
+        "#AE2573",
+        "#8A1538",
+        "#C04A1F",
+        "#ED8B00",
+        "#FFB81C"
+      )
     ) |>
       mutate(
         final = case_when(

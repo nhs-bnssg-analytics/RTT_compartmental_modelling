@@ -217,6 +217,58 @@ append_current_status <- function(
   return(current_status)
 }
 
+calculate_s_given <- function(
+  data,
+  max_months_waited,
+  method = c("mean", "median", "latest")
+) {
+  # check method
+  available_methods <- c("mean", "median", "latest")
+  if (identical(method, available_methods)) {
+    method <- "mean"
+  }
+
+  method <- match.arg(method, available_methods)
+
+  s_given <- data |>
+    filter(.data$type == "Complete") |>
+    mutate(
+      s = .data$value / sum(.data$value),
+      .by = c("trust", "specialty", "period")
+    )
+
+  if (method == "mean") {
+    s_given <- s_given |>
+      summarise(
+        s_vals = mean(.data$s, na.rm = TRUE),
+        .by = c("trust", "specialty", "months_waited_id")
+      )
+  } else if (method == "median") {
+    s_given <- s_given |>
+      summarise(
+        s_vals = stats::median(.data$s, na.rm = TRUE),
+        .by = c("trust", "specialty", "months_waited_id")
+      )
+  } else if (method == "latest") {
+    s_given <- s_given |>
+      filter(.data$period == max(.data$period)) |>
+      dplyr::select("trust", "specialty", "months_waited_id", s_vals = "s")
+  }
+
+  s_given <- s_given |>
+    dplyr::arrange(.data$trust, .data$specialty, .data$months_waited_id) |>
+    tidyr::nest(s_given_tbl = c("months_waited_id", "s_vals")) |>
+    mutate(
+      s_given = purrr::map(
+        .data$s_given_tbl,
+        \(x) x$s_vals
+      )
+    ) |>
+    dplyr::select(!c("s_given_tbl"))
+
+  return(s_given)
+}
+
 #' @importFrom NHSRtt optimise_steady_state
 append_steady_state <- function(
   referrals,
@@ -224,6 +276,7 @@ append_steady_state <- function(
   renege_params,
   percentile,
   target_time,
+  s_given,
   method
 ) {
   # convert weeks input to months
@@ -235,6 +288,7 @@ append_steady_state <- function(
     renege_params = renege_params,
     percentile = percentile,
     target_time = target_time,
+    s_given = s_given,
     method = method
   )
 

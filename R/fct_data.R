@@ -78,7 +78,7 @@ get_rtt_data_with_progress <- function(
 #' @param specialty_aggregate can take the value "Aggregate", which will
 #'   aggregate the specialties into one called "Aggregate". Otherwise, all of
 #'   the specialties in the dataset will remain in the resulting table
-#' @param trust_aggregatecan take the value "Aggregate", which will aggregate
+#' @param trust_aggregate can take the value "Aggregate", which will aggregate
 #'   the trusts into one called "Aggregate". Otherwise, all of the trusts in the
 #'   dataset will remain in the resulting table
 #' @param selected_specialties character vector of specialties that are expected
@@ -218,6 +218,7 @@ clean_raw_data <- function(raw_data, max_months_waited = 12) {
   # some specialties have small numbers so they are missing, therefore
   # we must create a consistent lkp here
   all_periods <- raw_data |>
+    dplyr::filter(!is.na(.data$specialty)) |>
     dplyr::pull(.data$period) |>
     range() |>
     (\(x) {

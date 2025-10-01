@@ -239,12 +239,12 @@ full_table <- params$optimised_projections |>
       )
     )
   ) |> 
-  mutate(`Trust` = gsub(" NHS| FOUNDATION| TRUST", "", `Trust`),
-    `Trust` = capitalise_first(`Trust`)) |> 
+  mutate(`Trust` = gsub(" NHS| FOUNDATION| TRUST| HEALTHCARE", "", `Trust`),
+    `Trust` = tools::toTitleCase(tolower(`Trust`))) |> 
   mutate(`Do nothing_Performance` = paste0(formatC(`Do nothing_Performance` * 100, format = "f", digits = 1), "%"))
 
 # chunk up the results to prevent them spilling over the bottom of the slide
-  chunk_size <- 8
+  chunk_size <- 7
   split_tbl <- split(full_table, ceiling(seq_len(nrow(full_table)) / chunk_size))
 
 for (i in seq_len(length((split_tbl)))) {
@@ -261,7 +261,7 @@ for (i in seq_len(length((split_tbl)))) {
     flextable::border_outer() |> 
     flextable::width(width = 30 / 20, unit = "cm") |>
     flextable::theme_vanilla() |>
-    flextable::bg(part = "header", bg = "#156082") |>  # Navy blue
+    flextable::bg(part = "header", bg = "#002060") |>  # Navy blue
     flextable::color(part = "header", color = "white") |>
     flextable::bold(part = "header", bold = TRUE)
 

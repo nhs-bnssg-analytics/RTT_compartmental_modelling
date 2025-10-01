@@ -412,7 +412,8 @@ test_that("split_and_model_calibration_data works", {
     referrals_uplift = TRUE
   )
 
-  # check that number of periods in the modelled data is the correct number based on the number of unique periods in the sample data
+  # check that number of periods in the modelled data is the correct
+  #  number based on the number of unique periods in the sample data
   sample_data_periods <- unique(modified_sample_data$period)
   if (length(sample_data_periods) %% 2 == 0) {
     expected_num_periods <- length(sample_data_periods) / 2
@@ -457,7 +458,7 @@ test_that("split_and_model_calibration_data works", {
     error_calc(
       data = cal_data_modelled
     ),
-    "20.74%",
+    "30.34%",
     info = "error_calc is calculated correctly (MAPE)"
   )
 
@@ -469,7 +470,7 @@ test_that("split_and_model_calibration_data works", {
           x - min(cal_data_modelled$original)
         }))
     ),
-    "397.94",
+    "537.32",
     info = "error_calc is calculated correctly (MAE)"
   )
 })

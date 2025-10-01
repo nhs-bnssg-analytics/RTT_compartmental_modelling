@@ -310,10 +310,13 @@ mod_02_planner_server <- function(id, r) {
     reactive_values$performance_calculated <- FALSE
     reactive_values$data_source <- NULL # should be either "upload" or "download"
 
-    final_data_period <- lubridate::floor_date(
-      NHSRtt::latest_rtt_date(),
-      unit = "months"
-    )
+    final_data_period <- readRDS(system.file(
+      "extdata",
+      "rtt_12months.rds",
+      package = "RTTshiny"
+    )) |>
+      dplyr::pull(.data$period) |>
+      max()
 
     reactive_values$latest_date <- final_data_period
 
@@ -524,22 +527,45 @@ mod_02_planner_server <- function(id, r) {
         )
 
         # pass some values to the charting module
-        # r$chart_specification$trust <- selections_labels$trusts$display
-        # r$chart_specification$specialty <- selections_labels$specialties$display
         r$chart_specification$observed_start <- min_download_date
         r$chart_specification$observed_end <- max_download_date
 
         # download and aggregate data
-        r$all_data <- get_rtt_data_with_progress(
-          date_start = min_download_date,
-          date_end = max_download_date,
-          trust_parent_codes = selections_labels$trust_parents$selected_code,
-          trust_codes = selections_labels$trusts$selected_code,
-          commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
-          commissioner_org_codes = selections_labels$commissioners$selected_code,
-          specialty_codes = selections_labels$specialties$selected_code,
-          progress = progress
-        ) |>
+        if (
+          all(
+            is.null(selections_labels$trust_parents$selected_code),
+            is.null(selections_labels$commissioner_parents$selected_code),
+            is.null(selections_labels$commissioners$selected_code)
+          )
+        ) {
+          r$all_data <- readRDS(
+            system.file(
+              "extdata",
+              "rtt_24months.rds",
+              package = "RTTshiny"
+            )
+          ) |>
+            dplyr::filter(
+              .data$period >= min_download_date,
+              .data$trust %in% selections_labels$trusts$selected_name,
+              .data$specialty %in% selections_labels$specialties$selected_name
+            ) |>
+            mutate(
+              months_waited = convert_month_to_factor(.data$months_waited_id)
+            )
+        } else {
+          r$all_data <- get_rtt_data_with_progress(
+            date_start = min_download_date,
+            date_end = max_download_date,
+            trust_parent_codes = selections_labels$trust_parents$selected_code,
+            trust_codes = selections_labels$trusts$selected_code,
+            commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
+            commissioner_org_codes = selections_labels$commissioners$selected_code,
+            specialty_codes = selections_labels$specialties$selected_code,
+            progress = progress
+          )
+        }
+        r$all_data <- r$all_data |>
           aggregate_and_format_raw_data(
             trust_aggregate = selections_labels$trusts$display,
             specialty_aggregate = selections_labels$specialties$display,
@@ -547,7 +573,6 @@ mod_02_planner_server <- function(id, r) {
             min_date = min_download_date,
             max_date = max_download_date
           )
-
         reactive_values$data_downloaded <- TRUE
 
         # calculate unadjusted referrals
