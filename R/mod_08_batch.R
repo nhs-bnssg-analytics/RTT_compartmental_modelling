@@ -677,48 +677,53 @@ mod_08_batch_server <- function(id) {
     )
 
     output$plot_waiting_lists_ui <- renderUI({
-      plot_waiting_lists <- lapply(
-        seq_len(nrow(reactive_values$optimised_waiting_list)),
-        function(i) {
-          local({
-            index <- i
-            plotname <- paste0("plot_wl", index)
+      if (!is.null(reactive_values$optimised_waiting_list)) {
+        plot_waiting_lists <- lapply(
+          seq_len(nrow(reactive_values$optimised_waiting_list)),
+          function(i) {
+            local({
+              index <- i
+              plotname <- paste0("plot_wl", index)
 
-            output[[plotname]] <- renderPlot({
-              reactive_values$optimised_waiting_list |>
-                dplyr::slice(i) |>
-                tidyr::pivot_longer(
-                  cols = c(
-                    "steady_state_waiting_list",
-                    "previous_waiting_list"
-                  ),
-                  names_to = "wl_type",
-                  values_to = "wl_data"
-                ) |>
-                tidyr::unnest("wl_data") |>
-                mutate(
-                  wl_description = factor(
-                    .data$wl_description,
-                    levels = c(
-                      format(
-                        max(.data$period, na.rm = TRUE) %m-% months(12),
-                        format = "%b %Y"
-                      ),
-                      format(max(.data$period, na.rm = TRUE), format = "%b %Y"),
-                      "Steady state"
+              output[[plotname]] <- renderPlot({
+                reactive_values$optimised_waiting_list |>
+                  dplyr::slice(i) |>
+                  tidyr::pivot_longer(
+                    cols = c(
+                      "steady_state_waiting_list",
+                      "previous_waiting_list"
+                    ),
+                    names_to = "wl_type",
+                    values_to = "wl_data"
+                  ) |>
+                  tidyr::unnest("wl_data") |>
+                  mutate(
+                    wl_description = factor(
+                      .data$wl_description,
+                      levels = c(
+                        format(
+                          max(.data$period, na.rm = TRUE) %m-% months(12),
+                          format = "%b %Y"
+                        ),
+                        format(
+                          max(.data$period, na.rm = TRUE),
+                          format = "%b %Y"
+                        ),
+                        "Steady state"
+                      )
                     )
-                  )
-                ) |>
-                plot_waiting_lists_chart(
-                  target_week = input$target_week,
-                  target_value = input$target_value
-                ) #,
-              # width = "1000px"
+                  ) |>
+                  plot_waiting_lists_chart(
+                    target_week = input$target_week,
+                    target_value = input$target_value
+                  ) #,
+                # width = "1000px"
+              })
             })
-          })
-        }
-      )
-      NULL # UI already handled in reactable details
+          }
+        )
+        NULL # UI already handled in reactable details
+      }
     })
 
     # create the result table
