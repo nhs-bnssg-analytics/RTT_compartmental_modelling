@@ -94,6 +94,7 @@ mod_02_planner_ui <- function(id) {
       selected = "nhs_only",
       inline = TRUE
     ),
+    hr(),
     uiOutput(ns("calibration_months_ui")),
     layout_columns(
       col_widths = c(11, 1),
@@ -190,7 +191,11 @@ mod_02_planner_ui <- function(id) {
       ),
       layout_columns(
         col_widths = c(3, 2),
-        span("Percentage change in referrals (between -20% and 200%):"),
+        span(HTML(paste(
+          "Percentage change in",
+          tooltip_label("referrals", "referral"),
+          "(between -20% and 200%):"
+        ))),
         shinyWidgets::numericInputIcon(
           inputId = ns("referral_growth"),
           label = NULL,
@@ -205,7 +210,7 @@ mod_02_planner_ui <- function(id) {
       layout_columns(
         col_widths = c(3, 4),
         span(
-          "Select type of referral change:",
+          HTML(paste("Select type of", tooltip_label("referral"), "change:")),
           tooltip(
             shiny::icon("info-circle"),
             linear_uniform_tooltip(
@@ -1695,7 +1700,13 @@ mod_02_planner_server <- function(id, r) {
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Select type of treatment capacity change:",
+              HTML(
+                paste(
+                  "Select type of",
+                  tooltip_label("treatment capacity"),
+                  "change:"
+                )
+              ),
               tooltip(
                 shiny::icon("info-circle"),
                 linear_uniform_tooltip(
@@ -1716,7 +1727,13 @@ mod_02_planner_server <- function(id, r) {
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Select range of treatment capacity skews:",
+              HTML(
+                paste(
+                  "Select range of",
+                  tooltip_label("treatment capacity"),
+                  "skews:"
+                )
+              ),
               tooltip(
                 shiny::icon("info-circle"),
                 skew_tooltip(),
@@ -1736,7 +1753,15 @@ mod_02_planner_server <- function(id, r) {
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Align treatment capacity and referrals after performance is achieved",
+              HTML(paste(
+                "Align",
+                tooltip_label("treatment capacity"),
+                "and",
+                tooltip_label("referrals", "referral"),
+                "after",
+                tooltip_label("performance"),
+                "is achieved"
+              )),
               tooltip(
                 shiny::icon("info-circle"),
                 shiny::HTML(
@@ -1761,7 +1786,11 @@ mod_02_planner_server <- function(id, r) {
             open = FALSE,
             id = "skew",
             bslib::accordion_panel(
-              title = "Advanced skew settings",
+              title = HTML(paste(
+                "Advanced",
+                tooltip_label("skew"),
+                "settings"
+              )),
               layout_columns(
                 col_widths = c(5, 5),
                 skew_settings,
@@ -1785,7 +1814,11 @@ mod_02_planner_server <- function(id, r) {
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Percentage change for treatment capacity (between -20% and 20%):"
+              HTML(paste(
+                "Percentage change for",
+                tooltip_label("treatment capacity"),
+                "(between -20% and 20%):"
+              ))
             ),
             shinyWidgets::numericInputIcon(
               inputId = ns("capacity_growth"),
@@ -1801,7 +1834,11 @@ mod_02_planner_server <- function(id, r) {
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Select type of treatment capacity change:",
+              HTML(paste(
+                "Select type of",
+                tooltip_label("treatment capacity"),
+                "change:"
+              )),
               tooltip(
                 shiny::icon("info-circle"),
                 linear_uniform_tooltip(
@@ -1822,7 +1859,11 @@ mod_02_planner_server <- function(id, r) {
           layout_columns(
             col_widths = c(3, 4),
             span(
-              "Enter treatment capacity utilisation skew:",
+              HTML(paste(
+                "Enter",
+                tooltip_label("treatment capacity"),
+                "utilisation skew:"
+              )),
               tooltip(
                 shiny::icon("info-circle"),
                 skew_tooltip(),
@@ -1843,7 +1884,11 @@ mod_02_planner_server <- function(id, r) {
             open = FALSE,
             id = "skew",
             bslib::accordion_panel(
-              title = "Advanced skew settings",
+              title = HTML(paste(
+                "Advanced",
+                tooltip_label("skew"),
+                "settings"
+              )),
               layout_columns(
                 col_widths = c(5, 5),
                 skew_settings,

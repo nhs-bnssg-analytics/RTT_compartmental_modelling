@@ -80,3 +80,16 @@
 .open .dropdown-menu ul::-webkit-scrollbar-track {
   background-color: #f1f1f1;
 }
+
+p.referral-scenario-header {
+  text-decoration: underline;
+  font-size: 0.9rem;
+}
+
+p.steady-state-body {
+  font-size: 0.9rem;
+}
+
+.shiny-options-group {
+  font-size: 0.9rem; 
+}

@@ -12,7 +12,7 @@
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   layout_columns card_body page_fillable bs_theme
 #' @importFrom lubridate years ceiling_date `%m+%`
-#' @importFrom shinyWidgets pickerInput
+#' @importFrom shinyWidgets pickerInput numericInputIcon
 mod_08_batch_ui <- function(id) {
   ns <- NS(id)
 
@@ -97,34 +97,45 @@ mod_08_batch_ui <- function(id) {
       selected = NULL,
       multiple = TRUE
     ),
+    hr(),
+    p(
+      "Referral scenario (% annual change):",
+      class = "referral-scenario-header"
+    ),
     layout_columns(
-      col_widths = c(8, 4),
-      p("Low Referral Scenario (% annual uplift)"),
-      numericInput(
+      col_widths = c(6, 6),
+      p("Low:", class = "steady-state-body"),
+      shinyWidgets::numericInputIcon(
         inputId = ns("referral_bin_low"),
         label = NULL,
-        value = -1
+        value = -1,
+        icon = list(NULL, icon("percent")),
+        size = "sm"
       ),
-      p("Medium Referral Scenario (% annual uplift)"),
-      numericInput(
+      p("Medium:", class = "steady-state-body"),
+      shinyWidgets::numericInputIcon(
         inputId = ns("referral_bin_medium"),
         label = NULL,
-        value = 0
+        value = 0,
+        icon = list(NULL, icon("percent")),
+        size = "sm"
       ),
-      p("High Referral Scenario (% annual uplift)"),
-      numericInput(
+      p("High:", class = "steady-state-body"),
+      shinyWidgets::numericInputIcon(
         inputId = ns("referral_bin_high"),
         label = NULL,
-        value = 1
+        value = 1,
+        icon = list(NULL, icon("percent")),
+        size = "sm"
       )
     ),
     hr(),
     layout_columns(
-      col_widths = c(8, 4),
-      p(name_with_tooltip(
-        "Target date",
-        definition = "The date to achieve the target criteria by"
-      )),
+      col_widths = c(6, 6),
+      p(
+        tooltip_label("Target date"),
+        class = "steady-state-body"
+      ),
       dateInput(
         inputId = ns("target_date"),
         label = NULL,
@@ -136,33 +147,33 @@ mod_08_batch_ui <- function(id) {
         value = "2029-03-01",
         format = "dd-mm-yyyy",
         weekstart = 1,
-        autoclose = TRUE #,
-        # width = "40%"
+        autoclose = TRUE
       ),
-      p(name_with_tooltip(
-        "Target week",
-        definition = "The week that the 'target proportion' applies to"
-      )),
-      numericInput(
+      p(
+        tooltip_label("Target week"),
+        class = "steady-state-body"
+      ),
+      shinyWidgets::numericInputIcon(
         inputId = ns("target_week"),
         label = NULL,
         min = 1,
         max = 52,
-        value = 18
+        value = 18,
+        step = 1
       ),
-      p(name_with_tooltip(
-        "Target proportion",
-        definition = "The proportion of people on a waiting list that have been waiting less than the 'target week'"
-      )),
-      sliderInput(
+      p(
+        tooltip_label("Target proportion"),
+        class = "steady-state-body"
+      ),
+      shinyWidgets::numericInputIcon(
         inputId = ns("target_value"),
         label = NULL,
+        value = 92,
         min = 0,
         max = 100,
-        value = 92,
         step = 1,
-        post = "%",
-        width = "100%"
+        icon = list(NULL, icon("percent")),
+        size = "sm"
       )
     ),
     hr(),
@@ -178,9 +189,9 @@ mod_08_batch_ui <- function(id) {
         inputId = ns("s_given_method"),
 
         label = HTML(paste(
-          "Constrain the solution on the",
+          "Base the",
           tooltip_label("treatment profile"),
-          "over the last 12 months, basing it on the:"
+          "in the solution to a treatment profile seen in over the last 12 months, using the:"
         )),
         choices = list(
           Average = "mean",
@@ -202,13 +213,48 @@ mod_08_batch_ui <- function(id) {
           title = "Description of methods",
           p(
             HTML(paste(
-              "The results here represent 'steady-state' scenarios.",
-              "Here, 'steady-state' means that arrivals onto the waiting list are equal to departures, where arrivals are referrals, and departures are both treatments and reneges (see 'Definitions').",
-              "A second criterion is also fulfilled from these results - that the calculated waiting list is achieving the desired performance target.",
-              "<br>The steps to identify the resulting solutions are as follows:",
-              "First, the final 12 months of available public data are used to understand, on average, the proportion of people that renege who are on the waiting list, by how long they have been waiting.",
-              "Second, testing for a range of total treatments, a corresponding treatment profile that follows a <a href='https://en.wikipedia.org/wiki/Geometric_distribution' target='_blank'>geometric distribution</a> is identified that result in the two criteria described to be met - once reneging has also been accounted for based on the rates calculated from the calibration period.",
-              "From this range of solutions, a single solution is selected based on the user defined solution method.",
+              "The results here represent healthy waiting list scenarios. This fulfils three criteria:",
+              paste0(
+                paste(
+                  "<ol><li>Arrivals onto the waiting list are equal to departures, where arrivals are",
+                  tooltip_label("referrals", "referral"),
+                  "and departures are both",
+                  tooltip_label("treatment capacity"),
+                  "and",
+                  tooltip_label("reneges", "renege"),
+                  ".</li>"
+                ),
+                paste(
+                  "<li>The calculated waiting list is achieving the desired",
+                  tooltip_label("performance target", "target proportion"),
+                  ".</li>"
+                ),
+                paste(
+                  "<li>The proportion of",
+                  tooltip_label("reneges", "renege"),
+                  "that are departures is based on recent historic proportions</li></ol>"
+                )
+              ),
+              "The steps to identify the resulting solutions are as follows:",
+              paste(
+                "<ol><li>The final 12 months of available public data are used to understand:",
+                paste0(
+                  "<ul><li>on average, the proportion of people that ",
+                  tooltip_label("renege"),
+                  " who are on the waiting list, by how long they have been waiting.</li>",
+                  "<li>the median proportion of departures that were ",
+                  tooltip_label("reneges", "renege"),
+                  "</li>",
+                  paste(
+                    "<li>the observed",
+                    tooltip_label("treatment profile"),
+                    "using the method specified by the user</li></ul>"
+                  )
+                ),
+                "</li>"
+              ),
+              "<li>These inputs, along with the projected referrals, are then optimised using a <a href='http://en.wikipedia.org/wiki/Linear_programming' target='_blank'>linear programming</a> method, finding a solution that minimises the difference between the treatment profile compared with the profile provided.</li>",
+              "<li>If the resulting profile looks too different to the one provided, the renege proportion is incrementally reduced to allow for more realistic treatment profiles.</li></ol>",
               sep = "<br>"
             ))
           )
@@ -411,7 +457,7 @@ mod_08_batch_server <- function(id) {
                 .by = c("trust", "specialty", "period_id")
               ) |>
               summarise(
-                renege_proportion = median(
+                renege_proportion = stats::median(
                   .data$renege_proportion,
                   na.rm = TRUE
                 ),

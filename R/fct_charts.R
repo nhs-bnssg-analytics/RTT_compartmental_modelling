@@ -741,6 +741,42 @@ plot_waiting_lists_chart <- function(
       select("wl_description", "facet_join", "status", "x_end", "x_start") |>
       mutate(facet_join = "Treated") |>
       bind_rows(segment_data)
+    ss_lines <- data |>
+      dplyr::filter(.data$wl_description == "Steady state") |>
+      dplyr::select(!c("wl_type", "wl_description", "period")) |>
+      dplyr::cross_join(
+        data |>
+          dplyr::filter(.data$wl_type == "previous_waiting_list") |>
+          dplyr::distinct(.data$wl_type, .data$period, .data$wl_description)
+      ) |>
+      pivot_longer(
+        cols = c("wlsize", "sigma"),
+        names_to = "facet_join",
+        names_transform = \(x) {
+          case_when(
+            x == "wlsize" ~ "Incomplete",
+            x == "sigma" ~ "Treated"
+          ) |>
+            factor(levels = c("Incomplete", "Treated"))
+        },
+        values_to = "value"
+      )
+
+    treated_lines <- data |>
+      pivot_longer(
+        cols = c("wlsize", "sigma"),
+        names_to = "facet_join",
+        names_transform = \(x) {
+          case_when(
+            x == "wlsize" ~ "Incomplete",
+            x == "sigma" ~ "Treated"
+          ) |>
+            factor(levels = c("Incomplete", "Treated"))
+        },
+        values_to = "value"
+      ) |>
+      dplyr::filter(.data$facet_join == "Treated") |>
+      mutate(facet_join = "Incomplete")
 
     p <- data |>
       pivot_longer(
@@ -787,6 +823,29 @@ plot_waiting_lists_chart <- function(
       geom_col(
         fill = "#a3a3a3ff",
         colour = "black"
+      ) +
+      geom_errorbar(
+        data = treated_lines,
+        ymin = 0,
+        aes(
+          linetype = "b",
+          ymax = .data$value,
+          x = .data$months_waited_id - 0.3
+        ),
+        width = 0,
+        linewidth = 2,
+        colour = "#ecd447ff"
+      ) +
+      geom_errorbarh(
+        data = ss_lines,
+        aes(
+          xmin = .data$months_waited_id - 0.4,
+          xmax = .data$months_waited_id + 0.4,
+          linetype = "a"
+        ),
+        width = 0,
+        linewidth = 0.5,
+        colour = "#000b9eff"
       ) +
       geom_segment(
         data = segment_data,
@@ -863,6 +922,17 @@ plot_waiting_lists_chart <- function(
           Within = "Within the target timeframe",
           Between = "Between the target timeframe\nand the target percentile",
           Above = "Longer than the target percentile"
+        )
+      ) +
+      scale_linetype_manual(
+        name = "",
+        values = c(
+          a = "solid",
+          b = "solid"
+        ),
+        labels = c(
+          a = "Steady state",
+          b = "Treated"
         )
       ) +
       theme(legend.position = "bottom")

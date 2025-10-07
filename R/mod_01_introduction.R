@@ -21,10 +21,25 @@ mod_01_introduction_ui <- function(id) {
           ),
 
           p(
-            "This tool projects future waiting list and associated performance metrics based on a model calibrated
-            on historical referral, treatment and reneging activity. By applying the calibrated model to referral
-            trajectories, the tool can help users make informed decisions to improve patient care
-            delivery and achieve NHS performance targets."
+            HTML(paste(
+              "This tool projects future",
+              tooltip_label("waiting list"),
+              "and associated",
+              tooltip_label("performance"),
+              "metrics based on a model calibrated
+            on historical",
+              tooltip_label("referral"),
+              ",",
+              tooltip_label("treatment", "treatment capacity"),
+              "and",
+              tooltip_label("reneging", "renege"),
+              "activity. By applying the calibrated model to",
+              tooltip_label("referral"),
+              "trajectories, the tool can help users make informed decisions to improve patient care
+            delivery and achieve NHS",
+              tooltip_label("performance"),
+              "targets."
+            ))
           ),
 
           p(HTML(
@@ -87,34 +102,83 @@ mod_01_introduction_server <- function(id) {
       {
         data.frame(
           Objective = c(
-            "Understand how treatment capacity impact performance",
-            "Optimise short term treatment capacity to meet a performance target",
-            "Understand how to get to a healthy waiting list size and shape"
+            paste(
+              "Understand how",
+              tooltip_label("treatment capacity"),
+              "impacts",
+              tooltip_label("performance")
+            ),
+            paste(
+              "Optimise short term",
+              tooltip_label("treatment capacity"),
+              "to meet a",
+              tooltip_label("performance"),
+              "target"
+            ),
+            paste(
+              "Understand how to get to a",
+              tooltip_label("healthy waiting list"),
+              "size and shape"
+            )
           ),
           Tab = c("Scenario planner", "Scenario planner", "Steady state"),
           Description = c(
             paste(
               "Select trust(s) and specialty of interest, then download/upload data. ",
-              "Enter the forecast period and referrals projection information.",
-              "Select the scenario type 'Calculate performance (from treatment capacity inputs)'.",
-              "Provide the treatment capacity information (along with skew settings).",
+              paste(
+                "Enter the forecast period and",
+                tooltip_label("referrals", "referral"),
+                "projection information."
+              ),
+              paste(
+                "Select the scenario type 'Calculate",
+                tooltip_label("performance"),
+                "(from",
+                tooltip_label("treatment capacity"),
+                "inputs)'."
+              ),
+              paste(
+                "Provide the",
+                tooltip_label("treatment capacity"),
+                "information (along with",
+                tooltip_label("skew"),
+                "settings)."
+              ),
               "Hit 'Calculate future performance'.",
               "View the results in the 'Results' tab.",
               sep = "<br>"
             ),
             paste(
               "Select trust(s) and specialty of interest, then download/upload data. ",
-              "Enter the forecast period and referrals projection information.",
+              paste(
+                "Enter the forecast period and",
+                tooltip_label("referrals", "referral"),
+                "projection information."
+              ),
               "Select the scenario type 'Calculate treatment capacity (from performance inputs)'.",
-              "Provide the performance information (along with skew settings).",
+              paste(
+                "Provide the",
+                tooltip_label("performance"),
+                "information (along with",
+                tooltip_label("skew"),
+                "settings)."
+              ),
               "Hit 'Optimise treatment capacity'.",
               "View the results in the 'Results' tab.",
               sep = "<br>"
             ),
             paste(
               "Select trusts and specialties of interest.",
-              "Enter referrals scenarios.",
-              "Set the target data and performance target.",
+              paste(
+                "Enter",
+                tooltip_label("referrals", "referral"),
+                "scenarios."
+              ),
+              paste(
+                "Set the target data and",
+                tooltip_label("performance"),
+                "target."
+              ),
               "Choose solution method and hit 'Batch Run'.",
               sep = "<br>"
             )
