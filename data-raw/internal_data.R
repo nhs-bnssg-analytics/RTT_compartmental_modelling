@@ -34,6 +34,7 @@ treatment_function_codes <- c(
   "(:?C_|[INA]P)?130" = "Ophthalmology",
   "(:?C_|[INA]P)?140" = "Oral Surgery",
   "(:?C_|[INA]P)?150" = "Neurosurgical",
+  "(:?C_|[INA]P)?150" = "Neurosurgical",
   "(:?C_|[INA]P)?160" = "Plastic Surgery",
   "(:?C_|[INA]P)?170" = "Cardiothoracic Surgery",
   "C_300" = "General Internal Medicine",
@@ -45,7 +46,12 @@ treatment_function_codes <- c(
   "(:?C_|[INA]P)?410" = "Rheumatology",
   "(:?C_|[INA]P)?430" = "Elderly Medicine",
   "(:?C_|[INA]P)?502" = "Gynaecology",
-  "X0[1-6]" = "Other",
+  "X01" = "Other - Total",
+  "X02" = "Other - Medical Services",
+  "X03" = "Other - Mental Health Services",
+  "X04" = "Other - Paediatric Services",
+  "X05" = "Other - Surgical Services",
+  "X06" = "Other - Other Services",
   "C_999" = "Total"
 )
 
@@ -90,16 +96,18 @@ specialty_lkp <- dplyr::tribble(
   "Gynaecology",
   "C_999",
   "Total",
+  "X01",
+  "Other - Total",
   "X02",
-  "Other",
+  "Other - Medical Services",
   "X03",
-  "Other",
+  "Other - Mental Health Services",
   "X04",
-  "Other",
+  "Other - Paediatric Services",
   "X05",
-  "Other",
+  "Other - Surgical Services",
   "X06",
-  "Other"
+  "Other - Other Services"
 )
 
 
@@ -120,7 +128,7 @@ period_lkp <- dplyr::tibble(
     by = "months"
   )
 ) |>
-  mutate(
+  dplyr::mutate(
     period_id = dplyr::row_number() - 1
   )
 
@@ -137,26 +145,26 @@ sample_data <- purrr::map(
 ) |>
   purrr::list_rbind() |>
   dplyr::mutate(
-    months_waited_id = case_when(
+    months_waited_id = dplyr::case_when(
       !is.na(referrals) ~ 0L,
       .default = months_waited_id
     ),
-    value = case_when(
+    value = dplyr::case_when(
       !is.na(referrals) ~ referrals,
       !is.na(incompletes) ~ incompletes,
       !is.na(treatments) ~ treatments,
       .default = NA_real_
     ),
-    type = case_when(
+    type = dplyr::case_when(
       !is.na(referrals) ~ "Referrals",
       !is.na(incompletes) ~ "Incomplete",
       !is.na(treatments) ~ "Complete",
       .default = NA_character_
     )
   ) |>
-  left_join(
+  dplyr::left_join(
     period_lkp,
-    by = join_by(period_id)
+    by = dplyr::join_by(period_id)
   ) |>
   dplyr::relocate(
     period,
@@ -166,7 +174,7 @@ sample_data <- purrr::map(
     value,
     .after = dplyr::everything()
   ) |>
-  select(
+  dplyr::select(
     !c(
       "referrals",
       "incompletes",
@@ -179,7 +187,7 @@ sample_data <- purrr::map(
 example_chart_data <- read.csv(
   "tests/testthat/test_data_results.csv"
 ) |>
-  mutate(
+  dplyr::mutate(
     period = as.Date(period, format = "%d/%m/%Y")
   )
 

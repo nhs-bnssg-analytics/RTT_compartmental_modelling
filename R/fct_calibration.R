@@ -224,8 +224,16 @@ create_modelling_data <- function(
 #'   to under-reporting of referrals data
 #' @param redistribute_m0_reneges logical; whether to redistribute the negative reneges into
 #'   all the other compartments evenly
-#' @param full_breakdown logical; whether to return a table of results by period and months_waited_id
-#'   (TRUE) or a single record with a nested table of parameters (FALSE)
+#' @param full_breakdown logical; whether to return a table of results by period and
+#'   months_waited_id (TRUE) or a single record with a nested table of parameters (FALSE)
+#' @param allow_negative_params logical; data issues can result in negative renege or
+#'   capacity parameters. These would result in the opposite effect occurring (eg,
+#'   individuals entering the pathway rather than being removed). In some cases, this
+#'   can be legitimate (like an inter-provider transfer leading to patients entering a
+#'   pathway with no accompanying clock start) but in many cases (particularly smaller
+#'   specialties) these are mainly a result of data system issues leading to
+#'   insufficient clock starts, and forcing the parameters to zero then allows sensible
+#'   subsequent calculations
 #'
 #' @importFrom purrr pmap
 #' @importFrom NHSRtt calibrate_capacity_renege_params
@@ -239,7 +247,8 @@ calibrate_parameters <- function(
   max_months_waited = 12,
   redistribute_m0_reneges,
   referrals_uplift,
-  full_breakdown = FALSE
+  full_breakdown = FALSE,
+  allow_negative_params
 ) {
   params <- create_modelling_data(
     data = rtt_data,
@@ -259,7 +268,8 @@ calibrate_parameters <- function(
             incompletes = incomp,
             max_months_waited = max_months_waited,
             redistribute_m0_reneges = redistribute_m0_reneges,
-            full_breakdown = full_breakdown
+            full_breakdown = full_breakdown,
+            allow_negative_params = allow_negative_params
           )
         }
       )

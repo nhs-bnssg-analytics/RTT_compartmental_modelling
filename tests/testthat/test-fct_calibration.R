@@ -1,5 +1,4 @@
 test_that("create_modelling_data works", {
-
   top_bin <- 12
   periods <- 6
 
@@ -9,7 +8,7 @@ test_that("create_modelling_data works", {
         type = .x,
         max_months_waited = top_bin,
         number_periods = periods,
-        seed  = 444
+        seed = 444
       )
     ) |>
     purrr::list_rbind() |>
@@ -47,7 +46,6 @@ test_that("create_modelling_data works", {
     referrals_uplift = ref_uplift
   )
 
-
   expect_equal(
     nrow(modelling_df),
     1,
@@ -56,10 +54,15 @@ test_that("create_modelling_data works", {
 
   expect_equal(
     names(modelling_df),
-    c("specialty", "trust", "completes_data", "referrals_data", "incompletes_data"),
+    c(
+      "specialty",
+      "trust",
+      "completes_data",
+      "referrals_data",
+      "incompletes_data"
+    ),
     info = "names of create_modelling_data outputs are expected"
   )
-
 
   expect_equal(
     df |>
@@ -84,7 +87,8 @@ test_that("create_modelling_data works", {
 
   expect_equal(
     sapply(modelling_df, class),
-    c(specialty = "character",
+    c(
+      specialty = "character",
       trust = "character",
       completes_data = "list",
       referrals_data = "list",
@@ -96,7 +100,6 @@ test_that("create_modelling_data works", {
 
 
 test_that("calibrate_parameters works", {
-
   top_bin <- 12
   periods <- 6
 
@@ -106,7 +109,7 @@ test_that("calibrate_parameters works", {
         type = .x,
         max_months_waited = top_bin,
         number_periods = periods,
-        seed  = 444
+        seed = 444
       )
     ) |>
     purrr::list_rbind() |>
@@ -143,7 +146,8 @@ test_that("calibrate_parameters works", {
     max_months_waited = top_bin,
     redistribute_m0_reneges = TRUE,
     referrals_uplift = ref_uplift,
-    full_breakdown = FALSE
+    full_breakdown = FALSE,
+    allow_negative_params = TRUE
   )
 
   expect_equal(
@@ -163,7 +167,8 @@ test_that("calibrate_parameters works", {
     max_months_waited = top_bin,
     redistribute_m0_reneges = TRUE,
     referrals_uplift = ref_uplift,
-    full_breakdown = TRUE
+    full_breakdown = TRUE,
+    allow_negative_params = TRUE
   )
 
   expect_equal(
@@ -174,10 +179,16 @@ test_that("calibrate_parameters works", {
 
   expect_equal(
     names(params_full$params[[1]]),
-    c("period_id", "months_waited_id", "node_inflow", "treatments",
-      "waiting_same_node", "reneges", "renege_param", "capacity_param"),
+    c(
+      "period_id",
+      "months_waited_id",
+      "node_inflow",
+      "treatments",
+      "waiting_same_node",
+      "reneges",
+      "renege_param",
+      "capacity_param"
+    ),
     info = "expected names in full breakdown params output"
   )
-
-
 })

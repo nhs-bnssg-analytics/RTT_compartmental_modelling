@@ -38,6 +38,13 @@ get_rtt_data_with_progress <- function(
       )
     })()
 
+  # translate "Other - Total" to all the individual specialties so all of the "Other" data is downloaded
+  if (specialty_codes == "X01") {
+    specialty_codes_input <- paste0("X0", 1:6)
+  } else {
+    specialty_codes_input <- specialty_codes
+  }
+
   monthly_rtt <- all_dates |>
     purrr::imap(
       \(x, idx) {
@@ -49,11 +56,17 @@ get_rtt_data_with_progress <- function(
           trust_codes = trust_codes,
           commissioner_parent_codes = commissioner_parent_codes,
           commissioner_org_codes = commissioner_org_codes,
-          specialty_codes = specialty_codes
+          specialty_codes = specialty_codes_input
         )
       }
     ) |>
     purrr::list_rbind()
+
+  if (specialty_codes == "X01") {
+    # replace all of the Other category codes to the "Other - Total" code
+    monthly_rtt <- monthly_rtt |>
+      mutate(specialty = "X01")
+  }
 
   return(monthly_rtt)
 }
@@ -65,7 +78,7 @@ get_rtt_data_with_progress <- function(
 #' @param specialty_aggregate can take the value "Aggregate", which will
 #'   aggregate the specialties into one called "Aggregate". Otherwise, all of
 #'   the specialties in the dataset will remain in the resulting table
-#' @param trust_aggregatecan take the value "Aggregate", which will aggregate
+#' @param trust_aggregate can take the value "Aggregate", which will aggregate
 #'   the trusts into one called "Aggregate". Otherwise, all of the trusts in the
 #'   dataset will remain in the resulting table
 #' @param selected_specialties character vector of specialties that are expected
@@ -136,6 +149,10 @@ aggregate_and_format_raw_data <- function(
       )
   }
 
+  if (is.null(selected_specialties)) {
+    selected_specialties <- unname(treatment_function_codes)
+  }
+
   data <- data |>
     summarise(
       value = sum(.data$value),
@@ -189,6 +206,61 @@ aggregate_and_format_raw_data <- function(
     )
 
   return(data)
+}
+
+#' Raw data often only contains values where they exist. This function
+#' expands the raw data so there are 0 values for periods that no
+#' counts existed. It also makes sure period and period_id are consistent
+#' between each specialty/trust combination
+#' @param raw_data table of referrals, competes and incompletes (as different
+#'   types); data needs the following field names: trust, specialty, period_id,
+#'   type, months_waited_id, value
+#' @param max_months_waited integer; the stock to pool the stocks that have
+#'   waited longer into
+clean_raw_data <- function(raw_data, max_months_waited = 12) {
+  # raw_data currently doesn't have a 1 to 1 relationship period-period_id because
+  # some specialties have small numbers so they are missing, therefore
+  # we must create a consistent lkp here
+  all_periods <- raw_data |>
+    dplyr::filter(!is.na(.data$specialty)) |>
+    dplyr::pull(.data$period) |>
+    range() |>
+    (\(x) {
+      seq(
+        from = x[1],
+        to = x[2],
+        by = "months"
+      )
+    })()
+
+  period_lkp <- tibble(
+    period = all_periods
+  ) |>
+    dplyr::mutate(
+      period_id = dplyr::row_number()
+    )
+
+  raw_data <- raw_data |>
+    select(!c("period_id"))
+
+  raw_data <- raw_data |>
+    tidyr::complete(
+      type,
+      months_waited_id = 0:max_months_waited,
+      period = all_periods,
+      tidyr::nesting(trust, specialty),
+      fill = list(value = 0)
+    ) |>
+    dplyr::anti_join(
+      tibble(
+        type = "Referrals",
+        months_waited_id = seq_len(max_months_waited)
+      ),
+      by = c("type", "months_waited_id")
+    ) |>
+    left_join(period_lkp, by = "period")
+
+  return(raw_data)
 }
 
 #' convert string to date format, but check on format of string before
@@ -417,7 +489,8 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
       first_half_data,
       max_months_waited = 12,
       redistribute_m0_reneges = FALSE,
-      referrals_uplift = NULL
+      referrals_uplift = NULL,
+      allow_negative_params = TRUE
     ) |>
       tidyr::unnest("params") |>
       dplyr::filter(
@@ -448,7 +521,8 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
     first_half_data,
     max_months_waited = 12,
     redistribute_m0_reneges = FALSE,
-    referrals_uplift = referrals_uplift
+    referrals_uplift = referrals_uplift,
+    allow_negative_params = FALSE
   )
 
   # apply parameters to projections

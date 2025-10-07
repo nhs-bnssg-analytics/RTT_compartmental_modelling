@@ -412,7 +412,8 @@ test_that("split_and_model_calibration_data works", {
     referrals_uplift = TRUE
   )
 
-  # check that number of periods in the modelled data is the correct number based on the number of unique periods in the sample data
+  # check that number of periods in the modelled data is the correct
+  #  number based on the number of unique periods in the sample data
   sample_data_periods <- unique(modified_sample_data$period)
   if (length(sample_data_periods) %% 2 == 0) {
     expected_num_periods <- length(sample_data_periods) / 2
@@ -457,7 +458,7 @@ test_that("split_and_model_calibration_data works", {
     error_calc(
       data = cal_data_modelled
     ),
-    "20.74%",
+    "30.34%",
     info = "error_calc is calculated correctly (MAPE)"
   )
 
@@ -469,7 +470,66 @@ test_that("split_and_model_calibration_data works", {
           x - min(cal_data_modelled$original)
         }))
     ),
-    "397.94",
+    "537.32",
     info = "error_calc is calculated correctly (MAE)"
+  )
+})
+
+
+test_that("clean_raw_data produces the correct number of rows", {
+  full_data <- sample_data |>
+    dplyr::cross_join(
+      tidyr::expand_grid(
+        trust = c("a", "b", "c"),
+        specialty = c("x", "y", "z")
+      )
+    )
+  period_lkp <- full_data |>
+    distinct(period) |>
+    arrange(period) |>
+    mutate(period_id = dplyr::row_number())
+
+  set.seed(1234)
+
+  nrows_to_remove <- floor(nrow(full_data) / 10)
+  random_rows <- sample(
+    seq_len(nrow(full_data)),
+    size = nrows_to_remove,
+    replace = FALSE
+  )
+  data_with_missings <- full_data
+  data_with_missings$value[random_rows] <- NA
+
+  data_with_missings <- data_with_missings |>
+    filter(!is.na(value)) |>
+    left_join(period_lkp, by = "period")
+
+  max_months_waited <- 12
+  cleaned_data <- clean_raw_data(
+    raw_data = data_with_missings,
+    max_months_waited = max_months_waited
+  )
+  # check no NAs in cleaned_data
+  expect_true(
+    all(colSums(is.na(cleaned_data)) == 0)
+  )
+
+  all_periods <- seq(
+    from = min(full_data$period),
+    to = max(full_data$period),
+    by = "months"
+  )
+  # expected rows for 1 trust
+  single_trust <- (length(all_periods) *
+    13 * # number months waited
+    2) + # compl/incompl
+    length(all_periods) # referrals
+
+  n_trusts_specs <- nrow(distinct(full_data, trust, specialty))
+
+  expect_equal(
+    n_trusts_specs * single_trust,
+    nrow(cleaned_data),
+    info = "cleaned_data has expected number of rows"
   )
 })

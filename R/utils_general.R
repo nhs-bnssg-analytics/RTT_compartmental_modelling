@@ -15,6 +15,7 @@
 #' @noRd
 calc_performance <- function(incompletes_data, target_bin) {
   # check one record per month waited per period
+
   check_counts <- incompletes_data |>
     dplyr::count(
       .data$period,
@@ -51,29 +52,25 @@ calc_performance <- function(incompletes_data, target_bin) {
   }
 
   performance <- incompletes_data |>
-    mutate(
-      perf = case_when(
+    dplyr::mutate(
+      perf = dplyr::case_when(
         .data$months_waited_id < target_bin ~ "Below",
         .default = "Above"
       )
     ) |>
-    summarise(
+    dplyr::summarise(
       value = sum(.data$value),
-      .by = all_of(
-        c("period", "perf", current_groupings)
-      )
+      .by = dplyr::all_of(c("period", "perf", current_groupings))
     ) |>
-    mutate(
+    dplyr::mutate(
       prop = .data$value / sum(.data$value),
-      .by = all_of(
-        c("period", current_groupings)
-      )
+      .by = dplyr::all_of(c("period", current_groupings))
     ) |>
-    filter(
+    dplyr::filter(
       .data$perf == "Below"
     ) |>
-    select(
-      all_of(
+    dplyr::select(
+      dplyr::all_of(
         c(
           "period",
           "prop",
@@ -90,6 +87,117 @@ calc_performance <- function(incompletes_data, target_bin) {
     )
 
   return(performance)
+}
+
+#' Calculates performance by period from a given data set and target stock
+#'
+#' @param incompletes_data tibble; requires column headers of "period",
+#'   "months_waited_id" and "value", where value is the count of incomplete
+#'   pathways by period and the number of months the patients have waited
+#' @param target_bin integer; the number of months waited where patients that
+#'   have waited for greater or equal to that number of months have breached
+#'   performance
+#' @param target_performance numeric of length 1; must be between 0 and 1. The
+#'   value is the number of patients on the waiting list that have waited for
+#'   less than the `target_bin` time, as a proportion of the total waiting
+#'   list
+#' @return A two column tibble containing "period" and "shortfall" columns, where
+#'   shortfall is the number of additional patients that are on the waiting list
+#'   and have been waiting longer than the `target_bin` length that, if removed,
+#'   will results in a performance equal to the `target_performance`
+#' @noRd
+calc_shortfall <- function(
+  incompletes_data,
+  target_bin = 4,
+  target_performance = 0.92
+) {
+  # check target_performance between 0 and 1
+  if (!dplyr::between(target_performance, 0, 1)) {
+    stop("target_performance must be between 0 and 1")
+  }
+
+  # check target_bin within the range of bins available
+  if (!(target_bin %in% incompletes_data[["months_waited_id"]])) {
+    stop("target_bin not a valid month waited in the incompletes_data")
+  }
+
+  current_groupings <- dplyr::group_vars(
+    incompletes_data
+  )
+
+  # ungroup so the following methods work
+  incompletes_data <- dplyr::ungroup(
+    incompletes_data
+  )
+
+  shortfall_tbl <- incompletes_data |>
+    dplyr::summarise(
+      wl_total = sum(.data$value),
+      wl_above_target = sum(.data$value[.data$months_waited_id >= target_bin]),
+      .by = dplyr::all_of(c("period", current_groupings))
+    ) |>
+    dplyr::mutate(
+      shortfall = (.data$wl_above_target -
+        ((1 - target_performance) * .data$wl_total)) /
+        target_performance
+    ) |>
+    dplyr::select(
+      dplyr::all_of(
+        c("period", current_groupings, "shortfall")
+      )
+    ) |>
+    dplyr::group_by(
+      dplyr::across(
+        dplyr::all_of(
+          current_groupings
+        )
+      )
+    )
+
+  return(shortfall_tbl)
+}
+
+#' Calculate the percentile waiting at a given week
+#' @param wl_shape a tibble with columns for the number of months waited (where 0 is 0-1 month)
+#'  and volume waiting
+#' @param week numeric; the week to calculate the percentile for
+#' @param wlsize_col character length 1; the name of the column containing the volume waiting
+#' @param time_col character length 1; the name of the column containing the number of months waiting
+calc_percentile_at_week <- function(
+  wl_shape,
+  week,
+  wlsize_col = "wlsize",
+  time_col = "months_waited_id"
+) {
+  mnth <- convert_weeks_to_months(week)
+
+  remainder <- mnth %% 1
+
+  if (sum(wl_shape[[wlsize_col]]) != 0) {
+    if (mnth != 0) {
+      whole_months <- wl_shape |>
+        filter(!!rlang::sym(time_col) %in% 0:(floor(mnth) - 1)) |>
+        pull(!!rlang::sym(wlsize_col)) |>
+        sum()
+
+      remainder_months <- wl_shape |>
+        filter(!!rlang::sym(time_col) %in% floor(mnth)) |>
+        pull(!!rlang::sym(wlsize_col)) |>
+        (\(x) x * remainder)()
+      # whole_months <- sum(wl_shape[[wlsize_col]])[0:floor(mnth)]
+      # remainder_months <- remainder * wl_shape[[wlsize_col]][floor(mnth) + 1]
+
+      total_wl <- sum(wl_shape[[wlsize_col]])
+
+      perc_calc <- (whole_months + remainder_months) / total_wl
+    } else {
+      perc_calc <- 0
+    }
+  } else {
+    perc_calc <- NA
+  }
+
+  return(perc_calc)
 }
 
 #' @importFrom dplyr as_tibble filter pull
@@ -112,16 +220,17 @@ extract_pval <- function(lm_object, input_term) {
   return(p_val)
 }
 
-#' extracts the percentage value at the end of a string
+#' extracts the first percentage value in a string
 #' @noRd
 extract_percent <- function(text) {
-  match <- regmatches(text, regexpr("\\d+(\\.\\d+)?%$", text))
-  if (length(match) > 0 && match != "") {
-    return(
-      as.numeric(sub("%$", "", match))
-    )
+  # Use regular expression to find percentage values
+  matches <- regmatches(text, gregexpr("\\d+(\\.\\d+)?%", text))[[1]]
+
+  # Return the first match if any found
+  if (length(matches) > 0) {
+    return(as.numeric(gsub("%", "", matches[1])))
   } else {
-    return(numeric(0)) # Return empty numeric vector if no match
+    return(NA) # Return NA if no percentage found
   }
 }
 
@@ -148,6 +257,15 @@ convert_month_to_factor <- function(months_waited_id) {
     )
   )
   return(months_waited_factor)
+}
+
+convert_weeks_to_months <- function(wks) {
+  dys_in_year <- 365.25
+  mnths_in_year <- dys_in_year / 12
+
+  mnths <- wks * 7 / mnths_in_year
+
+  return(mnths)
 }
 
 #' Replaces values in a string vector with corresponding values from a named
@@ -524,9 +642,9 @@ latest_performance_text <- function(data) {
     ) |>
     mutate(
       text = paste0(
-        "The performance at ",
-        format(.data$period, '%b %y'),
-        " was ",
+        # "The performance at ",
+        format(.data$period, '%b %Y'),
+        ": ",
         format(
           100 * .data$prop,
           format = "f",
@@ -539,4 +657,297 @@ latest_performance_text <- function(data) {
     pull(.data$text)
 
   return(text)
+}
+
+#' @param data_source can be "upload" or "download"
+#' @noRd
+nov24_performance_text <- function(
+  data,
+  trust_parent_codes = NULL,
+  trust_codes = NULL,
+  commissioner_parent_codes = NULL,
+  commissioner_org_codes = NULL,
+  specialty_codes = NULL,
+  data_source
+) {
+  # november 2024 target ---------------------------------------------------
+
+  if (as.Date("2024-11-01") %in% data$period) {
+    nov_24_data <- data |>
+      dplyr::filter(
+        .data$period == as.Date("2024-11-01"),
+        .data$type == "Incomplete"
+      )
+  } else {
+    if (data_source == "download") {
+      shiny::withProgress(
+        message = "Downloading Nov 24 benchmarking data...",
+        value = 0,
+        {
+          nov_24_data <- NHSRtt::get_rtt_data(
+            date_start = as.Date("2024-11-01"),
+            date_end = as.Date("2024-11-01"),
+            trust_parent_codes = trust_parent_codes,
+            trust_codes = trust_codes,
+            commissioner_parent_codes = commissioner_parent_codes,
+            commissioner_org_codes = commissioner_org_codes,
+            specialty_codes = specialty_codes,
+          ) |>
+            filter(.data$type == "Incomplete") |>
+            dplyr::summarise(
+              value = sum(.data$value),
+              .by = c("period", "months_waited")
+            ) |>
+            mutate(
+              months_waited_id = NHSRtt::convert_months_waited_to_id(
+                .data$months_waited,
+                max_months_waited = 12
+              )
+            ) |>
+            dplyr::summarise(
+              value = sum(.data$value),
+              .by = c("period", "months_waited_id")
+            )
+          shiny::incProgress(1, detail = "Complete")
+        }
+      )
+    } else {
+      nov_24_data <- tibble(data = numeric())
+    }
+  }
+
+  if (nrow(nov_24_data) > 0) {
+    nov_24_benchmark <- nov_24_data |>
+      calc_performance(
+        target_bin = 4
+      ) |>
+      dplyr::pull(.data$prop)
+
+    nov_24_benchmark <- paste0(
+      "The performance at Nov 2024 was ",
+      format(
+        100 * nov_24_benchmark,
+        format = "f",
+        digits = 2,
+        nsmall = 1
+      ),
+      "%"
+    )
+  } else {
+    nov_24_benchmark <- ""
+  }
+
+  return(nov_24_benchmark)
+}
+
+#' @param data_source can be "upload" or "download"
+#' @noRd
+performance_text_planner <- function(
+  data,
+  trust_parent_codes = NULL,
+  trust_codes = NULL,
+  commissioner_parent_codes = NULL,
+  commissioner_org_codes = NULL,
+  specialty_codes = NULL,
+  data_source
+) {
+  nov_performance <- nov24_performance_text(
+    data,
+    trust_parent_codes = NULL,
+    trust_codes = NULL,
+    commissioner_parent_codes = NULL,
+    commissioner_org_codes = NULL,
+    specialty_codes = NULL,
+    data_source = data_source
+  )
+
+  latest_performance <- latest_performance_text(data)
+
+  performance_text <- paste0(
+    "<b>",
+    nov_performance,
+    "</b><br><small><p>",
+    latest_performance,
+    "</p></small>"
+  )
+
+  return(HTML(performance_text))
+}
+
+name_with_tooltip <- function(name, definition) {
+  wrap_hover_text <- function(text, width = 30) {
+    # Split the string into words
+    words <- unlist(strsplit(text, " "))
+    wrapped <- ""
+    line <- ""
+
+    for (word in words) {
+      # Check if adding the next word exceeds the width
+      if (nchar(line) + nchar(word) + 1 > width) {
+        # Add the current line to wrapped text
+        wrapped <- paste0(wrapped, line, "\n")
+        line <- word
+      } else {
+        # Add word to the current line
+        if (nchar(line) == 0) {
+          line <- word
+        } else {
+          line <- paste(line, word)
+        }
+      }
+    }
+
+    # Add the last line
+    wrapped <- paste0(wrapped, line)
+
+    return(wrapped)
+  }
+
+  wrapped_definition <- wrap_hover_text(
+    definition,
+    30
+  )
+
+  wrapped_definition <- gsub("^\\n", "", wrapped_definition)
+
+  withTags(
+    span(
+      name,
+      title = wrapped_definition,
+      class = "table-headers"
+    )
+  )
+}
+
+cell_colour <- function(currentval, lowval, midval, highval) {
+  # check each input length 1
+  if (!all(length(lowval) == 1, length(midval) == 1, length(highval) == 1)) {
+    stop("All inputs must be length 1")
+  }
+
+  # check each input is a named vector
+  if (
+    any(is.null(names(lowval)), is.null(names(midval)), is.null(names(highval)))
+  ) {
+    stop("All inputs must have a name")
+  }
+
+  # check all names are hex vals
+  pat <- "^#(0x|0X)?[a-fA-F0-9]+$"
+  if (
+    any(
+      !grepl(pat, names(lowval)),
+      !grepl(pat, names(midval)),
+      !grepl(pat, names(midval))
+    )
+  ) {
+    stop("All names must be hex value")
+  }
+
+  # Extract numeric values and hex color names
+  lv <- as.numeric(lowval)
+  lc <- names(lowval)
+  mv <- as.numeric(midval)
+  mc <- names(midval)
+  hv <- as.numeric(highval)
+  hc <- names(highval)
+
+  # Convert hex to RGB
+  hex_to_rgb <- function(hex) {
+    rgb <- grDevices::col2rgb(hex)
+    return(as.numeric(rgb))
+  }
+
+  # Interpolate between two RGB colors
+  interpolate_rgb <- function(val, val1, val2, col1, col2) {
+    ratio <- (val - val1) / (val2 - val1)
+    rgb1 <- hex_to_rgb(col1)
+    rgb2 <- hex_to_rgb(col2)
+    rgb_interp <- rgb1 + ratio * (rgb2 - rgb1)
+    rgb_interp <- pmax(0, pmin(255, rgb_interp)) # Clamp values
+    rgb_interp <- round(rgb_interp)
+
+    rgb_interp <- grDevices::rgb(
+      rgb_interp[1],
+      rgb_interp[2],
+      rgb_interp[3],
+      maxColorValue = 255
+    )
+
+    return(rgb_interp)
+  }
+
+  if (
+    any(
+      is.na(currentval),
+      is.na(lv),
+      is.na(mv),
+      is.infinite(currentval),
+      is.infinite(lv),
+      is.infinite(mv)
+    )
+  ) {
+    return("#a3a3a3ff")
+  } else {
+    # Determine which range to interpolate
+    if (currentval <= mv) {
+      return(interpolate_rgb(currentval, lv, mv, lc, mc))
+    } else {
+      return(interpolate_rgb(currentval, mv, hv, mc, hc))
+    }
+  }
+}
+
+
+definitions <- function() {
+  list(
+    "Treatment capacity" = "A 'clock stop' as a result of leaving the RTT pathway due to treatment, or for other reasons as described by section 4 of the document linked to at the top of the definitions page.",
+    "Renege" = "A 'clock stop' as a result of leaving the RTT pathway for reasons other than treatment. This could be because of inter-provider transfers, or a clock stop that was not captured in the data submissions, for example.",
+    "Referral" = "A 'clock start', when an RTT pathway begins.",
+    "RTT" = "Referral to Treatment. Here an RTT pathway specifies a time from clock start to clock stop.",
+    "Performance" = "The proportion of the RTT waiting list that have been waiting less than 18 weeks (four months).",
+    "Waiting list" = "The number of people that have been referred to treatment ('clock start'), but are yet to begin consultant-led treatment ('clock stop').",
+    "Skew" = "Adjust the capacity utilisation profile to focus more on longer waiters than shorter waiters (a skew value of greater than 1), or vice versa (a skew value of less than 1). In all scenarios, it is assumed the people waiting 0-1 months that are treated are 'urgent', and so the capacity utilisation for this group remains unchanged.",
+    "Capacity utilisation profile" = "The model calibration process calculates the average rate that people have been treated by the number of months they have been waiting. This is calculated for those waiting up to 1 month, all the way up to those waiting 12+ months. These rates are the 'capacity utilisation profile'.",
+    "18 week performance" = "The public data are published monthly, therefore permitting monthly modelling only. 18 weeks is, on average, 5 days less than 4 months. For ease of translating the tool into NHS target terms, the tool presents the 4 month performance as '18 weeks'.",
+    "Performance shortfall" = "The number of additional clock stops required to achieve a defined performance target. The clock stops would need to occur on pathways that are longer than the specified time that the target refers to.",
+    "Treatment profile" = "The distribution of total treatments by how long patients have waited.",
+    "Healthy waiting list" = "A situation where arrivals (referrals) are equal to departures (treatments plus reneges), a performance target is being met, and the proportion of departures that are reneges are consistent with recent proportions.",
+    "Target proportion" = "The proportion of people on a waiting list that have been waiting less than the 'target week'",
+    "Target week" = "The week that the 'target proportion' applies to",
+    "Target date" = "The date to achieve the target criteria by"
+  )
+}
+
+#' Provides a tooltip for words that have a definition
+#'
+#' @param label_text the text in the user interface that requires a
+#'   tooltip (it can be any case)
+#' @param label_lkp if the text in the user interface isn't directly
+#'   in the definitions, another string can be provided here to act
+#'   as the lookup
+#' @noRd
+tooltip_label <- function(label_text, label_lkp = NULL) {
+  defs <- definitions()
+  names(defs) <- tolower(names(defs))
+
+  if (is.null(label_lkp)) {
+    lookup_string <- label_text
+  } else {
+    lookup_string <- label_lkp
+  }
+
+  tt <- sprintf(
+    '<span title="%s" style="border-bottom: 1px dotted #999; cursor: help;">%s</span>',
+    defs[[tolower(lookup_string)]],
+    label_text
+  )
+
+  if (length(tt) == 1) {
+    tt <- HTML(tt)
+  } else {
+    tt <- label_text
+  }
+
+  return(tt)
 }
