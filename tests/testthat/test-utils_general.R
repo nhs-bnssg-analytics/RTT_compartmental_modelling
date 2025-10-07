@@ -122,6 +122,24 @@ test_that("replace_fun works", {
     c("a", "b", "c", "flow", "e", "f", "g", "junk"),
     info = "replace_fun works"
   )
+
+  expect_equal(
+    replace_fun(
+      string = "RFF",
+      replacement_vector = trust_lkp
+    ),
+    "BARNSLEY HOSPITAL NHS FOUNDATION TRUST",
+    info = "replace_fun works for Barnsley Trust"
+  )
+
+  expect_equal(
+    replace_fun(
+      "C_430",
+      treatment_function_codes
+    ),
+    "Elderly Medicine",
+    info = "replace_fun works for specialty"
+  )
 })
 
 test_that("local_enframe errors", {
@@ -393,7 +411,7 @@ test_that("extract_percent works", {
 
   expect_equal(
     extract_percent("This sentence finishes with 50"),
-    numeric(),
+    NA,
     info = "extract_percent works"
   )
 })
@@ -426,6 +444,320 @@ test_that("latest_performance_text works", {
     latest_performance_text(
       data = sample_data
     ),
-    "The performance at Dec 24 was 49.4%"
+    "Dec 2024: 49.4%"
+  )
+})
+
+test_that("latest_performance_text works", {
+  expect_equal(
+    nov24_performance_text(
+      data = sample_data,
+      data_source = "upload"
+    ),
+    "The performance at Nov 2024 was 50.8%"
+  )
+})
+
+test_that("performance_text_planner works", {
+  expect_equal(
+    performance_text_planner(
+      data = sample_data,
+      data_source = "upload"
+    ),
+    HTML(
+      "<b>The performance at Nov 2024 was 50.8%</b><br><small><p>Dec 2024: 49.4%</p></small>"
+    )
+  )
+})
+
+
+test_that("Valid interpolation returns expected color", {
+  lowval <- setNames(0, "#0000FF") # Blue
+  midval <- setNames(50, "#00FF00") # Green
+  highval <- setNames(100, "#FF0000") # Red
+
+  # Midpoint should return green
+  expect_equal(cell_colour(50, lowval, midval, highval), "#00FF00")
+
+  # Low end should return blue
+  expect_equal(cell_colour(0, lowval, midval, highval), "#0000FF")
+
+  # High end should return red
+  expect_equal(cell_colour(100, lowval, midval, highval), "#FF0000")
+
+  # Value between low and mid
+  expect_equal(
+    cell_colour(25, lowval, midval, highval),
+    rgb(0, 128, 128, maxColorValue = 255)
+  )
+
+  # Value between mid and high
+  expect_equal(
+    cell_colour(75, lowval, midval, highval),
+    rgb(128, 128, 0, maxColorValue = 255)
+  )
+})
+
+test_that("Error if any input is not length 1", {
+  expect_error(
+    cell_colour(
+      25,
+      c("a" = 0, "b" = 1),
+      midval = setNames(50, "#00FF00"),
+      highval = setNames(100, "#FF0000")
+    ),
+    "All inputs must be length 1"
+  )
+})
+
+test_that("Error if any input is unnamed", {
+  expect_error(
+    cell_colour(
+      25,
+      lowval = c(0),
+      midval = setNames(50, "#00FF00"),
+      highval = setNames(100, "#FF0000")
+    ),
+    "All inputs must have a name"
+  )
+})
+
+test_that("Error if any name is not a valid hex color", {
+  expect_error(
+    cell_colour(
+      25,
+      lowval = setNames(0, "blue"),
+      midval = setNames(50, "#00FF00"),
+      highval = setNames(100, "#FF0000")
+    ),
+    "All names must be hex value"
+  )
+})
+
+test_that("Interpolation clamps values correctly", {
+  lowval <- setNames(0, "#000000")
+  midval <- setNames(50, "#FFFFFF")
+  highval <- setNames(100, "#000000")
+
+  # Should not exceed RGB bounds
+  expect_true(grepl(
+    "^#[A-Fa-f0-9]{6}$",
+    cell_colour(25, lowval, midval, highval)
+  ))
+})
+
+
+test_that("Returns a span tag with correct class and title", {
+  result <- name_with_tooltip(
+    "Column Name",
+    "This is a definition that should wrap nicely at around thirty characters."
+  )
+
+  expect_s3_class(result, "shiny.tag")
+  expect_equal(result$name, "span")
+  expect_equal(result$attribs$class, "table-headers")
+  expect_equal(result$children[[1]], "Column Name")
+})
+
+test_that("Tooltip text is wrapped at approximately 30 characters", {
+  definition <- "This is a long definition that should be wrapped at the nearest whitespace to every 30 characters."
+  result <- name_with_tooltip("Test", definition)
+  wrapped <- result$attribs$title
+
+  # Check that wrapped text contains line breaks
+  expect_true(grepl("\n", wrapped))
+
+  # Check that no line exceeds 30 characters
+  lines <- unlist(strsplit(wrapped, "\n"))
+  expect_true(all(nchar(lines) <= 30))
+})
+
+test_that("Short definitions are not wrapped", {
+  definition <- "Short definition."
+  result <- name_with_tooltip("Test", definition)
+  wrapped <- result$attribs$title
+
+  expect_equal(wrapped, definition)
+})
+
+test_that("Single long word is not broken arbitrarily", {
+  definition <- "Supercalifragilisticexpialidocious"
+  result <- name_with_tooltip("Test", definition)
+  wrapped <- result$attribs$title
+
+  # Should not insert line breaks in the middle of a word
+  expect_false(grepl("\n", wrapped))
+  expect_equal(wrapped, definition)
+})
+
+
+test_that("Basic conversions are correct", {
+  expect_equal(
+    round(convert_weeks_to_months(4), 2),
+    round(4 * 7 / (365.25 / 12), 2)
+  )
+  expect_equal(
+    round(convert_weeks_to_months(52), 2),
+    round(52 * 7 / (365.25 / 12), 2)
+  ) # ~12 months
+})
+
+test_that("Zero weeks returns zero months", {
+  expect_equal(convert_weeks_to_months(0), 0)
+})
+
+test_that("Negative input returns negative months", {
+  expect_equal(
+    round(convert_weeks_to_months(-4), 2),
+    round(-4 * 7 / (365.25 / 12), 2)
+  )
+})
+
+test_that("Fractional weeks are handled correctly", {
+  expect_equal(
+    round(convert_weeks_to_months(2.5), 2),
+    round(2.5 * 7 / (365.25 / 12), 2)
+  )
+})
+
+test_that("Vectorized input returns correct vector of months", {
+  input <- c(1, 2, 3)
+  expected <- input * 7 / (365.25 / 12)
+  expect_equal(round(convert_weeks_to_months(input), 2), round(expected, 2))
+})
+
+
+test_that("calculates correct percentile for whole month", {
+  # Sample data frame for testing
+  sample_df <- data.frame(
+    months_waited_id = 0:5,
+    wlsize = c(10, 20, 30, 40, 50, 60)
+  )
+  result <- calc_percentile_at_week(sample_df, week = 8)
+  expect_equal(result, 0.127603402757407)
+})
+
+test_that("returns NA when total wlsize is zero", {
+  zero_df <- data.frame(
+    months_waited_id = 0:5,
+    wlsize = rep(0, 6)
+  )
+  result <- calc_percentile_at_week(zero_df, week = 10)
+  expect_true(is.na(result))
+})
+
+test_that("works with custom column names", {
+  # Sample data frame for testing
+  sample_df <- data.frame(
+    time = 0:5,
+    size = c(10, 20, 30, 40, 50, 60)
+  )
+  result <- calc_percentile_at_week(
+    sample_df,
+    week = 10,
+    wlsize_col = "size",
+    time_col = "time"
+  )
+  expect_type(result, "double")
+})
+
+test_that("returns 0 when week is 0", {
+  # Sample data frame for testing
+  sample_df <- data.frame(
+    months_waited_id = 0:5,
+    wlsize = c(10, 20, 30, 40, 50, 60)
+  )
+  result <- calc_percentile_at_week(sample_df, week = 0)
+  expect_equal(result, 0)
+})
+
+
+test_that("calc_shortfall returns correct shortfall calculation", {
+  test_data <- tibble(
+    period = rep("2025-09", 4),
+    months_waited_id = c(1, 2, 3, 4),
+    value = c(10, 20, 30, 40),
+    group = c("A", "A", "A", "A")
+  ) |>
+    group_by(group)
+
+  result <- calc_shortfall(test_data, target_bin = 3, target_performance = 0.8)
+
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("period", "group", "shortfall"))
+  expect_equal(nrow(result), 1)
+
+  # Manual calculation:
+  # wl_total = 100
+  # wl_above_target = 30 + 40 = 70
+  # shortfall = (70 - ((1 - 0.8) * 100)) / 0.8 = (70 - 20) / 0.8 = 62.5
+  expect_equal(result$shortfall, 62.5)
+})
+
+test_that("calc_shortfall throws error for invalid target_performance", {
+  test_data <- tibble(
+    period = "2025-09",
+    months_waited_id = 1,
+    value = 10
+  )
+
+  expect_error(
+    calc_shortfall(test_data, target_bin = 1, target_performance = -0.1),
+    "target_performance must be between 0 and 1"
+  )
+
+  expect_error(
+    calc_shortfall(test_data, target_bin = 1, target_performance = 1.5),
+    "target_performance must be between 0 and 1"
+  )
+})
+
+test_that("calc_shortfall throws error for invalid target_bin", {
+  test_data <- tibble(
+    period = "2025-09",
+    months_waited_id = c(1, 2),
+    value = c(10, 20)
+  )
+
+  expect_error(
+    calc_shortfall(test_data, target_bin = 5, target_performance = 0.5),
+    "target_bin not a valid month waited in the incompletes_data"
+  )
+})
+
+test_that("calc_shortfall respects grouping", {
+  test_data <- tibble(
+    period = rep("2025-09", 6),
+    months_waited_id = c(1, 2, 3, 1, 2, 3),
+    value = c(10, 20, 30, 5, 15, 25),
+    group = c("A", "A", "A", "B", "B", "B")
+  ) |>
+    group_by(group)
+
+  result <- calc_shortfall(test_data, target_bin = 2, target_performance = 0.5)
+
+  expect_equal(nrow(result), 2)
+  expect_true(all(result$group %in% c("A", "B")))
+})
+
+
+test_that("tooltip_label returns correct HTML with custom lookup", {
+  result <- tooltip_label("Fruit", label_lkp = "Waiting list")
+  expect_equal(
+    as.character(result),
+    "<span title=\"The number of people that have been referred to treatment ('clock start'), but are yet to begin consultant-led treatment ('clock stop').\" style=\"border-bottom: 1px dotted #999; cursor: help;\">Fruit</span>"
+  )
+
+  result <- tooltip_label("Waiting list")
+  expect_equal(
+    as.character(result),
+    "<span title=\"The number of people that have been referred to treatment ('clock start'), but are yet to begin consultant-led treatment ('clock stop').\" style=\"border-bottom: 1px dotted #999; cursor: help;\">Waiting list</span>"
+  )
+})
+
+test_that("tooltip_label handles missing definition", {
+  expect_equal(
+    tooltip_label("unknown"),
+    "unknown"
   )
 })

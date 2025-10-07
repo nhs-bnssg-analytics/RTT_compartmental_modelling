@@ -21,10 +21,25 @@ mod_01_introduction_ui <- function(id) {
           ),
 
           p(
-            "This tool projects future waiting list and associated performance metrics based on a model calibrated
-            on historical referral, treatment and reneging activity. By applying the calibrated model to referral
-            trajectories, the tool can help users make informed decisions to improve patient care
-            delivery and achieve NHS performance targets."
+            HTML(paste(
+              "This tool projects future",
+              tooltip_label("waiting list"),
+              "and associated",
+              tooltip_label("performance"),
+              "metrics based on a model calibrated
+            on historical",
+              tooltip_label("referral"),
+              ",",
+              tooltip_label("treatment", "treatment capacity"),
+              "and",
+              tooltip_label("reneging", "renege"),
+              "activity. By applying the calibrated model to",
+              tooltip_label("referral"),
+              "trajectories, the tool can help users make informed decisions to improve patient care
+            delivery and achieve NHS",
+              tooltip_label("performance"),
+              "targets."
+            ))
           ),
 
           p(HTML(
@@ -43,112 +58,7 @@ mod_01_introduction_ui <- function(id) {
           hr(),
 
           h3("How to use this tool"),
-          p(
-            "Navigate through the following sections using the tabs at the top of each page:"
-          ),
-
-          layout_column_wrap(
-            width = 1 / 3,
-            min_height = "600px",
-            # First column with title above card
-            div(
-              h5("Step 1"),
-              card(
-                card_header(
-                  h4(
-                    HTML("Calibrate the model (<em>Scenario planner</em>)")
-                  ),
-                  class = "intro-card"
-                ),
-                card_body(
-                  p(
-                    "Make selections of trust, specialty, and any associated commissioning groups."
-                  ),
-                  p(
-                    "Select the length of time that the calibration period should be."
-                  ),
-                  p(HTML("Hit the <em>Download</em> button."))
-                )
-              )
-            ),
-
-            # Second column with title above two stacked cards
-            div(
-              h5("Step 2"),
-              layout_column_wrap(
-                width = 1,
-                heights_equal = "row",
-                # style = css(grid_template_rows = "1fr 1fr"),
-                #   fill = FALSE,
-                #   fillable = FALSE,
-                #   p("Step 2"),
-                card(
-                  card_header(
-                    h4(
-                      HTML("Calculate performance (<em>Scenario planner</em>)")
-                    ),
-                    class = "intro-card"
-                  ),
-                  card_body(
-                    p(
-                      "Enter the forecast period and referrals projection information."
-                    ),
-                    p(HTML(
-                      "Select the scenario type <em>'Calculate performance (from treatment capacity inputs)'</em>."
-                    )),
-                    p(
-                      "Provide the treatment capacity information (along with skew settings)."
-                    ),
-                    p(HTML("Hit <em>'Calculate future performance'</em>."))
-                  )
-                ),
-
-                h5("...or..."),
-
-                card(
-                  card_header(
-                    h4(
-                      HTML(
-                        "Optimise treatment capacity (<em>Scenario planner</em>)"
-                      )
-                    ),
-                    class = "intro-card"
-                  ),
-                  card_body(
-                    p(
-                      "Enter the forecast period and referrals projection information."
-                    ),
-                    p(HTML(
-                      "Select the scenario type <em>'Calculate treatment capacity (from performance inputs)'</em>."
-                    )),
-                    p(
-                      "Provide the performance information (along with skew settings)."
-                    ),
-                    p(HTML("Hit <em>'Optimise treatment capacity'</em>."))
-                  )
-                )
-              )
-            ),
-
-            # Third column with title above card
-            div(
-              h5("Step 3"),
-              card(
-                card_header(
-                  h4(
-                    HTML("View results (<em>Results</em>)")
-                  ),
-                  class = "intro-card"
-                ),
-                card_body(
-                  p("View charts."),
-                  p("Download data."),
-                  p("Download report.")
-                )
-              )
-            )
-          ),
-
+          tableOutput(ns("overview_table")),
           hr(),
 
           h3("Future developments"),
@@ -159,16 +69,12 @@ mod_01_introduction_ui <- function(id) {
 
           tags$ul(
             tags$li(
-              tags$strong("Translate treatment capacity to activity:"),
+              tags$strong(HTML(paste(
+                "Translate",
+                tooltip_label("treatment capacity"),
+                "to activity:"
+              ))),
               " Apply national analaysis of pathways data to provide an estimate of the numbers and types of activity per treatment."
-            ),
-            tags$li(
-              tags$strong("Batch processing:"),
-              " Option of selecting multiple combinations of trust and specialty to process at once, to understand treatment capacity changes required to meet a performance target."
-            ),
-            tags$li(
-              tags$strong("Steady state:"),
-              " Provision of a gap analysis between the current waiting list and an optimal waiting list that is 'healthy', in steady state, and meeting performance targets."
             ),
             tags$li(
               tags$strong("Other:"),
@@ -186,11 +92,102 @@ mod_01_introduction_ui <- function(id) {
 }
 
 #' 01_introduction Server Functions
-#' @importFrom shiny updateTabsetPanel
+#' @importFrom shiny updateTabsetPanel renderTable
 #' @noRd
 mod_01_introduction_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
+    output$overview_table <- renderTable(
+      {
+        data.frame(
+          Objective = c(
+            paste(
+              "Understand how",
+              tooltip_label("treatment capacity"),
+              "impacts",
+              tooltip_label("performance")
+            ),
+            paste(
+              "Optimise short term",
+              tooltip_label("treatment capacity"),
+              "to meet a",
+              tooltip_label("performance"),
+              "target"
+            ),
+            paste(
+              "Understand how to get to a",
+              tooltip_label("healthy waiting list"),
+              "size and shape"
+            )
+          ),
+          Tab = c("Scenario planner", "Scenario planner", "Steady state"),
+          Description = c(
+            paste(
+              "Select trust(s) and specialty of interest, then download/upload data. ",
+              paste(
+                "Enter the forecast period and",
+                tooltip_label("referrals", "referral"),
+                "projection information."
+              ),
+              paste(
+                "Select the scenario type 'Calculate",
+                tooltip_label("performance"),
+                "(from",
+                tooltip_label("treatment capacity"),
+                "inputs)'."
+              ),
+              paste(
+                "Provide the",
+                tooltip_label("treatment capacity"),
+                "information (along with",
+                tooltip_label("skew"),
+                "settings)."
+              ),
+              "Hit 'Calculate future performance'.",
+              "View the results in the 'Results' tab.",
+              sep = "<br>"
+            ),
+            paste(
+              "Select trust(s) and specialty of interest, then download/upload data. ",
+              paste(
+                "Enter the forecast period and",
+                tooltip_label("referrals", "referral"),
+                "projection information."
+              ),
+              "Select the scenario type 'Calculate treatment capacity (from performance inputs)'.",
+              paste(
+                "Provide the",
+                tooltip_label("performance"),
+                "information (along with",
+                tooltip_label("skew"),
+                "settings)."
+              ),
+              "Hit 'Optimise treatment capacity'.",
+              "View the results in the 'Results' tab.",
+              sep = "<br>"
+            ),
+            paste(
+              "Select trusts and specialties of interest.",
+              paste(
+                "Enter",
+                tooltip_label("referrals", "referral"),
+                "scenarios."
+              ),
+              paste(
+                "Set the target data and",
+                tooltip_label("performance"),
+                "target."
+              ),
+              "Choose solution method and hit 'Batch Run'.",
+              sep = "<br>"
+            )
+          )
+        )
+      },
+      bordered = TRUE,
+      sanitize.text.function = identity
+    )
   })
 }
 

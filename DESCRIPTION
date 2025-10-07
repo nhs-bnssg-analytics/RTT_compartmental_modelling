@@ -3,7 +3,9 @@ Title: A Shiny App to support teams to plan to reduce waiting list times
 Version: 1.0.2.9000
 Authors@R: c(
     person("Seb", "Fox", , "sebastian.fox3@nhs.net", role = c("aut", "cre")),
-    person("Simon", "Wellesley-Miller", , "simon.wellesley-miller@nhs.net", role = "aut")
+    person("Simon", "Wellesley-Miller", , "simon.wellesley-miller@nhs.net", role = "aut"),
+    person("Nick", "Cooper", , "nick.cooper5@nhs.net", role = "aut"),
+    person("Euan", "Ives", , "euan.ives@nhs.net", role = "aut") 
   )
 Description: Ingests public NHS Referral to Treatment data and models
     historic relationships, allowing users to forecast future scenarios.
@@ -19,13 +21,15 @@ Imports:
     ggtext,
     golem (>= 0.4.1),
     lubridate,
-    NHSRtt (>= 0.2.3),
+    NHSRtt (>= 0.4.1),
     pkgload,
     purrr,
+    reactable,
     rlang,
     rmarkdown,
     scales,
     shiny (>= 1.8.1.1),
+    shinyWidgets,
     stats,
     tidyr,
     utils
@@ -40,5 +44,5 @@ Config/testthat/edition: 3
 Encoding: UTF-8
 Language: en-US
 LazyData: true
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 URL: https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/

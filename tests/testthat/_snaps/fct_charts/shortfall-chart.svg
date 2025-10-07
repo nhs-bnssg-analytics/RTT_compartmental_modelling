@@ -26,9 +26,12 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpNDkuOTJ8NzE0LjUyfDU3Ljg0fDUzNC44NA==)'>
-<polyline points='49.92,481.24 714.52,481.24 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='49.92,323.34 714.52,323.34 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='49.92,165.43 714.52,165.43 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,532.39 714.52,532.39 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,438.62 714.52,438.62 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,344.85 714.52,344.85 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,251.08 714.52,251.08 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,157.31 714.52,157.31 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,63.54 714.52,63.54 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='71.67,534.84 71.67,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='124.74,534.84 124.74,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='178.11,534.84 178.11,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
@@ -42,9 +45,11 @@
 <polyline points='603.83,534.84 603.83,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='657.48,534.84 657.48,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='710.85,534.84 710.85,57.84 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='49.92,402.29 714.52,402.29 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='49.92,244.38 714.52,244.38 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='49.92,86.47 714.52,86.47 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,485.51 714.52,485.51 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,391.74 714.52,391.74 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,297.97 714.52,297.97 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,204.20 714.52,204.20 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='49.92,110.42 714.52,110.42 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='98.21,534.84 98.21,57.84 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='151.28,534.84 151.28,57.84 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='204.93,534.84 204.93,57.84 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
@@ -60,13 +65,15 @@
 <line x1='258.59' y1='534.84' x2='258.59' y2='57.84' style='stroke-width: 1.07; stroke: #000000; stroke-opacity: 0.30; stroke-linecap: butt;' />
 <line x1='471.45' y1='534.84' x2='471.45' y2='57.84' style='stroke-width: 1.07; stroke: #000000; stroke-opacity: 0.30; stroke-linecap: butt;' />
 <line x1='684.31' y1='534.84' x2='684.31' y2='57.84' style='stroke-width: 1.07; stroke: #000000; stroke-opacity: 0.30; stroke-linecap: butt;' />
-<polyline points='80.13,79.52 98.21,79.52 98.21,396.92 115.71,396.92 115.71,495.44 133.78,495.44 133.78,513.16 151.28,513.16 151.28,390.30 169.36,390.30 169.36,177.73 187.44,177.73 187.44,323.19 204.93,323.19 204.93,353.67 223.01,353.67 223.01,438.12 240.51,438.12 240.51,342.92 258.59,342.92 258.59,193.85 276.66,193.85 276.66,378.59 292.99,378.59 292.99,378.59 ' style='stroke-width: 1.07; stroke-linecap: butt;' />
-<polyline points='292.99,355.61 311.07,355.61 311.07,344.08 328.57,344.08 328.57,320.15 346.65,320.15 346.65,312.33 364.14,312.33 364.14,321.46 382.22,321.46 382.22,317.82 400.30,317.82 400.30,313.10 417.80,313.10 417.80,312.72 435.87,312.72 435.87,310.18 453.37,310.18 453.37,309.36 471.45,309.36 471.45,310.51 489.53,310.51 489.53,312.22 505.86,312.22 505.86,314.54 523.94,314.54 523.94,317.51 541.43,317.51 541.43,321.09 559.51,321.09 559.51,325.44 577.01,325.44 577.01,330.43 595.08,330.43 595.08,335.95 613.16,335.95 613.16,341.91 630.66,341.91 630.66,348.33 648.74,348.33 648.74,355.15 666.23,355.15 666.23,362.35 684.31,362.35 684.31,362.35 ' style='stroke-width: 1.07; stroke: #0000FF; stroke-dasharray: 5.69,5.69; stroke-linecap: butt;' />
+<polyline points='80.13,79.52 98.21,79.52 98.21,171.40 115.71,171.40 115.71,209.76 133.78,209.76 133.78,231.05 151.28,231.05 151.28,339.18 169.36,339.18 169.36,273.09 187.44,273.09 187.44,379.42 204.93,379.42 204.93,513.16 223.01,513.16 223.01,414.74 240.51,414.74 240.51,394.06 258.59,394.06 258.59,402.87 276.66,402.87 276.66,448.33 292.99,448.33 292.99,448.33 ' style='stroke-width: 1.07; stroke-linecap: butt;' />
+<polyline points='292.99,374.95 311.07,374.95 311.07,457.78 328.57,457.78 328.57,383.10 346.65,383.10 346.65,304.00 364.14,304.00 364.14,317.85 382.22,317.85 382.22,315.76 400.30,315.76 400.30,312.46 417.80,312.46 417.80,314.56 435.87,314.56 435.87,315.00 453.37,315.00 453.37,315.76 471.45,315.76 471.45,320.04 489.53,320.04 489.53,325.04 505.86,325.04 505.86,329.19 523.94,329.19 523.94,333.51 541.43,333.51 541.43,336.95 559.51,336.95 559.51,340.44 577.01,340.44 577.01,344.77 595.08,344.77 595.08,349.73 613.16,349.73 613.16,355.08 630.66,355.08 630.66,360.88 648.74,360.88 648.74,366.99 666.23,366.99 666.23,373.38 684.31,373.38 684.31,373.38 ' style='stroke-width: 1.07; stroke: #0000FF; stroke-dasharray: 5.69,5.69; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
-<text x='44.99' y='405.32' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='26.92px' lengthAdjust='spacingAndGlyphs'>28,000</text>
-<text x='44.99' y='247.41' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='26.92px' lengthAdjust='spacingAndGlyphs'>29,000</text>
-<text x='44.99' y='89.50' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='26.92px' lengthAdjust='spacingAndGlyphs'>30,000</text>
+<text x='44.99' y='488.54' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='26.92px' lengthAdjust='spacingAndGlyphs'>10,000</text>
+<text x='44.99' y='394.77' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='26.92px' lengthAdjust='spacingAndGlyphs'>10,500</text>
+<text x='44.99' y='300.99' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='26.92px' lengthAdjust='spacingAndGlyphs'>11,000</text>
+<text x='44.99' y='207.22' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='26.92px' lengthAdjust='spacingAndGlyphs'>11,500</text>
+<text x='44.99' y='113.45' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='26.92px' lengthAdjust='spacingAndGlyphs'>12,000</text>
 <text x='98.21' y='545.83' text-anchor='middle' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='13.70px' lengthAdjust='spacingAndGlyphs'>Apr</text>
 <text x='98.21' y='555.33' text-anchor='middle' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='19.58px' lengthAdjust='spacingAndGlyphs'>2024</text>
 <text x='151.28' y='545.83' text-anchor='middle' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='11.25px' lengthAdjust='spacingAndGlyphs'>Jul</text>
@@ -95,41 +102,39 @@
 <text x='49.92' y='30.35' style='font-size: 11.00px; font-weight: bold; font-family: sans;' textLength='47.70px' lengthAdjust='spacingAndGlyphs'>Observed</text>
 <text x='100.68' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='18.35px' lengthAdjust='spacingAndGlyphs'>and</text>
 <text x='122.09' y='30.35' style='font-size: 11.00px; font-weight: bold; fill: #0000FF; font-family: sans;' textLength='45.26px' lengthAdjust='spacingAndGlyphs'>projected</text>
-<text x='173.46' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='34.24px' lengthAdjust='spacingAndGlyphs'>waiting</text>
-<text x='210.76' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='13.44px' lengthAdjust='spacingAndGlyphs'>list</text>
-<text x='227.26' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='22.62px' lengthAdjust='spacingAndGlyphs'>size:</text>
-<text x='252.94' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='18.95px' lengthAdjust='spacingAndGlyphs'>Mar</text>
-<text x='274.94' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='45.88px' lengthAdjust='spacingAndGlyphs'>2024-Jan</text>
-<text x='323.87' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='24.47px' lengthAdjust='spacingAndGlyphs'>2027</text>
-<text x='49.92' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='49.53px' lengthAdjust='spacingAndGlyphs'>Optimised</text>
-<text x='102.50' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='46.47px' lengthAdjust='spacingAndGlyphs'>treatment</text>
-<text x='152.03' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='40.37px' lengthAdjust='spacingAndGlyphs'>capacity</text>
-<text x='195.45' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='19.56px' lengthAdjust='spacingAndGlyphs'>with</text>
-<text x='218.07' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='6.12px' lengthAdjust='spacingAndGlyphs'>a</text>
-<text x='227.24' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='45.86px' lengthAdjust='spacingAndGlyphs'>utilisation</text>
-<text x='276.16' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='25.07px' lengthAdjust='spacingAndGlyphs'>skew</text>
-<text x='304.29' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='27.52px' lengthAdjust='spacingAndGlyphs'>factor</text>
-<text x='334.86' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='9.17px' lengthAdjust='spacingAndGlyphs'>of</text>
-<text x='347.09' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='6.12px' lengthAdjust='spacingAndGlyphs'>1</text>
-<text x='356.26' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='9.17px' lengthAdjust='spacingAndGlyphs'>to</text>
-<text x='368.49' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='37.92px' lengthAdjust='spacingAndGlyphs'>achieve</text>
-<text x='409.47' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='6.12px' lengthAdjust='spacingAndGlyphs'>a</text>
-<text x='418.64' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='28.13px' lengthAdjust='spacingAndGlyphs'>target</text>
-<text x='449.83' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='9.17px' lengthAdjust='spacingAndGlyphs'>of</text>
-<text x='462.06' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='31.19px' lengthAdjust='spacingAndGlyphs'>57.1%</text>
-<text x='496.31' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='20.78px' lengthAdjust='spacingAndGlyphs'>(Apr</text>
-<text x='520.15' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='28.14px' lengthAdjust='spacingAndGlyphs'>2026)</text>
-<text x='551.34' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='9.17px' lengthAdjust='spacingAndGlyphs'>of</text>
-<text x='563.57' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='38.53px' lengthAdjust='spacingAndGlyphs'>patients</text>
-<text x='605.15' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='23.86px' lengthAdjust='spacingAndGlyphs'>seen</text>
-<text x='632.07' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='28.12px' lengthAdjust='spacingAndGlyphs'>within</text>
-<text x='663.25' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='12.24px' lengthAdjust='spacingAndGlyphs'>18</text>
-<text x='678.54' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='31.19px' lengthAdjust='spacingAndGlyphs'>weeks</text>
+<text x='173.46' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='62.98px' lengthAdjust='spacingAndGlyphs'>Performance</text>
+<text x='239.50' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='38.52px' lengthAdjust='spacingAndGlyphs'>shortfall</text>
+<text x='281.07' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='25.68px' lengthAdjust='spacingAndGlyphs'>(92%</text>
+<text x='309.81' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='34.24px' lengthAdjust='spacingAndGlyphs'>waiting</text>
+<text x='347.11' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='19.57px' lengthAdjust='spacingAndGlyphs'>less</text>
+<text x='369.73' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='21.41px' lengthAdjust='spacingAndGlyphs'>than</text>
+<text x='394.20' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='6.12px' lengthAdjust='spacingAndGlyphs'>4</text>
+<text x='403.37' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='42.80px' lengthAdjust='spacingAndGlyphs'>months):</text>
+<text x='449.23' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='18.95px' lengthAdjust='spacingAndGlyphs'>Mar</text>
+<text x='471.23' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='45.88px' lengthAdjust='spacingAndGlyphs'>2024-Jan</text>
+<text x='520.17' y='30.35' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='24.47px' lengthAdjust='spacingAndGlyphs'>2027</text>
+<text x='49.92' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='62.98px' lengthAdjust='spacingAndGlyphs'>Performance</text>
+<text x='115.96' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='29.98px' lengthAdjust='spacingAndGlyphs'>based</text>
+<text x='148.99' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='12.24px' lengthAdjust='spacingAndGlyphs'>on</text>
+<text x='164.29' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='6.12px' lengthAdjust='spacingAndGlyphs'>a</text>
+<text x='173.46' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='36.68px' lengthAdjust='spacingAndGlyphs'>uniform</text>
+<text x='213.20' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='46.47px' lengthAdjust='spacingAndGlyphs'>treatment</text>
+<text x='262.73' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='40.37px' lengthAdjust='spacingAndGlyphs'>capacity</text>
+<text x='306.15' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='36.10px' lengthAdjust='spacingAndGlyphs'>change</text>
+<text x='345.30' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='9.17px' lengthAdjust='spacingAndGlyphs'>of</text>
+<text x='357.53' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='15.90px' lengthAdjust='spacingAndGlyphs'>5%</text>
+<text x='376.48' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='19.56px' lengthAdjust='spacingAndGlyphs'>with</text>
+<text x='399.10' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='6.12px' lengthAdjust='spacingAndGlyphs'>a</text>
+<text x='408.28' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='45.86px' lengthAdjust='spacingAndGlyphs'>utilisation</text>
+<text x='457.19' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='25.07px' lengthAdjust='spacingAndGlyphs'>skew</text>
+<text x='485.32' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='27.52px' lengthAdjust='spacingAndGlyphs'>factor</text>
+<text x='515.89' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='9.17px' lengthAdjust='spacingAndGlyphs'>of</text>
+<text x='528.12' y='40.22' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='6.12px' lengthAdjust='spacingAndGlyphs'>1</text>
 <text x='49.92' y='50.08' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='44.63px' lengthAdjust='spacingAndGlyphs'>Referrals</text>
-<text x='97.61' y='50.08' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='34.85px' lengthAdjust='spacingAndGlyphs'>linearly</text>
-<text x='135.51' y='50.08' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<text x='180.16' y='50.08' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='11.62px' lengthAdjust='spacingAndGlyphs'>by</text>
-<text x='194.84' y='50.08' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='15.90px' lengthAdjust='spacingAndGlyphs'>3%</text>
+<text x='97.61' y='50.08' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='44.63px' lengthAdjust='spacingAndGlyphs'>uniformly</text>
+<text x='145.29' y='50.08' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
+<text x='189.94' y='50.08' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='11.62px' lengthAdjust='spacingAndGlyphs'>by</text>
+<text x='204.62' y='50.08' style='font-size: 11.00px; fill: #425563; font-family: sans;' textLength='15.90px' lengthAdjust='spacingAndGlyphs'>3%</text>
 <text x='49.92' y='14.56' style='font-size: 13.20px; font-weight: bold; font-family: sans;' textLength='51.37px' lengthAdjust='spacingAndGlyphs'>Example</text>
 <text x='104.96' y='14.56' style='font-size: 13.20px; font-weight: bold; font-family: sans;' textLength='25.68px' lengthAdjust='spacingAndGlyphs'>trust</text>
 <text x='134.30' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='3.67px' lengthAdjust='spacingAndGlyphs'>:</text>

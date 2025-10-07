@@ -1,0 +1,290 @@
+---
+title: "Steady state calculations"
+subtitle: "`r paste0('RTT Planner v', packageVersion('RTTshiny'))`"
+author: "https://connect.strategyunitwm.nhs.uk/rtt_compartmental_modelling/"
+date: "`r paste('Created on', format(Sys.Date(), '%d %B %Y'))`"
+output: 
+  powerpoint_presentation:
+    reference_doc: !expr system.file("rmarkdown", "templates", "steady-state", "skeleton", "nhs-template.pptx", package = "RTTshiny")
+params:
+  optimised_wl: NULL
+  optimised_projections: NULL
+  target_week: NULL
+  target_value: NULL
+  settings: NULL
+  method: NULL
+---
+
+
+```{r}
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(echo = FALSE)
+
+```
+
+
+```{r}
+#| label: libraries
+#| message: false
+#| warning: false
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(NHSRtt)
+library(lubridate)
+library(RTTshiny)
+```
+
+
+## Introduction
+
+```{r}
+#| label: method-text
+
+if (params$method == "mean") {
+  method_text <- "an average"
+} else if (params$method == "median") {
+  method_text <- "the median"
+} else if (params$method == "latest") {
+  method_text <- "the latest"
+}
+```
+
+:::::: {.columns}
+::: {.column}
+The following results for steady-state satisfy the three simultaneous requirements:
+
+1. Arrivals (referrals) is equal to departures (treatments plus reneges).
+2. The waiting list structure satisfies the target percentage waiting described in the table opposite.
+3. The proportion of departures that are reneges is equal to (or as close to) the median proportion observed for each trust-specialty combination over the last 12 months
+
+The profile of how treatments are distributed across the waiting list is based on the treatment distribution observed over the last 12 months, taking `r method_text` distribution for the period.
+
+:::
+
+::: {.column}
+
+```{r}
+#| label: settings
+
+knitr::kable(params$settings)
+```
+
+:::
+::::::
+
+
+```{r}
+#| label: steady-state-charts
+#| results: 'asis'
+#| fig-height: 9
+#| fig-width: 20
+#| warning: false
+for (i in seq_len(nrow(params$optimised_wl))) {
+
+  current_data <- params$optimised_wl |> 
+    dplyr::slice(i)
+
+  title <- paste0(
+    current_data$trust,
+    "; ",
+    current_data$specialty,
+    " (",
+    current_data$referrals_scenario,
+    ")"
+  )
+
+  cat(paste("##", title, "\n\n"))
+
+  ss_chart <- current_data |>
+    tidyr::pivot_longer(
+      cols = c(
+        "steady_state_waiting_list",
+        "previous_waiting_list"
+      ),
+      names_to = "wl_type",
+      values_to = "wl_data"
+    ) |>
+    tidyr::unnest("wl_data") |>
+    mutate(
+      wl_description = factor(
+        .data$wl_description,
+        levels = c(
+          format(
+            max(.data$period, na.rm = TRUE) %m-% months(12),
+            format = "%b %Y"
+          ),
+          format(max(.data$period, na.rm = TRUE), format = "%b %Y"),
+          "Steady state"
+        )
+      )
+    ) |>
+    plot_waiting_lists_chart(
+      target_week = params$target_week,
+      target_value = params$target_value
+    )
+  
+  results_tbl <- params$optimised_projections |> 
+    dplyr::slice(i) |> 
+    dplyr::select(!c("trust", "specialty")) |>
+    dplyr::rename(
+      dplyr::any_of(
+        c(
+          "Current demand" = "referrals_t1",
+          "Current treatment capacity" = "capacity_t1",
+          "Current reneges" = "reneges_t0",
+          "Current load" = "load",
+          "Current waiting list size" = "incompletes_t0",
+          "Current pressure" = "pressure",
+          "Demand scenario" = "referrals_scenario",
+          "Do nothing demand" = "referrals_counterf",
+          "Do nothing treatment capacity" = "capacity_counterf",
+          "Do nothing reneges" = "reneges_counterf",
+          "Do nothing waiting list size" = "incompletes_counterf",
+          "Do nothing performance" = "perf_counterf",
+          "Steady state demand" = "referrals_ss",
+          "Steady state treatment capacity" = "capacity_ss",
+          "Steady state reneges" = "reneges_ss",
+          "Steady state waiting list size" = "incompletes_ss",
+          "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
+          "Additional monthly removals required" = "monthly_removals"
+        )
+      )
+    ) 
+
+  cat(paste("Current / steady state waiting list size:", round(results_tbl$`Current / steady state waiting list size`, 1),"\n\n"))
+  cat(paste("Additional monthly removals required:", round(results_tbl$`Additional monthly removals required`, 1), "\n\n"))
+
+  capitalise_first <- function(vec) {
+    sapply(vec, function(x) {
+      if (nchar(x) == 0) return(x)
+      paste0(toupper(substr(x, 1, 1)), tolower(substr(x, 2, nchar(x))))
+    })
+  }
+  
+  current_results <- results_tbl |> 
+    dplyr::select(starts_with("Current")) |> 
+    dplyr::select(!c("Current / steady state waiting list size")) |> 
+    dplyr::rename_with(
+      \(x) capitalise_first(gsub("Current ", "", x))
+    ) |> 
+    mutate(Performance = "") |> 
+    mutate(Scenario = "Current",
+      .before = dplyr::everything())
+  
+  do_nothing_results <- results_tbl |> 
+    dplyr::select(starts_with("Do nothing")) |> 
+    dplyr::rename_with(
+      \(x) capitalise_first(gsub("Do nothing ", "", x))
+    ) |> 
+    mutate(Performance = paste0(formatC(Performance * 100, format = "f", digits = 1), "%")) |> 
+    mutate(Scenario = "Do nothing",
+      .before = dplyr::everything())
+  
+  steady_state_results <- results_tbl |> 
+    dplyr::select(starts_with("Steady state")) |> 
+    dplyr::rename_with(
+      \(x) capitalise_first(gsub("Steady state ", "", x))
+    ) |> 
+    mutate(Performance = "") |> 
+    mutate(Scenario = "Steady state",
+      .before = dplyr::everything())
+  
+  current_results |> 
+    dplyr::bind_rows(
+      do_nothing_results,
+      steady_state_results
+    ) |> 
+    tidyr::pivot_longer(
+      cols = c("Demand", "Treatment capacity", "Reneges", "Load", "Waiting list size", "Pressure", "Performance"),
+      names_to = "metric",
+      values_to = "val",
+      values_transform = \(x) ifelse(grepl("%$", x), x, formatC(x, format = "f", digits = 1, big.mark = ","))
+    ) |> 
+    tidyr::pivot_wider(
+      names_from = Scenario,
+      values_from = val,
+      values_fn = \(x) ifelse(x == "NA", "", x)
+    ) |> 
+    rename("Scenario" = "metric") |> 
+    flextable::flextable() |>  
+    flextable::width(j = "Scenario", width = 1.5) |> 
+    flextable::align(align = "right", part = "all") |> 
+    flextable::flextable_to_rmd()
+  
+  print(ss_chart)
+  cat("\n\n")
+  
+}
+```
+
+
+
+```{r}
+#| label: summary
+#| results: 'asis'
+
+full_table <- params$optimised_projections |> 
+  dplyr::relocate(referrals_scenario, .after = specialty) |> 
+  dplyr::rename(
+    dplyr::any_of(
+      c(
+        "Trust" = "trust",
+        "Specialty" = "specialty",
+        "Demand scenario" = "referrals_scenario",
+        "Current_Demand" = "referrals_t1",
+        "Current_Treatment capacity" = "capacity_t1",
+        "Current_Reneges" = "reneges_t0",
+        "Current_Load" = "load",
+        "Current_Waiting list size" = "incompletes_t0",
+        "Current_Pressure" = "pressure",
+        "Do nothing_Demand" = "referrals_counterf",
+        "Do nothing_Treatment capacity" = "capacity_counterf",
+        "Do nothing_Reneges" = "reneges_counterf",
+        "Do nothing_Waiting list size" = "incompletes_counterf",
+        "Do nothing_Performance" = "perf_counterf",
+        "Steady state_Demand" = "referrals_ss",
+        "Steady state_Treatment capacity" = "capacity_ss",
+        "Steady state_Reneges" = "reneges_ss",
+        "Steady state_Waiting list size" = "incompletes_ss",
+        "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
+        "Additional monthly removals required" = "monthly_removals"
+      )
+    )
+  ) |> 
+  mutate(`Trust` = gsub(" NHS| FOUNDATION| TRUST| HEALTHCARE", "", `Trust`),
+    `Trust` = tools::toTitleCase(tolower(`Trust`))) |> 
+  mutate(`Do nothing_Performance` = paste0(formatC(`Do nothing_Performance` * 100, format = "f", digits = 1), "%"))
+
+# chunk up the results to prevent them spilling over the bottom of the slide
+  chunk_size <- 7
+  split_tbl <- split(full_table, ceiling(seq_len(nrow(full_table)) / chunk_size))
+
+for (i in seq_len(length((split_tbl)))) {
+  cat("## Summary\n\n")
+  out <- split_tbl[[i]] |> 
+    flextable::flextable() |>  
+    flextable::separate_header() |> 
+    flextable::colformat_double(
+      big.mark = ",", digits = 1
+    ) |> 
+    flextable::align(align = "right", part = "body") |> 
+    flextable::fontsize(size = 8, part = "all") |> 
+    flextable::vline(j = c(3, 9, 14, 18)) |> 
+    flextable::border_outer() |> 
+    flextable::width(width = 30 / 20, unit = "cm") |>
+    flextable::theme_vanilla() |>
+    flextable::bg(part = "header", bg = "#002060") |> 
+    flextable::color(part = "header", color = "white") |>
+    flextable::bold(part = "header", bold = TRUE)
+
+  out |> 
+    flextable::bg(i = seq(1, nrow(split_tbl[[i]]), 2), bg = "#CCD2D8") |>  
+    flextable::bg(i = seq(2, nrow(split_tbl[[i]]), 2), bg = "#E7EAED") |>  
+    flextable::color(i = seq(1, nrow(split_tbl[[i]])), color = "black")
+}
+  
+
+```
