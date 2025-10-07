@@ -277,31 +277,91 @@ append_steady_state <- function(
   percentile,
   target_time,
   s_given,
-  method
+  method,
+  tolerance = 0.03
 ) {
-  # convert weeks input to months
-  target_time <- convert_weeks_to_months(target_time)
+  if (is.na(target)) {
+    output <- dplyr::tibble(
+      capacity_ss = 0,
+      reneges_ss = 0,
+      incompletes_ss = 0,
+      wl_ss = list(
+        data.frame(
+          months_waited_id = 0:12,
+          r = rep(0, 13),
+          service = rep(0, 13),
+          sigma = rep(0, 13),
+          wlsize = rep(0, 13)
+        )
+      )
+    )
+  } else {
+    # convert weeks input to months
+    target_time <- convert_weeks_to_months(target_time)
 
-  results <- NHSRtt::optimise_steady_state(
-    referrals = referrals,
-    target = target,
-    renege_params = renege_params,
-    percentile = percentile,
-    target_time = target_time,
-    s_given = s_given,
-    method = method
-  )
+    results <- NHSRtt::optimise_steady_state(
+      referrals = referrals,
+      target = target,
+      renege_params = renege_params,
+      percentile = percentile,
+      target_time = target_time,
+      s_given = s_given,
+      method = method
+    )
+    # assign results to best_results in case the first iteration has the lower mae
+    # (as best_results won't be updated then)
+    best_results <- results
 
-  output <- dplyr::tibble(
-    capacity_ss = results$mu,
-    reneges_ss = referrals - results$mu,
-    incompletes_ss = results$wlsize,
-    wl_ss = list(results$waiting_list)
-  )
+    # compare s_given with modelled s
+
+    s_modelled <- results$waiting_list$sigma / results$mu
+    acc <- mean(abs(s_given - s_modelled)) # mae
+    # acc <- mean(abs(s_given - s_modelled) / s_given) # mape
+
+    min_acc <- acc
+    increment <- 0.01
+
+    while (acc > tolerance & target > 0) {
+      target <- target - increment
+      results <- NHSRtt::optimise_steady_state(
+        referrals = referrals,
+        target = target,
+        renege_params = renege_params,
+        percentile = percentile,
+        target_time = target_time,
+        s_given = s_given,
+        method = method
+      )
+
+      s_modelled <- results$waiting_list$sigma / results$mu
+      acc <- mean(abs(s_given - s_modelled)) # mae
+      # acc <- mean(abs(s_given - s_modelled) / s_given) # mape
+      if (any(!is.nan(s_modelled))) {
+        if (acc < min_acc) {
+          min_acc <- acc
+          best_results <- results
+        }
+      } else {
+        break
+      }
+    }
+
+    if (is.na(acc)) {
+      results <- best_results
+    } else if (acc >= tolerance) {
+      results <- best_results
+    }
+
+    output <- dplyr::tibble(
+      capacity_ss = results$mu,
+      reneges_ss = referrals - results$mu,
+      incompletes_ss = results$wlsize,
+      wl_ss = list(results$waiting_list)
+    )
+  }
 
   return(output)
 }
-
 
 append_counterfactual <- function(
   capacity,

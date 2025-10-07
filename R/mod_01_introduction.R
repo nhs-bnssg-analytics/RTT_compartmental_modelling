@@ -54,7 +54,11 @@ mod_01_introduction_ui <- function(id) {
 
           tags$ul(
             tags$li(
-              tags$strong("Translate treatment capacity to activity:"),
+              tags$strong(HTML(paste(
+                "Translate",
+                tooltip_label("treatment capacity"),
+                "to activity:"
+              ))),
               " Apply national analaysis of pathways data to provide an estimate of the numbers and types of activity per treatment."
             ),
             tags$li(

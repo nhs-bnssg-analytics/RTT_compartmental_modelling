@@ -739,3 +739,25 @@ test_that("calc_shortfall respects grouping", {
   expect_equal(nrow(result), 2)
   expect_true(all(result$group %in% c("A", "B")))
 })
+
+
+test_that("tooltip_label returns correct HTML with custom lookup", {
+  result <- tooltip_label("Fruit", label_lkp = "Waiting list")
+  expect_equal(
+    as.character(result),
+    "<span title=\"The number of people that have been referred to treatment ('clock start'), but are yet to begin consultant-led treatment ('clock stop').\" style=\"border-bottom: 1px dotted #999; cursor: help;\">Fruit</span>"
+  )
+
+  result <- tooltip_label("Waiting list")
+  expect_equal(
+    as.character(result),
+    "<span title=\"The number of people that have been referred to treatment ('clock start'), but are yet to begin consultant-led treatment ('clock stop').\" style=\"border-bottom: 1px dotted #999; cursor: help;\">Waiting list</span>"
+  )
+})
+
+test_that("tooltip_label handles missing definition", {
+  expect_equal(
+    tooltip_label("unknown"),
+    "unknown"
+  )
+})

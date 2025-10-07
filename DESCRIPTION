@@ -21,7 +21,7 @@ Imports:
     ggtext,
     golem (>= 0.4.1),
     lubridate,
-    NHSRtt (>= 0.4.0),
+    NHSRtt (>= 0.4.1),
     pkgload,
     purrr,
     reactable,

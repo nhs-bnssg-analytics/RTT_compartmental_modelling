@@ -149,6 +149,10 @@ aggregate_and_format_raw_data <- function(
       )
   }
 
+  if (is.null(selected_specialties)) {
+    selected_specialties <- unname(treatment_function_codes)
+  }
+
   data <- data |>
     summarise(
       value = sum(.data$value),

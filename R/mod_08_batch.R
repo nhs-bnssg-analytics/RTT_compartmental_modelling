@@ -83,14 +83,19 @@ mod_08_batch_ui <- function(id) {
       selected = "nhs_only",
       inline = TRUE
     ),
-    selectizeInput(
-      inputId = ns("specialty_codes"),
-      label = "Select specialties",
-      choices = unname(treatment_function_codes),
+    pickerInput(
+      ns("specialty_codes"),
+      "Specialties:",
+      choices = sort(unname(treatment_function_codes)),
       options = list(
-        placeholder = "Select one or more"
+        `actions-box` = TRUE,
+        `selected-text-format` = "count",
+        `count-selected-text` = "{0} Selections (on a total of {1})",
+        `live-search` = TRUE,
+        `size` = 15 # Show max 15 items at once in dropdown
       ),
-      multiple = TRUE # Enabled
+      selected = NULL,
+      multiple = TRUE
     ),
     layout_columns(
       col_widths = c(8, 4),
@@ -170,33 +175,19 @@ mod_08_batch_ui <- function(id) {
         type = "dark"
       ),
       radioButtons(
-        inputId = ns("ss_method"),
-        label = span(
-          "Chose solution method based on:",
-          tooltip(
-            shiny::icon("info-circle"),
-            shiny::HTML(
-              paste0(
-                "Theoretically, there are an infinite number of solutions that can achieve steady state ",
-                "(e.g., where referrals are equal to the sum of treatments and reneges) by varying the volume of treatment,",
-                " and the profile of how the treatment is applied across the waiting list.<br>",
-                "A single solution can be identified in two ways:<br><br>",
-                "<strong>Treatments:</strong> ",
-                "selected solution is as close to the current treatment capacity as possible.",
-                "This can result in a larger waiting list size, which can have knock on effects of additional healthcare requirements.<br><br>",
-                "<strong>Renege rates:</strong> ",
-                "the proportion or people reneging out of the total people leaving the waiting list is similar to the national rate for that specialty",
-                " when the 92% target was last met (or the best historic performance if this never happened)."
-              )
-            ),
-            placement = "right"
-          )
-        ),
+        inputId = ns("s_given_method"),
+
+        label = HTML(paste(
+          "Constrain the solution on the",
+          tooltip_label("treatment profile"),
+          "over the last 12 months, basing it on the:"
+        )),
         choices = list(
-          Treatments = "treatments",
-          `Renege rates` = "renege_rates"
+          Average = "mean",
+          Median = "median",
+          Latest = "latest"
         ),
-        selected = "renege_rates"
+        selected = "mean"
       )
     )
   )
@@ -397,6 +388,37 @@ mod_08_batch_server <- function(id) {
               filter(trust %in% input$selectedtrusts) |>
               filter(specialty %in% c(input$specialty_codes))
 
+            # calculate targets
+            targets <- raw_data |>
+              calibrate_parameters(
+                max_months_waited = 12,
+                redistribute_m0_reneges = FALSE,
+                referrals_uplift = NULL,
+                full_breakdown = TRUE,
+                allow_negative_params = TRUE
+              ) |>
+              dplyr::select("trust", "specialty", "params") |>
+              tidyr::unnest("params") |>
+              dplyr::mutate(
+                reneges = case_when(
+                  .data$reneges < 0 & .data$months_waited_id == 0 ~ 0,
+                  .default = .data$reneges
+                )
+              ) |>
+              summarise(
+                renege_proportion = sum(.data$reneges) /
+                  (sum(.data$reneges) + sum(.data$treatments)),
+                .by = c("trust", "specialty", "period_id")
+              ) |>
+              summarise(
+                renege_proportion = median(
+                  .data$renege_proportion,
+                  na.rm = TRUE
+                ),
+                .by = c("trust", "specialty")
+              )
+
+            # browser()
             # the latest month of data to use for calibrating the models
             max_download_date <- max(raw_data$period)
 
@@ -442,7 +464,7 @@ mod_08_batch_server <- function(id) {
             s_given <- calculate_s_given(
               data = raw_data,
               max_months_waited = 12,
-              method = "mean"
+              method = input$s_given_method
             )
 
             shiny::withProgress(
@@ -459,9 +481,9 @@ mod_08_batch_server <- function(id) {
                   ) |>
                   # add historic renege rates by specialty
                   left_join(
-                    target_renege_proportions |>
-                      dplyr::select("specialty", "renege_proportion"),
-                    by = "specialty"
+                    targets |>
+                      dplyr::select("trust", "specialty", "renege_proportion"),
+                    by = c("trust", "specialty")
                   ) |>
                   # calculate steady state demand
                   mutate(
@@ -469,19 +491,7 @@ mod_08_batch_server <- function(id) {
                       ((.data$referrals_t1 * .data$referral_change / 100) *
                         forecast_months /
                         12),
-                    target = case_when(
-                      input$ss_method == "treatments" ~
-                        ifelse(
-                          .data$capacity_t1 > .data$referrals_ss,
-                          0,
-                          # holding the proportion of treatments of the total departures the same
-                          # should result in the same number of treatments as the current number
-                          1 - (.data$capacity_t1 / .data$referrals_ss)
-                        ),
-                      input$ss_method == "renege_rates" ~
-                        .data$renege_proportion,
-                      .default = NA_real_
-                    ),
+                    target = .data$renege_proportion,
                     ss_calcs = purrr::pmap(
                       list(
                         ref_ss = .data$referrals_ss,
@@ -498,8 +508,8 @@ mod_08_batch_server <- function(id) {
                           percentile = input$target_value / 100,
                           target_time = input$target_week,
                           s_given = s,
-                          # method =
-                          method = "lp"
+                          method = "lp",
+                          tolerance = 0.005
                         )
 
                         shiny::incProgress(
@@ -1043,7 +1053,8 @@ mod_08_batch_server <- function(id) {
               style = "padding: 16px;",
               plotOutput(
                 outputId = ns(paste0("plot_wl", index)),
-                height = "600px"
+                height = "600px",
+                width = "1200px"
               )
             )
           },
@@ -1209,7 +1220,8 @@ mod_08_batch_server <- function(id) {
               )
             )
           ) |>
-            dplyr::filter(!is.na(.data$Value))
+            dplyr::filter(!is.na(.data$Value)),
+          method = input$s_given_method
         )
 
         rmarkdown::render(

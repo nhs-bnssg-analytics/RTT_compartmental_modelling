@@ -604,254 +604,269 @@ plot_waiting_lists_chart <- function(
   target_week,
   target_value
 ) {
-  percentile_calculation <- data |>
-    select(
-      "trust",
-      "specialty",
-      "referrals_scenario",
-      "wl_description",
-      "months_waited_id",
-      "wlsize"
-    ) |>
-    mutate(wlsize = tidyr::replace_na(.data$wlsize, 0)) |>
-    tidyr::nest(wl_shape = c("months_waited_id", "wlsize")) |>
-    mutate(
-      target_percentile = purrr::map_dbl(
-        .data$wl_shape,
-        ~ NHSRtt::hist_percentile_calc(
-          wl_structure = .x,
-          percentile = target_value / 100
-        )
-      ),
-      percentile_at_target = purrr::map_dbl(
-        .data$wl_shape,
-        ~ calc_percentile_at_week(
-          wl_shape = .x,
-          week = target_week
-        )
-      ),
-      percentile_between_target_week_and_target_percentile = (target_value /
-        100) -
-        .data$percentile_at_target,
-      percentile_above_target_value = 1 -
-        (.data$percentile_at_target +
-          .data$percentile_between_target_week_and_target_percentile),
-      percentile_between_target_week_and_target_percentile = case_when(
-        round(.data$percentile_between_target_week_and_target_percentile, 1) ==
-          0 ~
-          NA_real_,
-        .default = .data$percentile_between_target_week_and_target_percentile
-      ),
-      facet_join = "Incomplete"
-    ) |>
-    select(!c("wl_shape"))
-
-  segment_y = -max(data$wlsize) * 0.05
-  text_y = -max(data$wlsize) * 0.1
-
-  segment_data <- percentile_calculation |>
-    dplyr::cross_join(
-      dplyr::tibble(
-        status = factor(
-          c("Within", "Between", "Above"),
-          levels = c("Within", "Between", "Above")
-        )
-      )
-    ) |>
-    mutate(
-      x_start = case_when(
-        .data$status == "Within" ~ -0.5,
-        .data$status == "Between" ~ convert_weeks_to_months(target_week) - 0.5,
-        .data$status == "Above" ~
-          ifelse(
-            .data$target_percentile - 0.5 <
-              convert_weeks_to_months(target_week) - 0.5,
-            convert_weeks_to_months(target_week) - 0.5,
-            .data$target_percentile - 0.5
-          ),
-      ),
-      x_end = case_when(
-        .data$status == "Within" ~ convert_weeks_to_months(target_week) - 0.5,
-        .data$status == "Between" ~
-          ifelse(
-            .data$target_percentile - 0.5 < .data$x_start,
-            .data$x_start,
-            .data$target_percentile - 0.5
-          ),
-        .data$status == "Above" ~ 12 + 0.5
-      ),
-      x_label = (.data$x_start + .data$x_end) / 2,
-      y_label = text_y,
-      label = case_when(
-        .data$status == "Within" ~
-          paste0(
-            formatC(100 * .data$percentile_at_target, format = "f", digits = 1),
-            "%",
-            " (",
-            target_week,
-            " weeks)"
-          ),
-        .data$status == "Between" ~
-          ifelse(
-            is.na(.data$percentile_between_target_week_and_target_percentile) |
-              .data$percentile_between_target_week_and_target_percentile < 0,
-            NA_character_,
-            paste0(
-              formatC(
-                100 *
-                  .data$percentile_between_target_week_and_target_percentile,
-                format = "f",
-                digits = 1
-              ),
-              "%"
-            )
-          ),
-        .data$status == "Above" ~
-          ifelse(
-            .data$percentile_at_target == 1,
-            "0.0%",
-            paste0(
-              formatC(
-                100 * .data$percentile_above_target_value,
-                format = "f",
-                digits = 1
-              ),
-              "%"
-            )
-          )
-      ),
-      y_start_end = segment_y
-    )
-
-  rect_data <- segment_data |>
-    select("wl_description", "facet_join", "status", "x_end", "x_start") |>
-    mutate(facet_join = "Treatment") |>
-    bind_rows(segment_data)
-
-  p <- data |>
-    pivot_longer(
-      cols = c("wlsize", "sigma"),
-      names_to = "facet_join",
-      names_transform = \(x) {
-        case_when(
-          x == "wlsize" ~ "Incomplete",
-          x == "sigma" ~ "Treatment"
-        ) |>
-          factor(levels = c("Incomplete", "Treatment"))
-      },
-      values_to = "value"
-    ) |>
-    left_join(
-      percentile_calculation,
-      by = c(
+  if (sum(data[["wlsize"]]) == 0) {
+    p <- ggplot() +
+      theme_void()
+  } else {
+    percentile_calculation <- data |>
+      select(
         "trust",
         "specialty",
         "referrals_scenario",
         "wl_description",
-        "facet_join"
+        "months_waited_id",
+        "wlsize"
+      ) |>
+      mutate(wlsize = tidyr::replace_na(.data$wlsize, 0)) |>
+      tidyr::nest(wl_shape = c("months_waited_id", "wlsize")) |>
+      mutate(
+        target_percentile = purrr::map_dbl(
+          .data$wl_shape,
+          ~ NHSRtt::hist_percentile_calc(
+            wl_structure = .x,
+            percentile = target_value / 100
+          )
+        ),
+        percentile_at_target = purrr::map_dbl(
+          .data$wl_shape,
+          ~ calc_percentile_at_week(
+            wl_shape = .x,
+            week = target_week
+          )
+        ),
+        percentile_between_target_week_and_target_percentile = (target_value /
+          100) -
+          .data$percentile_at_target,
+        percentile_above_target_value = 1 -
+          (.data$percentile_at_target +
+            .data$percentile_between_target_week_and_target_percentile),
+        percentile_between_target_week_and_target_percentile = case_when(
+          round(
+            .data$percentile_between_target_week_and_target_percentile,
+            1
+          ) ==
+            0 ~
+            NA_real_,
+          .default = .data$percentile_between_target_week_and_target_percentile
+        ),
+        facet_join = "Incomplete"
+      ) |>
+      select(!c("wl_shape"))
+
+    segment_y = -max(data$wlsize) * 0.05
+    text_y = -max(data$wlsize) * 0.1
+
+    segment_data <- percentile_calculation |>
+      dplyr::cross_join(
+        dplyr::tibble(
+          status = factor(
+            c("Within", "Between", "Above"),
+            levels = c("Within", "Between", "Above")
+          )
+        )
+      ) |>
+      mutate(
+        x_start = case_when(
+          .data$status == "Within" ~ -0.5,
+          .data$status == "Between" ~
+            convert_weeks_to_months(target_week) - 0.5,
+          .data$status == "Above" ~
+            ifelse(
+              .data$target_percentile - 0.5 <
+                convert_weeks_to_months(target_week) - 0.5,
+              convert_weeks_to_months(target_week) - 0.5,
+              .data$target_percentile - 0.5
+            ),
+        ),
+        x_end = case_when(
+          .data$status == "Within" ~ convert_weeks_to_months(target_week) - 0.5,
+          .data$status == "Between" ~
+            ifelse(
+              .data$target_percentile - 0.5 < .data$x_start,
+              .data$x_start,
+              .data$target_percentile - 0.5
+            ),
+          .data$status == "Above" ~ 12 + 0.5
+        ),
+        x_label = (.data$x_start + .data$x_end) / 2,
+        y_label = text_y,
+        label = case_when(
+          .data$status == "Within" ~
+            paste0(
+              formatC(
+                100 * .data$percentile_at_target,
+                format = "f",
+                digits = 1
+              ),
+              "%",
+              " (",
+              target_week,
+              " weeks)"
+            ),
+          .data$status == "Between" ~
+            ifelse(
+              is.na(
+                .data$percentile_between_target_week_and_target_percentile
+              ) |
+                .data$percentile_between_target_week_and_target_percentile < 0,
+              NA_character_,
+              paste0(
+                formatC(
+                  100 *
+                    .data$percentile_between_target_week_and_target_percentile,
+                  format = "f",
+                  digits = 1
+                ),
+                "%"
+              )
+            ),
+          .data$status == "Above" ~
+            ifelse(
+              .data$percentile_at_target == 1,
+              "0.0%",
+              paste0(
+                formatC(
+                  100 * .data$percentile_above_target_value,
+                  format = "f",
+                  digits = 1
+                ),
+                "%"
+              )
+            )
+        ),
+        y_start_end = segment_y
       )
-    ) |>
-    ggplot(
-      aes(
-        x = .data$months_waited_id,
-        y = .data$value
-      )
-    ) +
-    geom_rect(
-      data = rect_data,
-      aes(
-        xmin = .data$x_start,
-        xmax = .data$x_end,
-        fill = .data$status
-      ),
-      inherit.aes = FALSE,
-      ymin = 0,
-      ymax = Inf,
-      color = NA,
-      alpha = 0.6
-    ) +
-    geom_col(
-      fill = "#a3a3a3ff",
-      colour = "black"
-    ) +
-    geom_segment(
-      data = segment_data,
-      aes(
-        x = .data$x_start,
-        xend = .data$x_end,
-        colour = .data$status,
-        y = .data$y_start_end,
-        yend = .data$y_start_end
-      ),
-      linewidth = 1,
-      show.legend = FALSE
-    ) +
-    geom_text(
-      data = segment_data,
-      aes(
-        x = .data$x_label,
-        y = .data$y_label,
-        colour = .data$status,
-        label = .data$label
-      ),
-      show.legend = FALSE
-    ) +
-    geom_segment(
-      data = percentile_calculation,
-      aes(
-        x = .data$target_percentile - 0.5,
-        xend = .data$target_percentile - 0.5,
-        y = 0,
-        yend = Inf
-      ),
-      linetype = "dashed"
-    ) +
-    geom_text(
-      data = percentile_calculation,
-      aes(x = .data$target_percentile - 0.5),
-      y = Inf,
-      angle = 90,
-      label = paste0(target_value, "%ile"),
-      vjust = 1.5,
-      hjust = 1.5
-    ) +
-    theme_bw(base_size = 15) +
-    labs(
-      x = "In the nth month of waiting",
-      y = "Number of people"
-    ) +
-    facet_grid(
-      cols = vars(.data$wl_description),
-      rows = vars(.data$facet_join),
-      scales = "free_y",
-      switch = "y"
-    ) +
-    scale_x_continuous(
-      breaks = 0:12,
-      labels = \(x) ifelse(x == max(x), paste0(x + 1, "+"), x + 1)
-    ) +
-    scale_colour_manual(
-      name = "",
-      values = c(
-        Within = "#009E73",
-        Between = "#E69F00",
-        Above = "#D55E00"
-      )
-    ) +
-    scale_fill_manual(
-      name = "Percentage of patients waiting",
-      values = c(
-        Within = "#009E73",
-        Between = "#E69F00",
-        Above = "#D55E00"
-      ),
-      labels = c(
-        Within = "Within the target timeframe",
-        Between = "Between the target timeframe\nand the target percentile",
-        Above = "Longer than the target percentile"
-      )
-    ) +
-    theme(legend.position = "bottom")
+
+    rect_data <- segment_data |>
+      select("wl_description", "facet_join", "status", "x_end", "x_start") |>
+      mutate(facet_join = "Treated") |>
+      bind_rows(segment_data)
+
+    p <- data |>
+      pivot_longer(
+        cols = c("wlsize", "sigma"),
+        names_to = "facet_join",
+        names_transform = \(x) {
+          case_when(
+            x == "wlsize" ~ "Incomplete",
+            x == "sigma" ~ "Treated"
+          ) |>
+            factor(levels = c("Incomplete", "Treated"))
+        },
+        values_to = "value"
+      ) |>
+      left_join(
+        percentile_calculation,
+        by = c(
+          "trust",
+          "specialty",
+          "referrals_scenario",
+          "wl_description",
+          "facet_join"
+        )
+      ) |>
+      ggplot(
+        aes(
+          x = .data$months_waited_id,
+          y = .data$value
+        )
+      ) +
+      geom_rect(
+        data = rect_data,
+        aes(
+          xmin = .data$x_start,
+          xmax = .data$x_end,
+          fill = .data$status
+        ),
+        inherit.aes = FALSE,
+        ymin = 0,
+        ymax = Inf,
+        color = NA,
+        alpha = 0.6
+      ) +
+      geom_col(
+        fill = "#a3a3a3ff",
+        colour = "black"
+      ) +
+      geom_segment(
+        data = segment_data,
+        aes(
+          x = .data$x_start,
+          xend = .data$x_end,
+          colour = .data$status,
+          y = .data$y_start_end,
+          yend = .data$y_start_end
+        ),
+        linewidth = 1,
+        show.legend = FALSE
+      ) +
+      geom_text(
+        data = segment_data,
+        aes(
+          x = .data$x_label,
+          y = .data$y_label,
+          colour = .data$status,
+          label = .data$label
+        ),
+        show.legend = FALSE
+      ) +
+      geom_segment(
+        data = percentile_calculation,
+        aes(
+          x = .data$target_percentile - 0.5,
+          xend = .data$target_percentile - 0.5,
+          y = 0,
+          yend = Inf
+        ),
+        linetype = "dashed"
+      ) +
+      geom_text(
+        data = percentile_calculation,
+        aes(x = .data$target_percentile - 0.5),
+        y = Inf,
+        angle = 90,
+        label = paste0(target_value, "%ile"),
+        vjust = 1.5,
+        hjust = 1.5
+      ) +
+      theme_bw(base_size = 15) +
+      labs(
+        x = "In the nth month of waiting",
+        y = "Number of people"
+      ) +
+      facet_grid(
+        cols = vars(.data$wl_description),
+        rows = vars(.data$facet_join),
+        scales = "free_y",
+        switch = "y"
+      ) +
+      scale_x_continuous(
+        breaks = 0:12,
+        labels = \(x) ifelse(x == max(x), paste0(x + 1, "+"), x + 1)
+      ) +
+      scale_colour_manual(
+        name = "",
+        values = c(
+          Within = "#009E73",
+          Between = "#E69F00",
+          Above = "#D55E00"
+        )
+      ) +
+      scale_fill_manual(
+        name = "Percentage of patients waiting",
+        values = c(
+          Within = "#009E73",
+          Between = "#E69F00",
+          Above = "#D55E00"
+        ),
+        labels = c(
+          Within = "Within the target timeframe",
+          Between = "Between the target timeframe\nand the target percentile",
+          Above = "Longer than the target percentile"
+        )
+      ) +
+      theme(legend.position = "bottom")
+  }
 
   return(p)
 }

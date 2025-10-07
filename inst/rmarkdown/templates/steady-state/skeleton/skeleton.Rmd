@@ -12,6 +12,7 @@ params:
   target_week: NULL
   target_value: NULL
   settings: NULL
+  method: NULL
 ---
 
 
@@ -39,13 +40,27 @@ library(RTTshiny)
 
 ## Introduction
 
+```{r}
+#| label: method-text
+
+if (params$method == "mean") {
+  method_text <- "an average"
+} else if (params$method == "median") {
+  method_text <- "the median"
+} else if (params$method == "latest") {
+  method_text <- "the latest"
+}
+```
+
 :::::: {.columns}
 ::: {.column}
 The following results for steady-state satisfy the three simultaneous requirements:
 
 1. Arrivals (referrals) is equal to departures (treatments plus reneges).
 2. The waiting list structure satisfies the target percentage waiting described in the table opposite.
-3. The proportion of departures that are reneges is equal to ...
+3. The proportion of departures that are reneges is equal to (or as close to) the median proportion observed for each trust-specialty combination over the last 12 months
+
+The profile of how treatments are distributed across the waiting list is based on the treatment distribution observed over the last 12 months, taking `r method_text` distribution for the period.
 
 :::
 
@@ -261,15 +276,14 @@ for (i in seq_len(length((split_tbl)))) {
     flextable::border_outer() |> 
     flextable::width(width = 30 / 20, unit = "cm") |>
     flextable::theme_vanilla() |>
-    flextable::bg(part = "header", bg = "#002060") |>  # Navy blue
+    flextable::bg(part = "header", bg = "#002060") |> 
     flextable::color(part = "header", color = "white") |>
     flextable::bold(part = "header", bold = TRUE)
 
   out |> 
     flextable::bg(i = seq(1, nrow(split_tbl[[i]]), 2), bg = "#CCD2D8") |>  
     flextable::bg(i = seq(2, nrow(split_tbl[[i]]), 2), bg = "#E7EAED") |>  
-    flextable::color(i = seq(1, nrow(split_tbl[[i]])), color = "black") |> 
-    flextable::flextable_to_rmd()
+    flextable::color(i = seq(1, nrow(split_tbl[[i]])), color = "black")
 }
   
 
