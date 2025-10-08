@@ -693,7 +693,8 @@ mod_03_results_server <- function(id, r) {
                   p_referrals_change_type = r$chart_specification$referrals_change_type,
                   p_perc = percentage_axis,
                   p_facet = include_facets,
-                  p_target_line = include_target_line
+                  p_target_line = include_target_line #,
+                  # p_facet_scales = input$facet_scales
                 )
               }
             }
@@ -707,13 +708,13 @@ mod_03_results_server <- function(id, r) {
     output$results_ui <- renderUI({
       # browser()
       if (reactive_data$show_table == TRUE) {
-        DTOutput(
+        final_ui <- DTOutput(
           ns("results_table")
         )
       } else {
         # if no button has been selected then display results_plot
         if (is.null(reactive_data$btn_val)) {
-          plotOutput(
+          final_ui <- plotOutput(
             ns("results_plot"),
             click = shiny::clickOpts(
               id = ns("plot_click")
@@ -722,19 +723,37 @@ mod_03_results_server <- function(id, r) {
           )
         } else {
           # if calculating performance from capacity inputs then we need to show the editing options
+
+          plot <- plotOutput(
+            ns("results_plot"),
+            click = shiny::clickOpts(
+              id = ns("plot_click")
+            ),
+            height = "600px"
+          )
+
+          res <- div(
+            class = "label-left",
+            sliderInput(
+              inputId = ns("chart_res"),
+              label = "Select chart resolution (pixels per inch)",
+              min = 72,
+              max = 144,
+              value = 96,
+              step = 8
+            )
+          )
           if (
             r$chart_specification$scenario_type ==
               "Estimate performance (from treatment capacity inputs)"
           ) {
+            edit <- actionButton(
+              ns("edit_data"),
+              "Edit input data",
+              class = "btn-primary"
+            )
             if (reactive_data$btn_val == "btn_shortfall") {
-              div(
-                plotOutput(
-                  ns("results_plot"),
-                  click = shiny::clickOpts(
-                    id = ns("plot_click")
-                  ),
-                  height = "600px"
-                ),
+              shortfall_options <- div(
                 layout_columns(
                   col_widths = c(3, 1, -8),
                   span(
@@ -760,75 +779,30 @@ mod_03_results_server <- function(id, r) {
                     icon = list(NULL, shiny::icon("percent")),
                     size = "sm"
                   )
-                ),
-                div(
-                  class = "label-left",
-                  sliderInput(
-                    inputId = ns("chart_res"),
-                    label = "Select chart resolution (pixels per inch)",
-                    min = 72,
-                    max = 144,
-                    value = 96,
-                    step = 8
-                  )
-                ),
-                actionButton(
-                  ns("edit_data"),
-                  "Edit input data",
-                  class = "btn-primary"
                 )
               )
+              final_ui <- div(
+                plot,
+                shortfall_options,
+                res,
+                edit
+              )
             } else {
-              div(
-                plotOutput(
-                  ns("results_plot"),
-                  click = shiny::clickOpts(
-                    id = ns("plot_click")
-                  ),
-                  height = "600px"
-                ),
-                div(
-                  class = "label-left",
-                  sliderInput(
-                    inputId = ns("chart_res"),
-                    label = "Select chart resolution (pixels per inch)",
-                    min = 72,
-                    max = 144,
-                    value = 96,
-                    step = 8
-                  ),
-                  actionButton(
-                    ns("edit_data"),
-                    "Edit input data",
-                    class = "btn-primary"
-                  )
-                )
+              final_ui <- div(
+                plot,
+                res,
+                edit
               )
             }
           } else {
-            div(
-              plotOutput(
-                ns("results_plot"),
-                click = shiny::clickOpts(
-                  id = ns("plot_click")
-                ),
-                height = "600px"
-              ),
-              div(
-                class = "label-left",
-                sliderInput(
-                  inputId = ns("chart_res"),
-                  label = "Select chart resolution (pixels per inch)",
-                  min = 72,
-                  max = 144,
-                  value = 96,
-                  step = 8
-                )
-              )
+            final_ui <- div(
+              plot,
+              res
             )
           }
         }
       }
+      final_ui
     })
 
     # Show modal when edit button is clicked
