@@ -522,11 +522,12 @@ plot_error <- function(modelled_data, observed_data) {
     ) +
     geom_text(
       x = observed_dates[1],
-      y = Inf,
-      label = "For error calculation, model calibration period is shaded in grey",
+      y = 0,
+      label = "For error calculation:\nModel calibration period is shaded in grey",
       hjust = 0,
-      vjust = 2,
-      inherit.aes = FALSE
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      size = 4
     ) +
     geom_step(
       aes(
@@ -563,7 +564,8 @@ plot_error <- function(modelled_data, observed_data) {
         colour = "black"
       ),
       legend.position = "bottom"
-    )
+    ) +
+    ylim(0, NA)
 
   return(p)
 }
@@ -836,7 +838,7 @@ plot_waiting_lists_chart <- function(
         linewidth = 2,
         colour = "#ecd447ff"
       ) +
-      geom_errorbarh(
+      geom_errorbar(
         data = ss_lines,
         aes(
           xmin = .data$months_waited_id - 0.4,
@@ -845,7 +847,8 @@ plot_waiting_lists_chart <- function(
         ),
         width = 0,
         linewidth = 0.5,
-        colour = "#000b9eff"
+        colour = "#000b9eff",
+        orientation = "y"
       ) +
       geom_segment(
         data = segment_data,

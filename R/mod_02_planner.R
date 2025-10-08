@@ -792,46 +792,29 @@ mod_02_planner_server <- function(id, r) {
     observeEvent(
       input$accuracy_info_modal,
       {
-        if (grepl("%$", reactive_values$error_calc)) {
-          error_text <- paste(
-            "The model error metric is the mean absolute percentage error (MAPE).",
-            "To calculate this, the calibration data is divided in half based on the months of data included.",
-            "The model parameters are calculated based on the first half of the data.",
-            "These model parameters are then applied to the second half of the data, using the observed referrals and treatment capacity as the inputs for that period.",
-            "The number of people waiting, and how long they have been waiting, is then calculated for each period.",
-            "This is then compared to the observed waiting list, and the MAPE is calculated.",
-            "MAPE can be interpreted as the average percentage error between the observed waiting list and the modelled waiting list.",
-            "A lower MAPE indicates a more accurate model.",
-            sep = "<br>"
-          )
-        } else {
-          error_text <- paste(
-            "The model error metric is the mean absolute error (MAE).",
-            "To calculate this, the calibration data is divided in half based on the months of data included.",
-            "The model parameters are calculated based on the first half of the data.",
-            "These model parameters are then applied to the second half of the data, using the observed referrals and treatment capacity as the inputs for that period.",
-            "The number of people waiting, and how long they have been waiting, is then calculated for each period.",
-            "This is then compared to the observed waiting list, and the MAE is calculated.",
-            "MAE can be interpreted as the average absolute error between the observed waiting list and the modelled waiting list.",
-            "A lower MAE indicates a more accurate model.",
-            sep = "<br>"
-          )
-        }
-
+        error_text <- paste0(
+          "The model error metric is the mean absolute error (MAE) followed by the mean absolute percentage error (MAPE) if it is possible to calculate it. To calculate this:",
+          paste0(
+            "<ol><li>The calibration data is divided in half based on the months of data included.</li>",
+            "<li>The model parameters are calculated based on the first half of the data.</li>",
+            "<li>These model parameters are then applied to the second half of the data, using the observed referrals and treatment capacity as the inputs for that period.</li>",
+            "<li>The number of people waiting, and how long they have been waiting, is then calculated for each period.</li>",
+            "<li>This is then compared to the observed waiting list.</li></ol>"
+          ),
+          "MAE can be interpreted as the average absolute error between the observed waiting list and the modelled waiting list.<br>",
+          "MAPE can be interpreted as the average percentage error between the observed waiting list and the modelled waiting list.<br>",
+          "A lower MAE and MAPE indicates a more accurate model."
+        )
         showModal(
           modalDialog(
             title = "Model error",
             size = "l", # large modal
             span(
-              style = "font-size: 70%;",
+              style = "font-size: 0.85rem;",
               # include text that is wrapped after every sentence
-              HTML(
-                paste(
-                  error_text,
-                  "<br><br>",
-                  "The chart below is calculated from the modelled and observed waiting list counts, aggregated to calculate performance."
-                )
-              ),
+              HTML(error_text),
+              hr(),
+              "The chart below is calculated from the modelled and observed waiting list counts, aggregated to calculate performance.",
               plotOutput(
                 ns("error_plot"),
                 height = 500
@@ -839,11 +822,12 @@ mod_02_planner_server <- function(id, r) {
               HTML(paste(
                 "<br>",
                 "<strong>Caution</strong> must be exercised when interpreting the model error metric.",
-                "The model error can be affected by many things, including:",
+                "The model error can be affected by:",
                 # start bullet points
                 "<ul>",
-                "<li>Small numbers - this can lead to noisy monthly data, making the model error metric less accurate</li>",
-                "<li>Operational changes over the time period can mean the model parameters will not reflect the reality of the underpinning processes</li>",
+                "<li>Small numbers can lead to noisy monthly data, making the model error metric higher.</li>",
+                "<li>Operational changes over the time period can mean the model parameters will not reflect the reality of the underpinning processes.</li>",
+                "<li>If there is seasonal variation in the data and winter data, for example, is being used to project for the summer - this can increase the error metric.</li>",
                 "</ul>"
                 # end bullet points
               ))
@@ -857,9 +841,14 @@ mod_02_planner_server <- function(id, r) {
 
     # create error plot to show the performance predictions vs observe for the calibration period --------
 
-    output$error_plot <- renderPlot({
-      reactive_values$error_plot
-    })
+    output$error_plot <- renderPlot(
+      {
+        reactive_values$error_plot
+      },
+      # width = 700,
+      # height = 450,
+      res = 96
+    )
 
     # download complete symbol ------------------------------------------------
 

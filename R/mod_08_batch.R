@@ -191,7 +191,7 @@ mod_08_batch_ui <- function(id) {
         label = HTML(paste(
           "Base the",
           tooltip_label("treatment profile"),
-          "in the solution to a treatment profile seen in over the last 12 months, using the:"
+          "in the solution on a treatment profile seen in over the last 12 months, using the:"
         )),
         choices = list(
           Average = "mean",

@@ -93,3 +93,7 @@ p.steady-state-body {
 .shiny-options-group {
   font-size: 0.9rem; 
 }
+
+.input-group-sm>.form-control {
+  font-size: 0.9rem;   
+}

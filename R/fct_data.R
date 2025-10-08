@@ -612,29 +612,36 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
 #'   absolute error (if any of the original values are 0 in the waiting list)
 #' @noRd
 error_calc <- function(data) {
-  if (any(data$original == 0)) {
-    error <- data |>
-      summarise(
-        mae = mean(
-          abs(.data$original - .data$modelled_incompletes),
-          na.rm = TRUE
-        )
-      ) |>
-      pull(.data$mae) |>
-      # round to two decimal places and turn into a percentage
-      (\(x) as.character(round(x, 2)))()
+  error <- data |>
+    summarise(
+      mae = format(
+        round(
+          mean(
+            abs(.data$original - .data$modelled_incompletes),
+            na.rm = TRUE
+          ),
+          2
+        ),
+        nsmall = 2,
+        big.mark = ","
+      ),
+      mape = mean(
+        abs(.data$original - .data$modelled_incompletes) / .data$original,
+        na.rm = TRUE
+      ) *
+        100
+    )
+
+  if (is.infinite(error$mape)) {
+    error <- error$mae
   } else {
-    error <- data |>
-      summarise(
-        mape = mean(
-          abs(.data$original - .data$modelled_incompletes) / .data$original,
-          na.rm = TRUE
-        ) *
-          100
-      ) |>
-      pull(.data$mape) |>
-      # round to two decimal places and turn into a percentage
-      (\(x) paste0(round(x, 2), "%"))()
+    error <- paste0(
+      error$mae,
+      " (",
+      paste0(round(error$mape, 2), "%"),
+      ")"
+    )
   }
+
   return(error)
 }

@@ -217,6 +217,9 @@ append_current_status <- function(
   return(current_status)
 }
 
+#' @importFrom tidyr replace_na nest
+#' @importFrom dplyr mutate filter summarise select arrange
+#' @importFrom purrr map
 calculate_s_given <- function(
   data,
   max_months_waited,
@@ -257,6 +260,7 @@ calculate_s_given <- function(
 
   s_given <- s_given |>
     dplyr::arrange(.data$trust, .data$specialty, .data$months_waited_id) |>
+    dplyr::mutate(s_vals = tidyr::replace_na(.data$s_vals, 0)) |>
     tidyr::nest(s_given_tbl = c("months_waited_id", "s_vals")) |>
     mutate(
       s_given = purrr::map(
@@ -280,7 +284,7 @@ append_steady_state <- function(
   method,
   tolerance = 0.03
 ) {
-  if (is.na(target)) {
+  if (is.na(target) | referrals == 0 | all(s_given == 0)) {
     output <- dplyr::tibble(
       capacity_ss = 0,
       reneges_ss = 0,
