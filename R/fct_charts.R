@@ -40,6 +40,7 @@
 #'   line and change colour of "target" in subheading
 #' @param date_input date for chart caption
 #' @param p_facet_scales either "fixed" or "free_y"
+#' @param p_facet_grouping either "period" or "months_waited_id"
 #'
 #' @importFrom dplyr filter distinct rename left_join join_by tibble cross_join
 #' @importFrom ggtext element_markdown
@@ -66,7 +67,8 @@ plot_output <- function(
   p_facet = F,
   p_target_line = F,
   date_input = Sys.Date(),
-  p_facet_scales = "fixed"
+  p_facet_scales = "fixed",
+  p_facet_grouping = "months_waited_id"
 ) {
   if (is.numeric(p_referrals_percent_change)) {
     p_referrals_percent_change <- paste0(
@@ -93,21 +95,60 @@ plot_output <- function(
     chart_title <- paste0("<b>", p_trust, "</b> : ", p_speciality)
   }
 
-  p <- ggplot2::ggplot() +
-    geom_vline(
-      data = dplyr::filter(
-        data,
-        months.Date(.data$period) == "January"
-      ),
-      aes(
-        xintercept = .data$period
-      ),
-      alpha = 0.3
-    ) +
+  if (p_facet_grouping == "period") {
+    # identify 12 regular time steps to display
+    keep_dates <- lubridate::floor_date(
+      seq(from = min(data$period), to = max(data$period), length.out = 12),
+      unit = "months"
+    )
+    data <- data |>
+      dplyr::filter(
+        .data$period %in% keep_dates
+      )
+
+    # check for duplicate periods (eg, where observed and projected exist to make the stepped charts prettier)
+
+    duplicate_projected <- data |>
+      dplyr::distinct(.data$period, .data$period_type) |>
+      filter(dplyr::n() == 2, .by = "period") |>
+      dplyr::filter(.data$period_type == "Projected")
+
+    if (nrow(duplicate_projected) == 1) {
+      data <- data |>
+        dplyr::anti_join(duplicate_projected, by = c("period", "period_type"))
+    }
+    data <- data |>
+      dplyr::mutate(
+        months_waited_id = extract_first_number(.data$months_waited_id)
+      )
+
+    x_var <- "months_waited_id"
+    x_title <- "In the nth month of waiting"
+  } else {
+    x_var <- "period"
+    x_title <- NULL
+  }
+
+  p <- ggplot2::ggplot()
+
+  if (p_facet_grouping == "months_waited_id") {
+    p <- p +
+      geom_vline(
+        data = dplyr::filter(
+          data,
+          months.Date(.data$period) == "January"
+        ),
+        aes(
+          xintercept = .data$period
+        ),
+        alpha = 0.3
+      )
+  }
+  p <- p +
     geom_step(
       data = dplyr::filter(data, .data$period_type == "Observed"),
       aes(
-        x = .data$period,
+        x = .data[[x_var]],
         y = .data$p_var,
         group = 1
       ),
@@ -117,7 +158,7 @@ plot_output <- function(
     geom_step(
       data = dplyr::filter(data, .data$period_type == "Projected"),
       aes(
-        x = .data$period,
+        x = .data[[x_var]],
         y = .data$p_var,
         group = 2
       ),
@@ -125,7 +166,7 @@ plot_output <- function(
       linetype = "dashed"
     ) +
     theme_minimal() +
-    xlab(NULL)
+    xlab(x_title)
 
   if (p_scenario == "Estimate performance (from treatment capacity inputs)") {
     p <- p +
@@ -241,11 +282,25 @@ plot_output <- function(
 
   if (p_facet == T) {
     p <- p +
-      facet_wrap(~months_waited_id, ncol = 4, scales = p_facet_scales) +
-      scale_x_date(
-        breaks = january_breaks_facetted,
-        date_labels = "%b\n%Y"
+      facet_wrap(
+        facets = vars(.data[[p_facet_grouping]]),
+        ncol = 4,
+        scales = p_facet_scales
       )
+
+    if (p_facet_grouping == "months_waited_id") {
+      p <- p +
+        scale_x_date(
+          breaks = january_breaks_facetted,
+          date_labels = "%b\n%Y"
+        )
+    } else {
+      p <- p +
+        scale_x_continuous(
+          breaks = 0.5:12.5,
+          labels = \(x) ifelse(x == max(x), paste0(x + 0.5, "+"), x + 0.5)
+        )
+    }
   } else {
     p <- p +
       scale_x_date(

@@ -2609,26 +2609,27 @@ mod_02_planner_server <- function(id, r) {
               reactive_values$calibration_data
             ) |>
             mutate(
-              months_waited_id = case_when(
-                .data$months_waited_id < 12 ~
-                  paste0(
-                    .data$months_waited_id,
-                    "-",
-                    .data$months_waited_id + 1,
-                    " months"
-                  ),
-                .default = "12+ months"
-              ),
-              months_waited_id = factor(
-                .data$months_waited_id,
-                levels = paste(
-                  c(
-                    paste0(0:11, "-", 1:12),
-                    "12+"
-                  ),
-                  "months"
-                )
-              )
+              months_waited_id = convert_month_to_factor(.data$months_waited_id)
+              # months_waited_id = case_when(
+              #   .data$months_waited_id < 12 ~
+              #     paste0(
+              #       .data$months_waited_id,
+              #       "-",
+              #       .data$months_waited_id + 1,
+              #       " months"
+              #     ),
+              #   .default = "12+ months"
+              # ),
+              # months_waited_id = factor(
+              #   .data$months_waited_id,
+              #   levels = paste(
+              #     c(
+              #       paste0(0:11, "-", 1:12),
+              #       "12+"
+              #     ),
+              #     "months"
+              #   )
+              # )
             ) |>
             dplyr::arrange(
               .data$period_id

@@ -524,7 +524,8 @@ mod_03_results_server <- function(id, r) {
         input$btn_shortfall,
         input$btn_data,
         input$btn_report_ui,
-        input$facet_scales
+        input$facet_scales,
+        input$facet_grouping
       ),
       {
         if (is.null(input$chart_res)) {
@@ -708,7 +709,8 @@ mod_03_results_server <- function(id, r) {
                   p_perc = percentage_axis,
                   p_facet = include_facets,
                   p_target_line = include_target_line,
-                  p_facet_scales = facet_scales
+                  p_facet_scales = facet_scales,
+                  p_facet_grouping = input$facet_grouping
                 )
               }
             }

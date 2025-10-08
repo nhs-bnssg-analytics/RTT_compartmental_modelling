@@ -92,6 +92,34 @@ test_that("plot_output function", {
     )
   )
 
+  vdiffr::expect_doppelganger(
+    title = "capacity facet chart free y axis with period groupings",
+    plot_output(
+      data = example_chart_data |>
+        dplyr::summarise(
+          p_var = sum(.data$calculated_treatments, na.rm = T),
+          .by = c("period", "period_type", "months_waited_id")
+        ) |>
+        extend_period_type_data(),
+      p_trust = "Example trust",
+      p_speciality = "specialty selection",
+      p_chart = "treatment capacity by months waiting",
+      p_scenario = "Estimate performance (from treatment capacity inputs)",
+      p_cap_change = 5,
+      p_cap_skew = 1,
+      p_cap_change_type = "linear",
+      p_target_data = NULL,
+      p_referrals_percent_change = 3,
+      p_referrals_change_type = "linear",
+      p_perc = FALSE,
+      p_facet = TRUE,
+      p_target_line = FALSE,
+      date_input = as.Date("2025-05-08"),
+      p_facet_scales = "free_y",
+      p_facet_grouping = "period"
+    )
+  )
+
   # reneges charts
   vdiffr::expect_doppelganger(
     title = "reneges total chart",
