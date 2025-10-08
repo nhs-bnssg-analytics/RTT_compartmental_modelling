@@ -94,7 +94,9 @@ plot_output <- function(
   } else {
     chart_title <- paste0("<b>", p_trust, "</b> : ", p_speciality)
   }
-
+  if (is.null(p_facet_grouping)) {
+    p_facet_grouping <- "months_waited_id"
+  }
   if (p_facet_grouping == "period") {
     # identify 12 regular time steps to display
     keep_dates <- lubridate::floor_date(
@@ -107,7 +109,6 @@ plot_output <- function(
       )
 
     # check for duplicate periods (eg, where observed and projected exist to make the stepped charts prettier)
-
     duplicate_projected <- data |>
       dplyr::distinct(.data$period, .data$period_type) |>
       filter(dplyr::n() == 2, .by = "period") |>
@@ -119,9 +120,15 @@ plot_output <- function(
     }
     data <- data |>
       dplyr::mutate(
-        months_waited_id = extract_first_number(.data$months_waited_id)
+        months_waited_id = extract_first_number(.data$months_waited_id),
+        period_label = format(.data$period, "%b %Y"),
+        period_label = factor(
+          .data$period_label,
+          levels = format(sort(unique(.data$period)), "%b %Y")
+        )
       )
 
+    p_facet_grouping <- "period_label"
     x_var <- "months_waited_id"
     x_title <- "In the nth month of waiting"
   } else {

@@ -351,7 +351,8 @@ mod_03_results_server <- function(id, r) {
           referrals_percent_change = r$chart_specification$referrals_percent_change,
           referrals_change_type = r$chart_specification$referrals_change_type,
           chart_specification = r$chart_specification,
-          facet_scales = facet_scales
+          facet_scales = facet_scales,
+          facet_grouping = input$facet_grouping
         )
         rmarkdown::render(
           tempReport,
@@ -523,9 +524,9 @@ mod_03_results_server <- function(id, r) {
         input$btn_performance,
         input$btn_shortfall,
         input$btn_data,
-        input$btn_report_ui,
-        input$facet_scales,
-        input$facet_grouping
+        input$btn_report_ui #,
+        # input$facet_scales,
+        # input$facet_grouping
       ),
       {
         if (is.null(input$chart_res)) {
@@ -556,6 +557,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_capacity_ttl") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -568,6 +570,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_capacity_mnth") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -580,6 +583,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- TRUE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- input$facet_grouping
               } else if (reactive_data$btn_val == "btn_reneges_ttl") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -592,6 +596,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_reneges_mnth") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -604,6 +609,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- TRUE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- input$facet_grouping
               } else if (reactive_data$btn_val == "btn_waiting_list_ttl") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -616,6 +622,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_waiting_list_mnth") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::mutate(p_var = .data$incompletes) |>
@@ -625,6 +632,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- TRUE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- input$facet_grouping
               } else if (reactive_data$btn_val == "btn_performance") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::rename(value = "incompletes") |>
@@ -645,6 +653,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- TRUE
                 include_target_line <- TRUE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_shortfall") {
                 if (is.null(input$shortf_targ_bin)) {
                   targ_bin <- 4
@@ -684,6 +693,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               }
 
               if (
@@ -710,7 +720,7 @@ mod_03_results_server <- function(id, r) {
                   p_facet = include_facets,
                   p_target_line = include_target_line,
                   p_facet_scales = facet_scales,
-                  p_facet_grouping = input$facet_grouping
+                  p_facet_grouping = chart_facet_grouping
                 )
               }
             }
@@ -788,9 +798,9 @@ mod_03_results_server <- function(id, r) {
               class = "btn-primary"
             )
             if (reactive_data$btn_val == "btn_shortfall") {
-              shortfall_options <- div(
+              shortfall_options <- card(
                 layout_columns(
-                  col_widths = c(3, 1, -8),
+                  col_widths = c(8, 4),
                   span(
                     "Number of months on the waiting list below which the performance target applies:"
                   ),
@@ -818,10 +828,10 @@ mod_03_results_server <- function(id, r) {
               )
               final_ui <- div(
                 plot,
-                shortfall_options,
                 layout_columns(
-                  col_widths = c(3, -9),
-                  card(res, edit)
+                  col_widths = c(3, -5, 4),
+                  card(res, edit),
+                  shortfall_options
                 )
               )
             } else if (grepl("_mnth$", reactive_data$btn_val)) {
