@@ -39,6 +39,7 @@
 #' @param p_target_line A logical value indicating whether to include target
 #'   line and change colour of "target" in subheading
 #' @param date_input date for chart caption
+#' @param p_facet_scales either "fixed" or "free_y"
 #'
 #' @importFrom dplyr filter distinct rename left_join join_by tibble cross_join
 #' @importFrom ggtext element_markdown
@@ -64,7 +65,8 @@ plot_output <- function(
   p_perc,
   p_facet = F,
   p_target_line = F,
-  date_input = Sys.Date()
+  date_input = Sys.Date(),
+  p_facet_scales = "fixed"
 ) {
   if (is.numeric(p_referrals_percent_change)) {
     p_referrals_percent_change <- paste0(
@@ -239,7 +241,7 @@ plot_output <- function(
 
   if (p_facet == T) {
     p <- p +
-      facet_wrap(~months_waited_id, ncol = 4) +
+      facet_wrap(~months_waited_id, ncol = 4, scales = p_facet_scales) +
       scale_x_date(
         breaks = january_breaks_facetted,
         date_labels = "%b\n%Y"
@@ -741,14 +743,26 @@ plot_waiting_lists_chart <- function(
 
     rect_data <- segment_data |>
       select("wl_description", "facet_join", "status", "x_end", "x_start") |>
-      mutate(facet_join = "Treated") |>
-      bind_rows(segment_data)
+      mutate(
+        facet_join = "Treated"
+      ) |>
+      bind_rows(segment_data) |>
+      mutate(
+        x_start = case_when(
+          .data$status == "Within" ~ .data$x_start - 0.5,
+          .default = .data$x_start
+        ),
+        x_end = case_when(
+          .data$status == "Above" ~ .data$x_end + 0.5,
+          .default = .data$x_end
+        )
+      )
+
     ss_lines <- data |>
-      dplyr::filter(.data$wl_description == "Steady state") |>
+      dplyr::filter(.data$wl_description == "Steady state (modelled)") |>
       dplyr::select(!c("wl_type", "wl_description", "period")) |>
       dplyr::cross_join(
         data |>
-          dplyr::filter(.data$wl_type == "previous_waiting_list") |>
           dplyr::distinct(.data$wl_type, .data$period, .data$wl_description)
       ) |>
       pivot_longer(
@@ -823,8 +837,8 @@ plot_waiting_lists_chart <- function(
         alpha = 0.6
       ) +
       geom_col(
-        fill = "#a3a3a3ff",
-        colour = "black"
+        fill = "#F0F0F0",
+        colour = NA
       ) +
       geom_errorbar(
         data = treated_lines,
@@ -836,7 +850,7 @@ plot_waiting_lists_chart <- function(
         ),
         width = 0,
         linewidth = 2,
-        colour = "#ecd447ff"
+        colour = "#CC79A7"
       ) +
       geom_errorbar(
         data = ss_lines,
@@ -899,8 +913,8 @@ plot_waiting_lists_chart <- function(
       facet_grid(
         cols = vars(.data$wl_description),
         rows = vars(.data$facet_join),
-        scales = "free_y",
-        switch = "y"
+        scales = "free_y" #,
+        # switch = "y"
       ) +
       scale_x_continuous(
         breaks = 0:12,
@@ -938,7 +952,13 @@ plot_waiting_lists_chart <- function(
           b = "Treated"
         )
       ) +
-      theme(legend.position = "bottom")
+      theme(
+        legend.position = "bottom",
+        strip.background = element_rect(
+          fill = "white",
+          color = NA
+        )
+      )
   }
 
   return(p)

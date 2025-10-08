@@ -228,7 +228,6 @@ test_that("plot_output function", {
     )
   )
 
-
   # performance chart
   vdiffr::expect_doppelganger(
     title = "shortfall chart",
@@ -260,7 +259,8 @@ test_that("plot_output function", {
       p_facet = FALSE,
       p_target_line = FALSE,
       date_input = as.Date("2025-05-08")
-      ))
+    )
+  )
 
   # customised referrals chart
   vdiffr::expect_doppelganger(
@@ -903,45 +903,45 @@ chart_data <- data.frame(
     "2025-05-01"
   ),
   wl_description = as.factor(c(
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "Steady state",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025",
-    "May 2024",
-    "May 2025"
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "Steady state (modelled)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)",
+    "May 2024 (observed)",
+    "May 2025 (observed)"
   ))
 ) |>
   mutate(

@@ -14,6 +14,7 @@ params:
   referrals_percent_change: NULL
   referrals_change_type: NULL
   chart_specification: NULL
+  facet_scales: NULL
 ---
 
 
@@ -119,7 +120,8 @@ This chart shows the historic and projected referrals for the model run.
                   p_target_data = params$chart_specification$target_data,
                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
                   p_referrals_change_type = params$chart_specification$referrals_change_type,
-                  p_perc = F)
+                  p_perc = F,
+                  p_facet_scales = params$facet_scales)
 
 ```
 
@@ -151,7 +153,8 @@ This plot show the historic and projected treatment capacity for the model run.
                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
                   p_referrals_change_type = params$chart_specification$referrals_change_type,
                   p_perc = F,
-                  p_facet = F)
+                  p_facet = F,
+                  p_facet_scales = params$facet_scales)
 
 ```
 
@@ -183,7 +186,8 @@ This plot show the historic and projected treatment capacity distribution for th
                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
                   p_referrals_change_type = params$chart_specification$referrals_change_type,
                   p_perc = F,
-                  p_facet = T)
+                  p_facet = T,
+                  p_facet_scales = params$facet_scales)
 
 ```
 
@@ -213,7 +217,8 @@ This plot show the historic and projected reneges for the model run.
                   p_target_data = params$chart_specification$target_data,
                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
                   p_referrals_change_type = params$chart_specification$referrals_change_type,
-                  p_perc = F)
+                  p_perc = F,
+                  p_facet_scales = params$facet_scales)
 
 ```
 
@@ -245,7 +250,8 @@ This plot show the historic and projected renege distributions for the model run
                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
                   p_referrals_change_type = params$chart_specification$referrals_change_type,
                   p_perc = F,
-                  p_facet = T)
+                  p_facet = T,
+                  p_facet_scales = params$facet_scales)
 
 ```
 
@@ -274,7 +280,8 @@ This plot show the historic and projected total waiting list size for the model 
                   p_target_data = params$chart_specification$target_data,
                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
                   p_referrals_change_type = params$chart_specification$referrals_change_type,
-                  p_perc = F)
+                  p_perc = F,
+                  p_facet_scales = params$facet_scales)
 
 
 ```
@@ -306,7 +313,8 @@ This plot show the historic and projected waiting list size distribution for the
                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
                   p_referrals_change_type = params$chart_specification$referrals_change_type,
                   p_perc = F,
-                  p_facet = T)
+                  p_facet = T,
+                  p_facet_scales = params$facet_scales)
       
 ```
 
@@ -346,7 +354,8 @@ This plot show the historic and projected 18 week waiting list performance for t
                   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
                   p_referrals_change_type = params$chart_specification$referrals_change_type,
                   p_perc = T,
-                  p_target_line = T)
+                  p_target_line = T,
+                  p_facet_scales = params$facet_scales)
       
 ```
 
@@ -389,6 +398,7 @@ This plot shows the historic and projected additional treatment required, where 
                   p_referrals_change_type = params$chart_specification$referrals_change_type,
                   p_perc = F,
                   p_facet = FALSE,
-                  p_target_line = F)
+                  p_target_line = F,
+                  p_facet_scales = params$facet_scales)
       
 ```

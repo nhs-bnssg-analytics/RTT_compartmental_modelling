@@ -43,6 +43,7 @@ mod_03_results_ui <- function(id) {
 #' @importFrom bslib value_box layout_column_wrap
 #' @importFrom shiny updateActionButton showModal modalDialog downloadHandler
 #'   actionButton p hr uiOutput modalButton removeModal
+#' @importFrom shinyWidgets prettyCheckbox
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r) {
@@ -332,6 +333,12 @@ mod_03_results_server <- function(id, r) {
           overwrite = TRUE
         )
 
+        if (isTRUE(input$facet_scales) | is.null(input$facet_scales)) {
+          facet_scales <- "fixed"
+        } else {
+          facet_scales <- "free_y"
+        }
+
         params <- list(
           waiting_list = r$waiting_list,
           trust = r$chart_specification$trust,
@@ -343,7 +350,8 @@ mod_03_results_server <- function(id, r) {
           target_data = r$chart_specification$target_data,
           referrals_percent_change = r$chart_specification$referrals_percent_change,
           referrals_change_type = r$chart_specification$referrals_change_type,
-          chart_specification = r$chart_specification
+          chart_specification = r$chart_specification,
+          facet_scales = facet_scales
         )
         rmarkdown::render(
           tempReport,
@@ -515,7 +523,8 @@ mod_03_results_server <- function(id, r) {
         input$btn_performance,
         input$btn_shortfall,
         input$btn_data,
-        input$btn_report_ui
+        input$btn_report_ui,
+        input$facet_scales
       ),
       {
         if (is.null(input$chart_res)) {
@@ -679,6 +688,11 @@ mod_03_results_server <- function(id, r) {
               if (
                 !(reactive_data$btn_val %in% c("btn_data", "btn_report_ui"))
               ) {
+                if (isTRUE(input$facet_scales) | is.null(input$facet_scales)) {
+                  facet_scales <- "fixed"
+                } else {
+                  facet_scales <- "free_y"
+                }
                 plot_output(
                   data = reactive_data$plot_data,
                   p_trust = r$chart_specification$trust,
@@ -693,8 +707,8 @@ mod_03_results_server <- function(id, r) {
                   p_referrals_change_type = r$chart_specification$referrals_change_type,
                   p_perc = percentage_axis,
                   p_facet = include_facets,
-                  p_target_line = include_target_line #,
-                  # p_facet_scales = input$facet_scales
+                  p_target_line = include_target_line,
+                  p_facet_scales = facet_scales
                 )
               }
             }
@@ -706,7 +720,6 @@ mod_03_results_server <- function(id, r) {
 
     # dynamic ui --------------------------------------------------------------
     output$results_ui <- renderUI({
-      # browser()
       if (reactive_data$show_table == TRUE) {
         final_ui <- DTOutput(
           ns("results_table")
@@ -743,6 +756,26 @@ mod_03_results_server <- function(id, r) {
               step = 8
             )
           )
+
+          distribution_options <- card(layout_columns(
+            col_widths = c(6, 6),
+            shiny::radioButtons(
+              inputId = ns("facet_grouping"),
+              label = "Chart grouping",
+              choices = c(
+                "Months waited" = "months_waited_id",
+                "Time" = "period"
+              ),
+              inline = FALSE
+            ),
+            shinyWidgets::prettyCheckbox(
+              inputId = ns("facet_scales"),
+              label = "Fixed y-axis",
+              value = TRUE,
+              inline = FALSE
+            )
+          ))
+
           if (
             r$chart_specification$scenario_type ==
               "Estimate performance (from treatment capacity inputs)"
@@ -784,21 +817,51 @@ mod_03_results_server <- function(id, r) {
               final_ui <- div(
                 plot,
                 shortfall_options,
-                res,
-                edit
+                layout_columns(
+                  col_widths = c(3, -9),
+                  card(res, edit)
+                )
+              )
+            } else if (grepl("_mnth$", reactive_data$btn_val)) {
+              final_ui <- div(
+                plot,
+                layout_columns(
+                  col_widths = c(3, -5, 4),
+                  card(res, edit),
+                  distribution_options
+                )
               )
             } else {
               final_ui <- div(
                 plot,
-                res,
-                edit
+                layout_columns(
+                  col_widths = c(3, -9),
+                  card(res, edit)
+                )
               )
             }
-          } else {
-            final_ui <- div(
-              plot,
-              res
-            )
+          } else if (
+            r$chart_specification$scenario_type ==
+              "Estimate treatment capacity (from performance targets)"
+          ) {
+            if (grepl("_mnth$", reactive_data$btn_val)) {
+              final_ui <- div(
+                plot,
+                layout_columns(
+                  col_widths = c(3, -5, 4),
+                  card(res),
+                  distribution_options
+                )
+              )
+            } else {
+              final_ui <- div(
+                plot,
+                layout_columns(
+                  col_widths = c(3, -9),
+                  card(res)
+                )
+              )
+            }
           }
         }
       }
