@@ -49,6 +49,10 @@ change (e.g., "linear", "uniform").}
 
 \item{p_cap_skew}{A numeric value representing the utilisation skew factor.}
 
+\item{p_target_data}{A table with two columns: Target_date and
+Target_percentage, containing entries for multiple dates and performance
+targets.}
+
 \item{p_referrals_percent_change}{A numeric value representing the percentage
  change in referrals. This can also take a string to accommodate a customised
 input for referrals change.}
@@ -70,10 +74,6 @@ line and change colour of "target" in subheading}
 \item{p_facet_scales}{either "fixed" or "free_y"}
 
 \item{p_facet_grouping}{either "period" or "months_waited_id"}
-
-\item{target_data}{A table with two columns: Target_date and
-Target_percentage, containing entries for multiple dates and performance
-targets.}
 }
 \value{
 A ggplot2 plot object of selected values

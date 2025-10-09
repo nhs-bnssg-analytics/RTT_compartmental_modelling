@@ -24,7 +24,7 @@
 #' @param p_cap_change_type A character string describing the type of capacity
 #'   change (e.g., "linear", "uniform").
 #' @param p_cap_skew A numeric value representing the utilisation skew factor.
-#' @param target_data A table with two columns: Target_date and
+#' @param p_target_data A table with two columns: Target_date and
 #'   Target_percentage, containing entries for multiple dates and performance
 #'   targets.
 #' @param p_referrals_percent_change A numeric value representing the percentage
