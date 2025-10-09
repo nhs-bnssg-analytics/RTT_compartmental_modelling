@@ -43,6 +43,7 @@ mod_03_results_ui <- function(id) {
 #' @importFrom bslib value_box layout_column_wrap
 #' @importFrom shiny updateActionButton showModal modalDialog downloadHandler
 #'   actionButton p hr uiOutput modalButton removeModal
+#' @importFrom shinyWidgets prettyCheckbox
 #' @import ggplot2
 #' @noRd
 mod_03_results_server <- function(id, r) {
@@ -56,7 +57,9 @@ mod_03_results_server <- function(id, r) {
       plot_data = NULL,
       show_plot = FALSE,
       show_table = FALSE,
-      temp_data = NULL
+      temp_data = NULL,
+      facet_scales = "fixed",
+      facet_grouping = "months_waited_id"
     )
 
     # dynamic sidebar ---------------------------------------------------------
@@ -343,7 +346,9 @@ mod_03_results_server <- function(id, r) {
           target_data = r$chart_specification$target_data,
           referrals_percent_change = r$chart_specification$referrals_percent_change,
           referrals_change_type = r$chart_specification$referrals_change_type,
-          chart_specification = r$chart_specification
+          chart_specification = r$chart_specification,
+          facet_scales = reactive_data$facet_scales,
+          facet_grouping = reactive_data$facet_grouping
         )
         rmarkdown::render(
           tempReport,
@@ -500,8 +505,28 @@ mod_03_results_server <- function(id, r) {
       server = FALSE
     )
 
-    # plot --------------------------------------------------------------------
+    # update reactive scales object ------------------------------------------
 
+    observeEvent(
+      c(input$facet_scales),
+      {
+        if (isTRUE(input$facet_scales) | is.null(input$facet_scales)) {
+          reactive_data$facet_scales <- "fixed"
+        } else {
+          reactive_data$facet_scales <- "free_y"
+        }
+      }
+    )
+
+    # update reactive grouping object ----------------------------------------
+    observeEvent(
+      c(input$facet_grouping),
+      {
+        reactive_data$facet_grouping <- input$facet_grouping
+      }
+    )
+
+    # plot --------------------------------------------------------------------
     observeEvent(
       c(
         input$chart_res,
@@ -546,6 +571,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_capacity_ttl") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -558,6 +584,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_capacity_mnth") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -570,6 +597,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- TRUE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- reactive_data$facet_grouping
               } else if (reactive_data$btn_val == "btn_reneges_ttl") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -582,6 +610,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_reneges_mnth") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -594,6 +623,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- TRUE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- reactive_data$facet_grouping
               } else if (reactive_data$btn_val == "btn_waiting_list_ttl") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -606,6 +636,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_waiting_list_mnth") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::mutate(p_var = .data$incompletes) |>
@@ -615,6 +646,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- TRUE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- reactive_data$facet_grouping
               } else if (reactive_data$btn_val == "btn_performance") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::rename(value = "incompletes") |>
@@ -635,6 +667,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- TRUE
                 include_target_line <- TRUE
+                chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_shortfall") {
                 if (is.null(input$shortf_targ_bin)) {
                   targ_bin <- 4
@@ -674,6 +707,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- FALSE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
+                chart_facet_grouping <- NULL
               }
 
               if (
@@ -693,7 +727,9 @@ mod_03_results_server <- function(id, r) {
                   p_referrals_change_type = r$chart_specification$referrals_change_type,
                   p_perc = percentage_axis,
                   p_facet = include_facets,
-                  p_target_line = include_target_line
+                  p_target_line = include_target_line,
+                  p_facet_scales = reactive_data$facet_scales,
+                  p_facet_grouping = chart_facet_grouping
                 )
               }
             }
@@ -705,15 +741,14 @@ mod_03_results_server <- function(id, r) {
 
     # dynamic ui --------------------------------------------------------------
     output$results_ui <- renderUI({
-      # browser()
       if (reactive_data$show_table == TRUE) {
-        DTOutput(
+        final_ui <- DTOutput(
           ns("results_table")
         )
       } else {
         # if no button has been selected then display results_plot
         if (is.null(reactive_data$btn_val)) {
-          plotOutput(
+          final_ui <- plotOutput(
             ns("results_plot"),
             click = shiny::clickOpts(
               id = ns("plot_click")
@@ -722,21 +757,66 @@ mod_03_results_server <- function(id, r) {
           )
         } else {
           # if calculating performance from capacity inputs then we need to show the editing options
+
+          plot <- plotOutput(
+            ns("results_plot"),
+            click = shiny::clickOpts(
+              id = ns("plot_click")
+            ),
+            height = "600px"
+          )
+
+          res <- div(
+            class = "label-left",
+            sliderInput(
+              inputId = ns("chart_res"),
+              label = "Select chart resolution (pixels per inch)",
+              min = 72,
+              max = 144,
+              value = 96,
+              step = 8
+            )
+          )
+
+          if (reactive_data$facet_scales == "fixed") {
+            axis_start_val <- TRUE
+          } else {
+            axis_start_val <- FALSE
+          }
+
+          distribution_options <- card(layout_columns(
+            col_widths = c(6, 6),
+            shiny::radioButtons(
+              inputId = ns("facet_grouping"),
+              label = "Chart grouping",
+              choices = c(
+                "Months waited" = "months_waited_id",
+                "Time" = "period"
+              ),
+              selected = reactive_data$facet_grouping,
+              inline = FALSE
+            ),
+            shinyWidgets::prettyCheckbox(
+              inputId = ns("facet_scales"),
+              label = "Fixed y-axis",
+              value = axis_start_val,
+              inline = FALSE
+            )
+          ))
+
           if (
             r$chart_specification$scenario_type ==
               "Estimate performance (from treatment capacity inputs)"
           ) {
+            edit <- actionButton(
+              ns("edit_data"),
+              "Edit input data",
+              class = "btn-primary"
+            )
             if (reactive_data$btn_val == "btn_shortfall") {
-              div(
-                plotOutput(
-                  ns("results_plot"),
-                  click = shiny::clickOpts(
-                    id = ns("plot_click")
-                  ),
-                  height = "600px"
-                ),
+              shortfall_options <- card(
                 layout_columns(
-                  col_widths = c(3, 1, -8),
+                  col_widths = c(8, 4),
                   span(
                     "Number of months on the waiting list below which the performance target applies:"
                   ),
@@ -760,75 +840,60 @@ mod_03_results_server <- function(id, r) {
                     icon = list(NULL, shiny::icon("percent")),
                     size = "sm"
                   )
-                ),
-                div(
-                  class = "label-left",
-                  sliderInput(
-                    inputId = ns("chart_res"),
-                    label = "Select chart resolution (pixels per inch)",
-                    min = 72,
-                    max = 144,
-                    value = 96,
-                    step = 8
-                  )
-                ),
-                actionButton(
-                  ns("edit_data"),
-                  "Edit input data",
-                  class = "btn-primary"
+                )
+              )
+              final_ui <- div(
+                plot,
+                layout_columns(
+                  col_widths = c(3, -5, 4),
+                  card(res, edit),
+                  shortfall_options
+                )
+              )
+            } else if (grepl("_mnth$", reactive_data$btn_val)) {
+              final_ui <- div(
+                plot,
+                layout_columns(
+                  col_widths = c(3, -5, 4),
+                  card(res, edit),
+                  distribution_options
                 )
               )
             } else {
-              div(
-                plotOutput(
-                  ns("results_plot"),
-                  click = shiny::clickOpts(
-                    id = ns("plot_click")
-                  ),
-                  height = "600px"
-                ),
-                div(
-                  class = "label-left",
-                  sliderInput(
-                    inputId = ns("chart_res"),
-                    label = "Select chart resolution (pixels per inch)",
-                    min = 72,
-                    max = 144,
-                    value = 96,
-                    step = 8
-                  ),
-                  actionButton(
-                    ns("edit_data"),
-                    "Edit input data",
-                    class = "btn-primary"
-                  )
+              final_ui <- div(
+                plot,
+                layout_columns(
+                  col_widths = c(3, -9),
+                  card(res, edit)
                 )
               )
             }
-          } else {
-            div(
-              plotOutput(
-                ns("results_plot"),
-                click = shiny::clickOpts(
-                  id = ns("plot_click")
-                ),
-                height = "600px"
-              ),
-              div(
-                class = "label-left",
-                sliderInput(
-                  inputId = ns("chart_res"),
-                  label = "Select chart resolution (pixels per inch)",
-                  min = 72,
-                  max = 144,
-                  value = 96,
-                  step = 8
+          } else if (
+            r$chart_specification$scenario_type ==
+              "Estimate treatment capacity (from performance targets)"
+          ) {
+            if (grepl("_mnth$", reactive_data$btn_val)) {
+              final_ui <- div(
+                plot,
+                layout_columns(
+                  col_widths = c(3, -5, 4),
+                  card(res),
+                  distribution_options
                 )
               )
-            )
+            } else {
+              final_ui <- div(
+                plot,
+                layout_columns(
+                  col_widths = c(3, -9),
+                  card(res)
+                )
+              )
+            }
           }
         }
       }
+      final_ui
     })
 
     # Show modal when edit button is clicked

@@ -458,8 +458,8 @@ test_that("split_and_model_calibration_data works", {
     error_calc(
       data = cal_data_modelled
     ),
-    "30.34%",
-    info = "error_calc is calculated correctly (MAPE)"
+    "537.32 (30.34%)",
+    info = "error_calc is calculated correctly (MAE and MAPE)"
   )
 
   # mean absolute error is consistently calculated

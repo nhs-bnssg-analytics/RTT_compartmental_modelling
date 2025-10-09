@@ -24,7 +24,7 @@
 #' @param p_cap_change_type A character string describing the type of capacity
 #'   change (e.g., "linear", "uniform").
 #' @param p_cap_skew A numeric value representing the utilisation skew factor.
-#' @param target_data A table with two columns: Target_date and
+#' @param p_target_data A table with two columns: Target_date and
 #'   Target_percentage, containing entries for multiple dates and performance
 #'   targets.
 #' @param p_referrals_percent_change A numeric value representing the percentage
@@ -39,6 +39,8 @@
 #' @param p_target_line A logical value indicating whether to include target
 #'   line and change colour of "target" in subheading
 #' @param date_input date for chart caption
+#' @param p_facet_scales either "fixed" or "free_y"
+#' @param p_facet_grouping either "period" or "months_waited_id"
 #'
 #' @importFrom dplyr filter distinct rename left_join join_by tibble cross_join
 #' @importFrom ggtext element_markdown
@@ -47,7 +49,7 @@
 #' @importFrom lubridate `%m+%`
 #' @import ggplot2
 #' @return A ggplot2 plot object of selected values
-#' @noRd
+#' @export
 
 plot_output <- function(
   data,
@@ -64,7 +66,9 @@ plot_output <- function(
   p_perc,
   p_facet = F,
   p_target_line = F,
-  date_input = Sys.Date()
+  date_input = Sys.Date(),
+  p_facet_scales = "fixed",
+  p_facet_grouping = "months_waited_id"
 ) {
   if (is.numeric(p_referrals_percent_change)) {
     p_referrals_percent_change <- paste0(
@@ -90,22 +94,68 @@ plot_output <- function(
   } else {
     chart_title <- paste0("<b>", p_trust, "</b> : ", p_speciality)
   }
+  if (is.null(p_facet_grouping)) {
+    p_facet_grouping <- "months_waited_id"
+  }
+  if (p_facet_grouping == "period") {
+    # identify 12 regular time steps to display
+    keep_dates <- lubridate::floor_date(
+      seq(from = min(data$period), to = max(data$period), length.out = 12),
+      unit = "months"
+    )
+    data <- data |>
+      dplyr::filter(
+        .data$period %in% keep_dates
+      )
 
-  p <- ggplot2::ggplot() +
-    geom_vline(
-      data = dplyr::filter(
-        data,
-        months.Date(.data$period) == "January"
-      ),
-      aes(
-        xintercept = .data$period
-      ),
-      alpha = 0.3
-    ) +
+    # check for duplicate periods (eg, where observed and projected exist to make the stepped charts prettier)
+    duplicate_projected <- data |>
+      dplyr::distinct(.data$period, .data$period_type) |>
+      filter(dplyr::n() == 2, .by = "period") |>
+      dplyr::filter(.data$period_type == "Projected")
+
+    if (nrow(duplicate_projected) == 1) {
+      data <- data |>
+        dplyr::anti_join(duplicate_projected, by = c("period", "period_type"))
+    }
+    data <- data |>
+      dplyr::mutate(
+        months_waited_id = extract_first_number(.data$months_waited_id),
+        period_label = format(.data$period, "%b %Y"),
+        period_label = factor(
+          .data$period_label,
+          levels = format(sort(unique(.data$period)), "%b %Y")
+        )
+      )
+
+    p_facet_grouping <- "period_label"
+    x_var <- "months_waited_id"
+    x_title <- "In the nth month of waiting"
+  } else {
+    x_var <- "period"
+    x_title <- NULL
+  }
+
+  p <- ggplot2::ggplot()
+
+  if (p_facet_grouping == "months_waited_id") {
+    p <- p +
+      geom_vline(
+        data = dplyr::filter(
+          data,
+          months.Date(.data$period) == "January"
+        ),
+        aes(
+          xintercept = .data$period
+        ),
+        alpha = 0.3
+      )
+  }
+  p <- p +
     geom_step(
       data = dplyr::filter(data, .data$period_type == "Observed"),
       aes(
-        x = .data$period,
+        x = .data[[x_var]],
         y = .data$p_var,
         group = 1
       ),
@@ -115,7 +165,7 @@ plot_output <- function(
     geom_step(
       data = dplyr::filter(data, .data$period_type == "Projected"),
       aes(
-        x = .data$period,
+        x = .data[[x_var]],
         y = .data$p_var,
         group = 2
       ),
@@ -123,7 +173,7 @@ plot_output <- function(
       linetype = "dashed"
     ) +
     theme_minimal() +
-    xlab(NULL)
+    xlab(x_title)
 
   if (p_scenario == "Estimate performance (from treatment capacity inputs)") {
     p <- p +
@@ -239,11 +289,25 @@ plot_output <- function(
 
   if (p_facet == T) {
     p <- p +
-      facet_wrap(~months_waited_id, ncol = 4) +
-      scale_x_date(
-        breaks = january_breaks_facetted,
-        date_labels = "%b\n%Y"
+      facet_wrap(
+        facets = vars(.data[[p_facet_grouping]]),
+        ncol = 4,
+        scales = p_facet_scales
       )
+
+    if (p_facet_grouping == "months_waited_id") {
+      p <- p +
+        scale_x_date(
+          breaks = january_breaks_facetted,
+          date_labels = "%b\n%Y"
+        )
+    } else {
+      p <- p +
+        scale_x_continuous(
+          breaks = 0.5:12.5,
+          labels = \(x) ifelse(x == max(x), paste0(x + 0.5, "+"), x + 0.5)
+        )
+    }
   } else {
     p <- p +
       scale_x_date(
@@ -741,14 +805,26 @@ plot_waiting_lists_chart <- function(
 
     rect_data <- segment_data |>
       select("wl_description", "facet_join", "status", "x_end", "x_start") |>
-      mutate(facet_join = "Treated") |>
-      bind_rows(segment_data)
+      mutate(
+        facet_join = "Treated"
+      ) |>
+      bind_rows(segment_data) |>
+      mutate(
+        x_start = case_when(
+          .data$status == "Within" ~ .data$x_start - 0.5,
+          .default = .data$x_start
+        ),
+        x_end = case_when(
+          .data$status == "Above" ~ .data$x_end + 0.5,
+          .default = .data$x_end
+        )
+      )
+
     ss_lines <- data |>
-      dplyr::filter(.data$wl_description == "Steady state") |>
+      dplyr::filter(.data$wl_description == "Steady state (modelled)") |>
       dplyr::select(!c("wl_type", "wl_description", "period")) |>
       dplyr::cross_join(
         data |>
-          dplyr::filter(.data$wl_type == "previous_waiting_list") |>
           dplyr::distinct(.data$wl_type, .data$period, .data$wl_description)
       ) |>
       pivot_longer(
@@ -823,8 +899,8 @@ plot_waiting_lists_chart <- function(
         alpha = 0.6
       ) +
       geom_col(
-        fill = "#a3a3a3ff",
-        colour = "black"
+        fill = "#F0F0F0",
+        colour = NA
       ) +
       geom_errorbar(
         data = treated_lines,
@@ -836,7 +912,7 @@ plot_waiting_lists_chart <- function(
         ),
         width = 0,
         linewidth = 2,
-        colour = "#ecd447ff"
+        colour = "#CC79A7"
       ) +
       geom_errorbar(
         data = ss_lines,
@@ -899,8 +975,8 @@ plot_waiting_lists_chart <- function(
       facet_grid(
         cols = vars(.data$wl_description),
         rows = vars(.data$facet_join),
-        scales = "free_y",
-        switch = "y"
+        scales = "free_y" #,
+        # switch = "y"
       ) +
       scale_x_continuous(
         breaks = 0:12,
@@ -938,7 +1014,13 @@ plot_waiting_lists_chart <- function(
           b = "Treated"
         )
       ) +
-      theme(legend.position = "bottom")
+      theme(
+        legend.position = "bottom",
+        strip.background = element_rect(
+          fill = "white",
+          color = NA
+        )
+      )
   }
 
   return(p)

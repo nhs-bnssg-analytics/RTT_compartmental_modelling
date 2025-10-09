@@ -286,7 +286,7 @@ mod_02_planner_ui <- function(id) {
 #'
 #' @importFrom shiny observeEvent renderUI dateInput tagList numericInput
 #'   eventReactive Progress sliderInput HTML checkboxInput
-#' @importFrom NHSRtt get_rtt_data latest_rtt_date convert_months_waited_to_id
+#' @importFrom NHSRtt get_rtt_data convert_months_waited_to_id
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
@@ -501,7 +501,7 @@ mod_02_planner_server <- function(id, r) {
     observeEvent(
       input$dwnld_rtt_data,
       {
-        max_download_date <- NHSRtt::latest_rtt_date()
+        max_download_date <- reactive_values$latest_date
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
@@ -876,7 +876,7 @@ mod_02_planner_server <- function(id, r) {
       content = function(file) {
         # sample_data is an internal data object
         final_month <- lubridate::floor_date(
-          NHSRtt::latest_rtt_date(),
+          reactive_values$latest_date,
           unit = "months"
         )
 
@@ -896,7 +896,7 @@ mod_02_planner_server <- function(id, r) {
       },
       content = function(file) {
         # sample_data is an internal data object
-        max_download_date <- NHSRtt::latest_rtt_date()
+        max_download_date <- reactive_values$latest_date
         min_download_date <- lubridate::floor_date(
           max_download_date,
           unit = "months"
@@ -2609,26 +2609,27 @@ mod_02_planner_server <- function(id, r) {
               reactive_values$calibration_data
             ) |>
             mutate(
-              months_waited_id = case_when(
-                .data$months_waited_id < 12 ~
-                  paste0(
-                    .data$months_waited_id,
-                    "-",
-                    .data$months_waited_id + 1,
-                    " months"
-                  ),
-                .default = "12+ months"
-              ),
-              months_waited_id = factor(
-                .data$months_waited_id,
-                levels = paste(
-                  c(
-                    paste0(0:11, "-", 1:12),
-                    "12+"
-                  ),
-                  "months"
-                )
-              )
+              months_waited_id = convert_month_to_factor(.data$months_waited_id)
+              # months_waited_id = case_when(
+              #   .data$months_waited_id < 12 ~
+              #     paste0(
+              #       .data$months_waited_id,
+              #       "-",
+              #       .data$months_waited_id + 1,
+              #       " months"
+              #     ),
+              #   .default = "12+ months"
+              # ),
+              # months_waited_id = factor(
+              #   .data$months_waited_id,
+              #   levels = paste(
+              #     c(
+              #       paste0(0:11, "-", 1:12),
+              #       "12+"
+              #     ),
+              #     "months"
+              #   )
+              # )
             ) |>
             dplyr::arrange(
               .data$period_id

@@ -284,7 +284,7 @@ append_steady_state <- function(
   method,
   tolerance = 0.03
 ) {
-  if (is.na(target) | referrals == 0 | all(s_given == 0)) {
+  if (is.na(target) | referrals == 0 | all(s_given == 0) | target == 1) {
     output <- dplyr::tibble(
       capacity_ss = 0,
       reneges_ss = 0,

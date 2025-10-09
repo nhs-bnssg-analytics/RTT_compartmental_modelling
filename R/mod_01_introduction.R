@@ -10,6 +10,25 @@
 #' @importFrom shiny NS tagList h3 p hr actionButton div h4
 mod_01_introduction_ui <- function(id) {
   ns <- NS(id)
+
+  # create statement for data update information
+  data_info <- system.file(
+    "extdata",
+    "run_date.rds",
+    package = "RTTshiny"
+  )
+  if (data_info != "") {
+    data_info <- readRDS() |>
+      (\(x) {
+        paste0(
+          "Last data import: ",
+          x["Data updated (12 month)"],
+          "; last check for new data: ",
+          x["Data checked"]
+        )
+      })()
+  }
+
   page_fillable(
     layout_columns(
       col_widths = c(12),
@@ -54,6 +73,13 @@ mod_01_introduction_ui <- function(id) {
               )
             )
           ),
+          p(HTML(
+            paste0(
+              '<span style="font-size: 0.5rem;">',
+              data_info,
+              '</span>'
+            )
+          )),
 
           hr(),
 

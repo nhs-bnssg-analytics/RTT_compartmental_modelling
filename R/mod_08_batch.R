@@ -286,7 +286,7 @@ mod_08_batch_ui <- function(id) {
 #'
 #' @importFrom shiny reactiveValues observeEvent renderUI p modalDialog modalButton
 #'   tagList showModal plotOutput renderPlot withTags
-#' @importFrom NHSRtt latest_rtt_date get_rtt_data find_p
+#' @importFrom NHSRtt get_rtt_data find_p
 #' @importFrom lubridate floor_date interval
 #' @importFrom rlang .data
 #' @importFrom purrr map pmap list_rbind map2 map_dbl
@@ -593,7 +593,10 @@ mod_08_batch_server <- function(id) {
                       )
                   ) |>
                   mutate(
-                    wl_description = format(.data$period, format = "%b %Y"),
+                    wl_description = paste(
+                      format(.data$period, format = "%b %Y"),
+                      "(observed)"
+                    ),
                     type = case_when(
                       .data$type == "Incomplete" ~ "wlsize",
                       .data$type == "Complete" ~ "sigma",
@@ -636,7 +639,7 @@ mod_08_batch_server <- function(id) {
                     "sigma"
                   ) |>
                   mutate(
-                    wl_description = "Steady state"
+                    wl_description = "Steady state (modelled)"
                   ) |>
                   tidyr::nest(
                     steady_state_waiting_list = c(
@@ -757,15 +760,21 @@ mod_08_batch_server <- function(id) {
                     wl_description = factor(
                       .data$wl_description,
                       levels = c(
-                        format(
-                          max(.data$period, na.rm = TRUE) %m-% months(12),
-                          format = "%b %Y"
+                        paste(
+                          format(
+                            max(.data$period, na.rm = TRUE) %m-% months(12),
+                            format = "%b %Y"
+                          ),
+                          "(observed)"
                         ),
-                        format(
-                          max(.data$period, na.rm = TRUE),
-                          format = "%b %Y"
+                        paste(
+                          format(
+                            max(.data$period, na.rm = TRUE),
+                            format = "%b %Y"
+                          ),
+                          "(observed)"
                         ),
-                        "Steady state"
+                        "Steady state (modelled)"
                       )
                     )
                   ) |>
