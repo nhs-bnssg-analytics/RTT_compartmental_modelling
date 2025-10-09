@@ -303,18 +303,6 @@ mod_02_planner_server <- function(id, r) {
 
     ns <- session$ns
 
-    reactive_values <- reactiveValues()
-
-    reactive_values$data_downloaded <- FALSE
-    reactive_values$params <- NULL
-    reactive_values$calibration_data <- NULL
-    reactive_values$latest_performance <- NULL
-    reactive_values$default_target <- NULL
-    reactive_values$referrals_uplift <- NULL
-    reactive_values$optimise_status_card_visible <- NULL
-    reactive_values$performance_calculated <- FALSE
-    reactive_values$data_source <- NULL # should be either "upload" or "download"
-
     final_data_period <- readRDS(system.file(
       "extdata",
       "rtt_12months.rds",
@@ -323,26 +311,34 @@ mod_02_planner_server <- function(id, r) {
       dplyr::pull(.data$period) |>
       max()
 
-    reactive_values$latest_date <- final_data_period
-
-    reactive_values$forecast_start_date <- final_data_period %m+%
-      months(1)
-    reactive_values$forecast_end_date <- final_data_period %m+%
-      months(36)
-
-    reactive_values$forecast_end_date_label <- paste0(
-      "Forecast end date (start date - ",
-      format(
-        final_data_period %m+%
-          months(1),
-        "%b %Y"
+    reactive_values <- reactiveValues(
+      data_downloaded = FALSE,
+      params = NULL,
+      calibration_data = NULL,
+      latest_performance = NULL,
+      default_target = NULL,
+      referrals_uplift = NULL,
+      optimise_status_card_visible = NULL,
+      performance_calculated = FALSE,
+      data_source = NULL, # should be either "upload" or "download"
+      latest_date = final_data_period,
+      forecast_start_date = final_data_period %m+%
+        months(1),
+      forecast_end_date = final_data_period %m+%
+        months(36),
+      forecast_end_date_label = paste0(
+        "Forecast end date (start date - ",
+        format(
+          final_data_period %m+%
+            months(1),
+          "%b %Y"
+        ),
+        ")"
       ),
-      ")"
+      import_success = NULL,
+      error_calc = NULL,
+      error_plot = NULL
     )
-    reactive_values$import_success <- NULL
-
-    reactive_values$error_calc <- NULL
-    reactive_values$error_plot <- NULL
 
     r$chart_specification <- list(
       trust = NULL,
@@ -379,6 +375,7 @@ mod_02_planner_server <- function(id, r) {
     observeEvent(
       c(input$region, input$nhs_only),
       {
+        reactive_values$performance_calculated <- FALSE
         data_table <- org_lkp
 
         if (input$nhs_only == "nhs_only") {
@@ -1176,6 +1173,7 @@ mod_02_planner_server <- function(id, r) {
           )
 
           reactive_values$optimise_status_card_visible <- FALSE
+          reactive_values$performance_calculated <- FALSE
           removeModal()
         } else {
           notification_type <- "error"
@@ -1244,6 +1242,7 @@ mod_02_planner_server <- function(id, r) {
       c(input$forecast_date),
       {
         reactive_values$forecast_end_date <- input$forecast_date
+        reactive_values$performance_calculated <- FALSE
       }
     )
 
@@ -1329,6 +1328,7 @@ mod_02_planner_server <- function(id, r) {
     # Add target button
     observeEvent(input$add_target, {
       add_target()
+      reactive_values$performance_calculated <- FALSE
     })
 
     # Remove selected target
@@ -1344,6 +1344,7 @@ mod_02_planner_server <- function(id, r) {
           }
         }
       }
+      reactive_values$performance_calculated <- FALSE
     })
 
     # Render editable table
@@ -1450,7 +1451,7 @@ mod_02_planner_server <- function(id, r) {
           }
         )
       }
-
+      reactive_values$performance_calculated <- FALSE
       target_data(current_data)
     })
 
@@ -1524,6 +1525,7 @@ mod_02_planner_server <- function(id, r) {
             )
           })
         }
+        reactive_values$performance_calculated <- FALSE
       }
     )
 
@@ -1828,7 +1830,7 @@ mod_02_planner_server <- function(id, r) {
               inputId = ns("capacity_growth_type"),
               label = NULL,
               choices = c("Uniform", "Linear"),
-              selected = "Linear" #,
+              selected = "Linear"
             ),
             fill = FALSE
           ),
@@ -1913,6 +1915,7 @@ mod_02_planner_server <- function(id, r) {
             )
           })
         }
+        reactive_values$performance_calculated <- FALSE
       }
     )
 
@@ -2109,6 +2112,42 @@ mod_02_planner_server <- function(id, r) {
         }
       },
       ignoreInit = TRUE
+    )
+
+    # green tick maintenance -------------------------------------------------
+    observeEvent(
+      c(
+        input$trust_parent_codes,
+        input$commissioner_parent_codes,
+        input$commissioner_org_codes,
+        input$trust_codes,
+        input$specialty_codes,
+        input$nhs_only,
+        input$calibration_months
+      ),
+      {
+        reactive_values$data_downloaded <- FALSE
+        reactive_values$performance_calculated <- FALSE
+        reactive_values$optimise_status_card_visible <- FALSE
+      }
+    )
+
+    observeEvent(
+      c(
+        input$referral_growth_type,
+        input$referral_growth,
+        input$optimised_capacity_growth_type,
+        input$capacity_skew_range,
+        input$capacity_track_referrals,
+        input$target_achievement_date,
+        input$capacity_growth,
+        input$capacity_growth_type,
+        input$capacity_track_referrals
+      ),
+      {
+        reactive_values$performance_calculated <- FALSE
+        reactive_values$optimise_status_card_visible <- FALSE
+      }
     )
 
     # capacity calculation complete symbol ------------------------------------------------
