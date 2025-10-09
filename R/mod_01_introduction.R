@@ -12,19 +12,22 @@ mod_01_introduction_ui <- function(id) {
   ns <- NS(id)
 
   # create statement for data update information
-  data_info <- readRDS(system.file(
+  data_info <- system.file(
     "extdata",
     "run_date.rds",
     package = "RTTshiny"
-  )) |>
-    (\(x) {
-      paste0(
-        "Last data import: ",
-        x["Data updated (12 month)"],
-        "; last check for new data: ",
-        x["Data checked"]
-      )
-    })()
+  )
+  if (data_info != "") {
+    data_info <- readRDS() |>
+      (\(x) {
+        paste0(
+          "Last data import: ",
+          x["Data updated (12 month)"],
+          "; last check for new data: ",
+          x["Data checked"]
+        )
+      })()
+  }
 
   page_fillable(
     layout_columns(
