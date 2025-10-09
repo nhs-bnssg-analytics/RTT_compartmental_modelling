@@ -50,6 +50,7 @@
 #' @import ggplot2
 #' @return A ggplot2 plot object of selected values
 #' @noRd
+#' @export
 
 plot_output <- function(
   data,
