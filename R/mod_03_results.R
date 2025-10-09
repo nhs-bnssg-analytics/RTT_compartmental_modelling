@@ -57,7 +57,9 @@ mod_03_results_server <- function(id, r) {
       plot_data = NULL,
       show_plot = FALSE,
       show_table = FALSE,
-      temp_data = NULL
+      temp_data = NULL,
+      facet_scales = "fixed",
+      facet_grouping = "months_waited_id"
     )
 
     # dynamic sidebar ---------------------------------------------------------
@@ -333,12 +335,6 @@ mod_03_results_server <- function(id, r) {
           overwrite = TRUE
         )
 
-        if (isTRUE(input$facet_scales) | is.null(input$facet_scales)) {
-          facet_scales <- "fixed"
-        } else {
-          facet_scales <- "free_y"
-        }
-
         params <- list(
           waiting_list = r$waiting_list,
           trust = r$chart_specification$trust,
@@ -351,8 +347,8 @@ mod_03_results_server <- function(id, r) {
           referrals_percent_change = r$chart_specification$referrals_percent_change,
           referrals_change_type = r$chart_specification$referrals_change_type,
           chart_specification = r$chart_specification,
-          facet_scales = facet_scales,
-          facet_grouping = input$facet_grouping
+          facet_scales = reactive_data$facet_scales,
+          facet_grouping = reactive_data$facet_grouping
         )
         rmarkdown::render(
           tempReport,
@@ -509,8 +505,28 @@ mod_03_results_server <- function(id, r) {
       server = FALSE
     )
 
-    # plot --------------------------------------------------------------------
+    # update reactive scales object ------------------------------------------
 
+    observeEvent(
+      c(input$facet_scales),
+      {
+        if (isTRUE(input$facet_scales) | is.null(input$facet_scales)) {
+          reactive_data$facet_scales <- "fixed"
+        } else {
+          reactive_data$facet_scales <- "free_y"
+        }
+      }
+    )
+
+    # update reactive grouping object ----------------------------------------
+    observeEvent(
+      c(input$facet_grouping),
+      {
+        reactive_data$facet_grouping <- input$facet_grouping
+      }
+    )
+
+    # plot --------------------------------------------------------------------
     observeEvent(
       c(
         input$chart_res,
@@ -524,9 +540,7 @@ mod_03_results_server <- function(id, r) {
         input$btn_performance,
         input$btn_shortfall,
         input$btn_data,
-        input$btn_report_ui #,
-        # input$facet_scales,
-        # input$facet_grouping
+        input$btn_report_ui
       ),
       {
         if (is.null(input$chart_res)) {
@@ -583,7 +597,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- TRUE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
-                chart_facet_grouping <- input$facet_grouping
+                chart_facet_grouping <- reactive_data$facet_grouping
               } else if (reactive_data$btn_val == "btn_reneges_ttl") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -609,7 +623,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- TRUE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
-                chart_facet_grouping <- input$facet_grouping
+                chart_facet_grouping <- reactive_data$facet_grouping
               } else if (reactive_data$btn_val == "btn_waiting_list_ttl") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
@@ -632,7 +646,7 @@ mod_03_results_server <- function(id, r) {
                 include_facets <- TRUE
                 percentage_axis <- FALSE
                 include_target_line <- FALSE
-                chart_facet_grouping <- input$facet_grouping
+                chart_facet_grouping <- reactive_data$facet_grouping
               } else if (reactive_data$btn_val == "btn_performance") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::rename(value = "incompletes") |>
@@ -699,11 +713,6 @@ mod_03_results_server <- function(id, r) {
               if (
                 !(reactive_data$btn_val %in% c("btn_data", "btn_report_ui"))
               ) {
-                if (isTRUE(input$facet_scales) | is.null(input$facet_scales)) {
-                  facet_scales <- "fixed"
-                } else {
-                  facet_scales <- "free_y"
-                }
                 plot_output(
                   data = reactive_data$plot_data,
                   p_trust = r$chart_specification$trust,
@@ -719,7 +728,7 @@ mod_03_results_server <- function(id, r) {
                   p_perc = percentage_axis,
                   p_facet = include_facets,
                   p_target_line = include_target_line,
-                  p_facet_scales = facet_scales,
+                  p_facet_scales = reactive_data$facet_scales,
                   p_facet_grouping = chart_facet_grouping
                 )
               }
@@ -769,6 +778,12 @@ mod_03_results_server <- function(id, r) {
             )
           )
 
+          if (reactive_data$facet_scales == "fixed") {
+            axis_start_val <- TRUE
+          } else {
+            axis_start_val <- FALSE
+          }
+
           distribution_options <- card(layout_columns(
             col_widths = c(6, 6),
             shiny::radioButtons(
@@ -778,12 +793,13 @@ mod_03_results_server <- function(id, r) {
                 "Months waited" = "months_waited_id",
                 "Time" = "period"
               ),
+              selected = reactive_data$facet_grouping,
               inline = FALSE
             ),
             shinyWidgets::prettyCheckbox(
               inputId = ns("facet_scales"),
               label = "Fixed y-axis",
-              value = TRUE,
+              value = axis_start_val,
               inline = FALSE
             )
           ))

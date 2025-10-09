@@ -286,7 +286,7 @@ mod_08_batch_ui <- function(id) {
 #'
 #' @importFrom shiny reactiveValues observeEvent renderUI p modalDialog modalButton
 #'   tagList showModal plotOutput renderPlot withTags
-#' @importFrom NHSRtt latest_rtt_date get_rtt_data find_p
+#' @importFrom NHSRtt get_rtt_data find_p
 #' @importFrom lubridate floor_date interval
 #' @importFrom rlang .data
 #' @importFrom purrr map pmap list_rbind map2 map_dbl
