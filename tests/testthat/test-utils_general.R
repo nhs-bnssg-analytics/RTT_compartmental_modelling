@@ -761,3 +761,24 @@ test_that("tooltip_label handles missing definition", {
     "unknown"
   )
 })
+
+
+test_that("Dates before or in March return next year's March", {
+  expect_equal(get_next_march(as.Date("2025-01-15")), as.Date("2026-03-01"))
+  expect_equal(get_next_march(as.Date("2025-03-01")), as.Date("2026-03-01"))
+})
+
+test_that("Dates after March but within 10 months return March two years ahead", {
+  expect_equal(get_next_march(as.Date("2025-07-01")), as.Date("2027-03-01"))
+  expect_equal(get_next_march(as.Date("2025-10-09")), as.Date("2027-03-01"))
+})
+
+test_that("Dates after March but exactly 10 months away return next year's March", {
+  expect_equal(get_next_march(as.Date("2025-05-01")), as.Date("2026-03-01"))
+})
+
+test_that("Function works with default date", {
+  result <- get_next_march()
+  expect_true(inherits(result, "Date"))
+  expect_match(format(result, "%m-%d"), "03-01")
+})

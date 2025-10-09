@@ -112,12 +112,20 @@ for (i in seq_len(nrow(params$optimised_wl))) {
       wl_description = factor(
         .data$wl_description,
         levels = c(
-          format(
-            max(.data$period, na.rm = TRUE) %m-% months(12),
-            format = "%b %Y"
+          paste(
+            c(
+              format(
+                max(.data$period, na.rm = TRUE) %m-% months(12),
+                format = "%b %Y"
+                ),
+                format(
+                  max(.data$period, na.rm = TRUE), 
+                  format = "%b %Y"
+                )
+              ), 
+            "(observed)"
           ),
-          format(max(.data$period, na.rm = TRUE), format = "%b %Y"),
-          "Steady state"
+          "Steady state (modelled)"
         )
       )
     ) |>
@@ -283,7 +291,8 @@ for (i in seq_len(length((split_tbl)))) {
   out |> 
     flextable::bg(i = seq(1, nrow(split_tbl[[i]]), 2), bg = "#CCD2D8") |>  
     flextable::bg(i = seq(2, nrow(split_tbl[[i]]), 2), bg = "#E7EAED") |>  
-    flextable::color(i = seq(1, nrow(split_tbl[[i]])), color = "black")
+    flextable::color(i = seq(1, nrow(split_tbl[[i]])), color = "black") |> 
+    flextable::flextable_to_rmd()
 }
   
 

@@ -2,12 +2,16 @@
 # RTTshiny 1.0.2.9000
 
 * On the results page, following "calculating performance from capacity inputs", the user can now edit the input data for treatment capacity and referrals for the projection period to understand the impact of temporary measures on performance.
+* On the results page, the distribution charts now can allow for "free" scales as well as being able to flip the view to see distributions by different time periods.
 * Allows for filtering providers by NHS and non-NHS providers.
-* includes information about model error once data has been imported/downloaded.
+* Includes information about model error once data has been imported/downloaded.
 * A new "Steady state" tab has been introduced. This applies a new methodology to allow users to model multiple trusts and specialties together. The modelling provides a view of what a healthy waiting list looks like when it is in steady state (e.g., clock starts equals clock stops) and achieving a specific target.
-* A new "Performance shortfall" chart is displayed when using the Scenario Planner to predict performance from capacity inputs. This displays the number of additional 'long-waiter' clock stops that would be required to achieve a particular performance target.
+* A new "Performance shortfall" chart is displayed on the results page when using the Scenario Planner to predict performance from capacity inputs. This displays the number of additional 'long-waiter' clock stops that would be required to achieve a particular performance target.
 * When data are uploaded to the Scenario Planner, the user is now required to enter a data description, which is used as the chart title.
-* fixes bug for data import causing low counts for completes pathways
+* Fixes bug for data import causing low counts for completes pathways.
+* Definitions of words are displayed on hover.
+* The list of collaborators has increased on the acknoledgements tab.
+* Nov 2024 performance is displayed on the scenario planner when estimating capacity to meet performance.
 
 # RTTshiny 1.0.2
 

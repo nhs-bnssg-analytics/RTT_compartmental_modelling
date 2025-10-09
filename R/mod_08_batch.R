@@ -464,7 +464,6 @@ mod_08_batch_server <- function(id) {
                 .by = c("trust", "specialty")
               )
 
-            # browser()
             # the latest month of data to use for calibrating the models
             max_download_date <- max(raw_data$period)
 
@@ -518,7 +517,7 @@ mod_08_batch_server <- function(id) {
               value = 0,
               {
                 n <- nrow(current)
-                # browser()
+
                 optimised_projections <- current |>
                   # add historic s
                   left_join(
@@ -582,96 +581,103 @@ mod_08_batch_server <- function(id) {
                       .data$referrals_scenario
                     )
                   )
-
-                historic_waiting_list <- raw_data |>
-                  filter(
-                    .data$type %in% c("Incomplete", "Complete"),
-                    .data$period %in%
-                      c(
-                        max(.data$period),
-                        max(.data$period) %m-% months(12)
-                      )
-                  ) |>
-                  mutate(
-                    wl_description = paste(
-                      format(.data$period, format = "%b %Y"),
-                      "(observed)"
-                    ),
-                    type = case_when(
-                      .data$type == "Incomplete" ~ "wlsize",
-                      .data$type == "Complete" ~ "sigma",
-                      .default = NA_character_
-                    )
-                  ) |>
-                  tidyr::pivot_wider(
-                    names_from = "type",
-                    values_from = "value",
-                    values_fill = 0
-                  ) |>
-                  select(
-                    "trust",
-                    "specialty",
-                    "period",
-                    "months_waited_id",
-                    "wlsize",
-                    "sigma",
-                    "wl_description"
-                  ) |>
-                  tidyr::nest(
-                    previous_waiting_list = c(
-                      "period",
-                      "months_waited_id",
-                      "wlsize",
-                      "wl_description",
-                      "sigma"
-                    )
+              }
+            )
+            historic_waiting_list <- raw_data |>
+              filter(
+                .data$type %in% c("Incomplete", "Complete"),
+                .data$period %in%
+                  c(
+                    max(.data$period),
+                    max(.data$period) %m-% months(12)
                   )
+              ) |>
+              mutate(
+                wl_description = paste(
+                  format(.data$period, format = "%b %Y"),
+                  "(observed)"
+                ),
+                type = case_when(
+                  .data$type == "Incomplete" ~ "wlsize",
+                  .data$type == "Complete" ~ "sigma",
+                  .default = NA_character_
+                )
+              ) |>
+              tidyr::pivot_wider(
+                names_from = "type",
+                values_from = "value",
+                values_fill = 0
+              ) |>
+              select(
+                "trust",
+                "specialty",
+                "period",
+                "months_waited_id",
+                "wlsize",
+                "sigma",
+                "wl_description"
+              ) |>
+              tidyr::nest(
+                previous_waiting_list = c(
+                  "period",
+                  "months_waited_id",
+                  "wlsize",
+                  "wl_description",
+                  "sigma"
+                )
+              )
 
-                reactive_values$optimised_waiting_list <- optimised_projections |>
-                  select("trust", "specialty", "referrals_scenario", "wl_ss") |>
-                  tidyr::unnest("wl_ss") |>
-                  select(
-                    "trust",
-                    "specialty",
-                    "referrals_scenario",
-                    "months_waited_id",
-                    "wlsize",
-                    "sigma"
-                  ) |>
-                  mutate(
-                    wl_description = "Steady state (modelled)"
-                  ) |>
-                  tidyr::nest(
-                    steady_state_waiting_list = c(
-                      "months_waited_id",
-                      # "r",
-                      # "service",
-                      "sigma",
-                      "wlsize",
-                      "wl_description"
-                    )
-                  ) |>
-                  mutate(
-                    id = dplyr::row_number()
-                  ) |>
-                  left_join(
-                    historic_waiting_list,
-                    by = join_by(trust, specialty)
-                  )
+            reactive_values$optimised_waiting_list <- optimised_projections |>
+              select("trust", "specialty", "referrals_scenario", "wl_ss") |>
+              tidyr::unnest("wl_ss") |>
+              select(
+                "trust",
+                "specialty",
+                "referrals_scenario",
+                "months_waited_id",
+                "wlsize",
+                "sigma"
+              ) |>
+              mutate(
+                wl_description = "Steady state (modelled)"
+              ) |>
+              tidyr::nest(
+                steady_state_waiting_list = c(
+                  "months_waited_id",
+                  # "r",
+                  # "service",
+                  "sigma",
+                  "wlsize",
+                  "wl_description"
+                )
+              ) |>
+              mutate(
+                id = dplyr::row_number()
+              ) |>
+              left_join(
+                historic_waiting_list,
+                by = join_by(trust, specialty)
+              )
 
-                # add in the counterfactual reneges and wl size
-                wl_t0 <- raw_data |>
-                  filter(
-                    .data$type == "Incomplete",
-                    .data$period == max(.data$period)
-                  ) |>
-                  select(!c("period", "period_id", "type")) |>
-                  rename(incompletes = "value") |>
-                  tidyr::nest(wl_t0 = c("months_waited_id", "incompletes"))
+            # add in the counterfactual reneges and wl size
+            wl_t0 <- raw_data |>
+              filter(
+                .data$type == "Incomplete",
+                .data$period == max(.data$period)
+              ) |>
+              select(!c("period", "period_id", "type")) |>
+              rename(incompletes = "value") |>
+              tidyr::nest(wl_t0 = c("months_waited_id", "incompletes"))
 
+            shiny::withProgress(
+              message = "Calculating counterfactuals",
+              value = 0,
+              {
+                n <- nrow(optimised_projections)
                 reactive_values$optimised_projections <- optimised_projections |>
                   left_join(wl_t0, by = c("trust", "specialty")) |>
                   mutate(
+                    id = dplyr::row_number(),
                     counterfactual = purrr::pmap(
                       list(
                         cap = .data$capacity_t1,
@@ -680,12 +686,11 @@ mod_08_batch_server <- function(id) {
                         inc = .data$wl_t0,
                         par = .data$params,
                         t = .data$trust,
-                        sp = .data$specialty
+                        sp = .data$specialty,
+                        id = .data$id
                       ),
-                      \(cap, ref_start, ref_end, inc, par, t, sp) {
-                        # cat(paste(t, sp))
-                        # cat("\n")
-                        append_counterfactual(
+                      \(cap, ref_start, ref_end, inc, par, t, sp, id) {
+                        counterf <- append_counterfactual(
                           capacity = cap,
                           referrals_start = ref_start,
                           referrals_end = ref_end,
@@ -694,6 +699,11 @@ mod_08_batch_server <- function(id) {
                           forecast_months = forecast_months,
                           target_week = input$target_week
                         )
+                        shiny::incProgress(
+                          1 / n,
+                          detail = paste("Completed ", id, "of", n)
+                        )
+                        return(counterf)
                       }
                     )
                   ) |>
@@ -707,7 +717,8 @@ mod_08_batch_server <- function(id) {
                       "target",
                       "wl_ss",
                       "wl_t0",
-                      "s_given"
+                      "s_given",
+                      "id"
                     )
                   ) |>
                   mutate(
@@ -781,8 +792,7 @@ mod_08_batch_server <- function(id) {
                   plot_waiting_lists_chart(
                     target_week = input$target_week,
                     target_value = input$target_value
-                  ) #,
-                # width = "1000px"
+                  )
               })
             })
           }
@@ -794,7 +804,6 @@ mod_08_batch_server <- function(id) {
     # create the result table
     output$results_table <- reactable::renderReactable({
       if (reactive_values$show_results == TRUE) {
-        # browser()
         # create the grouping columns
         current_cols <- c(
           "referrals_t1",
@@ -1120,95 +1129,80 @@ mod_08_batch_server <- function(id) {
       }
     })
 
-    observeEvent(
-      c(input$copy_results),
-      {
-        if (input$copy_results > 0) {
-          reactive_values$optimised_projections |>
-            dplyr::rename(
-              dplyr::all_of(
-                c(
-                  "Trust" = "trust",
-                  "Specialty" = "specialty",
-                  "Current demand" = "referrals_t1",
-                  "Current treatment capacity" = "capacity_t1",
-                  "Current reneges" = "reneges_t0",
-                  "Current load" = "load",
-                  "Current waiting list size" = "incompletes_t0",
-                  "Current pressure" = "pressure",
-                  "Demand scenario" = "referrals_scenario",
-                  "Do nothing demand" = "referrals_counterf",
-                  "Do nothing treatment capacity" = "capacity_counterf",
-                  "Do nothing reneges" = "reneges_counterf",
-                  "Do nothing waiting list size" = "incompletes_counterf",
-                  "Do nothing performance" = "perf_counterf",
-                  "Steady state demand" = "referrals_ss",
-                  "Steady state treatment capacity" = "capacity_ss",
-                  "Steady state reneges" = "reneges_ss",
-                  "Steady state waiting list size" = "incompletes_ss",
-                  "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
-                  "Additional monthly removals required" = "monthly_removals"
-                )
-              )
-            ) |>
-            utils::write.table(
-              file = "clipboard",
-              sep = "\t",
-              row.names = FALSE
-            )
-          showModal(modalDialog(
-            title = "Copy success",
-            "Results copied to clipboard",
-            easyClose = TRUE,
-            footer = NULL
-          ))
-        }
-      }
-    )
-
-    # copy WL results button -------------------------------------------------
-
-    observeEvent(
-      c(input$copy_wl_results),
-      {
-        if (input$copy_wl_results > 0) {
-          reactive_values$optimised_waiting_list |>
-            dplyr::select(
-              "trust",
-              "specialty",
-              "referrals_scenario",
-              "steady_state_waiting_list"
-            ) |>
-            tidyr::unnest("steady_state_waiting_list") |>
-            mutate(
-              months_waited_id = case_when(
-                .data$months_waited_id == max(.data$months_waited_id) ~
-                  paste0(.data$months_waited_id + 1, "+"),
-                .default = as.character(.data$months_waited_id + 1)
-              )
-            ) |>
-            dplyr::select(
+    # save WL results button -------------------------------------------------
+    # Download handler
+    output$download_results <- downloadHandler(
+      filename <- paste0(
+        "Steady-state results ",
+        format(Sys.time(), format = "%Y%m%d %H%M%S"),
+        ".csv"
+      ),
+      content = function(file) {
+        reactive_values$optimised_projections |>
+          dplyr::rename(
+            dplyr::all_of(
               c(
                 "Trust" = "trust",
                 "Specialty" = "specialty",
+                "Current demand" = "referrals_t1",
+                "Current treatment capacity" = "capacity_t1",
+                "Current reneges" = "reneges_t0",
+                "Current load" = "load",
+                "Current waiting list size" = "incompletes_t0",
+                "Current pressure" = "pressure",
                 "Demand scenario" = "referrals_scenario",
-                "nth month of waiting" = "months_waited_id",
-                "Steady state treatment capacity" = "sigma",
-                "Steady state incomplete pathways" = "wlsize"
+                "Do nothing demand" = "referrals_counterf",
+                "Do nothing treatment capacity" = "capacity_counterf",
+                "Do nothing reneges" = "reneges_counterf",
+                "Do nothing waiting list size" = "incompletes_counterf",
+                "Do nothing performance" = "perf_counterf",
+                "Steady state demand" = "referrals_ss",
+                "Steady state treatment capacity" = "capacity_ss",
+                "Steady state reneges" = "reneges_ss",
+                "Steady state waiting list size" = "incompletes_ss",
+                "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
+                "Additional monthly removals required" = "monthly_removals"
               )
-            ) |>
-            utils::write.table(
-              file = "clipboard",
-              sep = "\t",
-              row.names = FALSE
             )
-          showModal(modalDialog(
-            title = "Copy success",
-            "Results copied to clipboard",
-            easyClose = TRUE,
-            footer = NULL
-          ))
-        }
+          ) |>
+          write.csv(file, row.names = FALSE)
+      }
+    )
+
+    # save detailed WL results button -------------------------------------------------
+    output$download_wl_results <- downloadHandler(
+      filename <- paste0(
+        "Steady-state waiting list detail ",
+        format(Sys.time(), format = "%Y%m%d %H%M%S"),
+        ".csv"
+      ),
+      content = function(file) {
+        reactive_values$optimised_waiting_list |>
+          dplyr::select(
+            "trust",
+            "specialty",
+            "referrals_scenario",
+            "steady_state_waiting_list"
+          ) |>
+          tidyr::unnest("steady_state_waiting_list") |>
+          mutate(
+            months_waited_id = case_when(
+              .data$months_waited_id == max(.data$months_waited_id) ~
+                paste0(.data$months_waited_id + 1, "+"),
+              .default = as.character(.data$months_waited_id + 1)
+            )
+          ) |>
+          dplyr::select(
+            c(
+              "Trust" = "trust",
+              "Specialty" = "specialty",
+              "Demand scenario" = "referrals_scenario",
+              "nth month of waiting" = "months_waited_id",
+              "Steady state treatment capacity" = "sigma",
+              "Steady state incomplete pathways" = "wlsize"
+            )
+          ) |>
+          write.csv(file, row.names = FALSE)
       }
     )
 
@@ -1297,20 +1291,23 @@ mod_08_batch_server <- function(id) {
           layout_column_wrap(
             width = "200px",
             fixed_width = TRUE,
-            actionButton(
-              inputId = ns("copy_results"),
-              label = "Copy results",
-              class = "copy-button"
+            downloadButton(
+              outputId = ns("download_results"),
+              label = "Download results as csv",
+              class = "copy-button",
+              icon = shiny::icon("file-csv")
             ),
-            actionButton(
-              inputId = ns("copy_wl_results"),
-              label = "Copy waiting list detail",
-              class = "copy-button"
+            downloadButton(
+              outputId = ns("download_wl_results"),
+              label = "Download waiting list detail",
+              class = "copy-button",
+              icon = shiny::icon("hourglass-start")
             ),
             downloadButton(
               outputId = ns("create_ppt"),
               label = "Create PowerPoint of results",
-              class = "ppt-button"
+              class = "ppt-button",
+              icon = shiny::icon("file-powerpoint")
             )
           ),
           reactableOutput(

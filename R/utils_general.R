@@ -12,7 +12,7 @@
 #' @importFrom rlang .data
 #' @importFrom dplyr across all_of group_by ungroup group_vars case_when mutate
 #'   filter
-#' @noRd
+#' @export
 calc_performance <- function(incompletes_data, target_bin) {
   # check one record per month waited per period
 
@@ -105,7 +105,7 @@ calc_performance <- function(incompletes_data, target_bin) {
 #'   shortfall is the number of additional patients that are on the waiting list
 #'   and have been waiting longer than the `target_bin` length that, if removed,
 #'   will results in a performance equal to the `target_performance`
-#' @noRd
+#' @export
 calc_shortfall <- function(
   incompletes_data,
   target_bin = 4,
@@ -266,6 +266,30 @@ convert_weeks_to_months <- function(wks) {
   mnths <- wks * 7 / mnths_in_year
 
   return(mnths)
+}
+
+#' Calculate the next March date to provide as default for the scenario planner
+#' @noRd
+get_next_march <- function(date = Sys.Date()) {
+  # Extract current year and month
+  current_year <- as.integer(format(date, "%Y"))
+  current_month <- as.integer(format(date, "%m"))
+
+  # Calculate months until next March
+  if (current_month > 3) {
+    months_until_march <- 3 + (12 - current_month)
+    # Decide which March to return
+    if (months_until_march < 10) {
+      target_year <- current_year + 2
+    } else {
+      target_year <- current_year + 1
+    }
+  } else {
+    target_year <- current_year + 1
+  }
+
+  # Return 1st March of the target year
+  return(as.Date(paste0(target_year, "-03-01")))
 }
 
 #' Replaces values in a string vector with corresponding values from a named

@@ -20,7 +20,7 @@ mod_04_definitions_ui <- function(id) {
     h1("RTT Planner terminology glossary"),
     p(HTML(
       "A quick reference guide to the terms used within this tool.
-      See <a href='https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2025/02/Recording-and-reporting-RTT-waiting-times-guidance-v5.0-Feb25.pdf'>this document</a> for detailed definitions on RTT pathways."
+      See <a href='https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2025/02/Recording-and-reporting-RTT-waiting-times-guidance-v5.0-Feb25.pdf' target='_blank'>this document</a> for detailed definitions on RTT pathways."
     )),
 
     card(

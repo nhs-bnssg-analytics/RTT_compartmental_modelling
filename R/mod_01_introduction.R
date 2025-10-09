@@ -18,7 +18,7 @@ mod_01_introduction_ui <- function(id) {
     package = "RTTshiny"
   )
   if (data_info != "") {
-    data_info <- readRDS() |>
+    data_info <- readRDS(data_info) |>
       (\(x) {
         paste0(
           "Last data import: ",
@@ -69,13 +69,13 @@ mod_01_introduction_ui <- function(id) {
           p(
             HTML(
               paste0(
-                "See the latest features <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/blob/main/NEWS.md'>here</a>."
+                "See the latest features <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/blob/main/NEWS.md' target='_blank'>here</a>."
               )
             )
           ),
           p(HTML(
             paste0(
-              '<span style="font-size: 0.5rem;">',
+              '<span style="font-size: 0.6rem;">',
               data_info,
               '</span>'
             )
@@ -105,7 +105,7 @@ mod_01_introduction_ui <- function(id) {
             tags$li(
               tags$strong("Other:"),
               HTML(
-                " View the issues backlog <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>here</a>."
+                " View the issues backlog <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues' target='_blank'>here</a>."
               )
             )
           ),

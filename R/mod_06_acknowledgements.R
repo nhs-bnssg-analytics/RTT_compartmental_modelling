@@ -30,12 +30,12 @@ mod_06_acknowledgements_ui <- function(id) {
             "Richard Wood (BNSSG ICB)",
             "Richard Blackwell (Health Innovation SW)",
             "Claire Rudler (Devon ICB)",
-            "Nick Cooper (Gloucestershire ICB)",
+            "Nick Cooper (Gloucestershire Foundation Trust)",
             "Euan Ives (NHSE SW)",
             "Neil Walton (Durham University)",
-            "Lucy Morgan (the Strategy Unit)",
+            "Lucy Morgan (the Midlands Strategy Unit)",
             "",
-            "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
+            "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs.",
             sep = "<br>"
           )
         )
@@ -71,18 +71,18 @@ mod_06_acknowledgements_server <- function(id) {
       ),
       description = c(
         paste0(
-          "First RTT model developed in NHS BNSSG ICB, and <a href='https://link.springer.com/article/10.1007/s10729-022-09615-2'>research paper published.</a>",
+          "First RTT model developed in NHS BNSSG ICB, and <a href='https://link.springer.com/article/10.1007/s10729-022-09615-2' target='_blank'>research paper published.</a>",
           "<br><br>",
           "Research continues along with more associated publications."
         ),
         paste0(
           "NHS BNSSG ICB, in collaboration with Lancaster University, develop multi-stock model using public NHS RTT statistics at England geography. ",
-          "Full details of the model can be found <a href='https://rdcu.be/elVEq'>here</a>."
+          "Full details of the model can be found <a href='https://rdcu.be/elVEq' target='_blank'>here</a>."
         ),
         "NHS BNSSG ICB and NHS Devon ICB, who have also been working on stock-and-flow models, agree to develop common RTT model to reduce multiplication. This is facilitated by the South West Decision Support Network's 'At Scale Analytics' workstream.",
         "Collaboration expands to include NHS England South West team and NHS Gloucestershire ICB, and the development of the interactive online tool begins.",
         "First release of the online tool occurs.",
-        "A 'healthy waiting list' solution developed and included in the second release of the online tool"
+        "A 'healthy waiting list' method developed and <a href='https://doi.org/10.1016/j.fhj.2025.100478' target = '_blank'>published</a>, and then included in the second release of the online tool ."
       ),
       colour = c(
         "#330072",

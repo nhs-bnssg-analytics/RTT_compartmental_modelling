@@ -322,6 +322,26 @@ append_steady_state <- function(
     acc <- mean(abs(s_given - s_modelled)) # mae
     # acc <- mean(abs(s_given - s_modelled) / s_given) # mape
 
+    # it is possible for a solution not to be found - for example if the renege
+    # parameters are too high in certain compartments
+    if (any(is.nan(s_modelled))) {
+      output <- dplyr::tibble(
+        capacity_ss = NA,
+        reneges_ss = NA,
+        incompletes_ss = NA,
+        wl_ss = list(
+          data.frame(
+            months_waited_id = 0:12,
+            r = renege_params,
+            service = NA,
+            sigma = NA,
+            wlsize = NA
+          )
+        )
+      )
+      return(output)
+    }
+
     min_acc <- acc
     increment <- 0.01
 

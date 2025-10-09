@@ -1240,25 +1240,12 @@ mod_02_planner_server <- function(id, r) {
       )
     )
 
-    # calculate possible target dates from forecast horizon dates ----------------
-
-    # here, we force the target achievement date to fit into the forecast time period
-    target_dates <- reactive({
-      min_date <- reactive_values$forecast_start_date
-      max_date <- as.Date(input$forecast_date)
-
-      if (dplyr::between(as.Date("2026-03-01"), min_date, max_date)) {
-        default_date <- as.Date("2026-03-01")
-      } else {
-        default_date <- max_date
+    observeEvent(
+      c(input$forecast_date),
+      {
+        reactive_values$forecast_end_date <- input$forecast_date
       }
-
-      target_dates <- list(
-        min = min_date,
-        max = max_date,
-        default = default_date
-      )
-    })
+    )
 
     # create the dynamic ui for target achievement date -----------------------
 
@@ -1276,9 +1263,9 @@ mod_02_planner_server <- function(id, r) {
         dateInput(
           inputId = ns("target_achievement_date"),
           label = NULL,
-          min = target_dates()$min,
-          max = target_dates()$max,
-          value = target_dates()$default
+          min = reactive_values$forecast_start_date,
+          max = reactive_values$forecast_end_date,
+          value = get_next_march()
         ),
         fill = FALSE
       )
@@ -1415,8 +1402,8 @@ mod_02_planner_server <- function(id, r) {
             if (
               !dplyr::between(
                 date_value,
-                target_dates()$min,
-                target_dates()$max
+                min = reactive_values$forecast_start_date,
+                max = reactive_values$forecast_end_date
               )
             ) {
               showNotification(
@@ -2610,26 +2597,6 @@ mod_02_planner_server <- function(id, r) {
             ) |>
             mutate(
               months_waited_id = convert_month_to_factor(.data$months_waited_id)
-              # months_waited_id = case_when(
-              #   .data$months_waited_id < 12 ~
-              #     paste0(
-              #       .data$months_waited_id,
-              #       "-",
-              #       .data$months_waited_id + 1,
-              #       " months"
-              #     ),
-              #   .default = "12+ months"
-              # ),
-              # months_waited_id = factor(
-              #   .data$months_waited_id,
-              #   levels = paste(
-              #     c(
-              #       paste0(0:11, "-", 1:12),
-              #       "12+"
-              #     ),
-              #     "months"
-              #   )
-              # )
             ) |>
             dplyr::arrange(
               .data$period_id

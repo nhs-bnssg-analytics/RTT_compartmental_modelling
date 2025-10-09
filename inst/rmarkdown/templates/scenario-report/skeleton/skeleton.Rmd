@@ -332,7 +332,7 @@ wl_perf_dat <- params$waiting_list |>
   dplyr::rename(value = "incompletes") |>
   dplyr::group_by(.data$period_type) |>
   mutate(
-    months_waited_id = extract_first_number(.data$months_waited_id)
+    months_waited_id = sub("[+\\-].*", "", .data$months_waited_id)
   ) |> 
   calc_performance(
     target_bin = 4
@@ -372,15 +372,27 @@ wl_perf_dat <- params$waiting_list |>
   dplyr::rename(value = "incompletes") |>
   dplyr::group_by(.data$period_type) |>
   mutate(
-    months_waited_id = extract_first_number(.data$months_waited_id)
+    months_waited_id = sub("[+\\-].*", "", .data$months_waited_id)
   ) |> 
   calc_shortfall(
     target_bin = 4,
     target_performance = 0.92
   ) |>
   ungroup() |>
-  rename(p_var = "shortfall") |>
-  extend_period_type_data()
+  rename(p_var = "shortfall") 
+
+additional_month <- wl_perf_dat |>
+  filter(
+    .data$period == max(.data$period),
+    .by = "period_type"
+  ) |>
+  mutate(
+    period = .data$period %m+% months(1)
+  )
+wl_perf_dat <- wl_perf_dat |>
+  bind_rows(
+    additional_month
+  )
 
 plot_output(
   data = wl_perf_dat,
