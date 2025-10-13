@@ -6,7 +6,7 @@
       Error in `match.arg()`:
       ! 'arg' should be one of "model", "select_chart"
 
-# plot_skew is consistent
+# plot_skew error
 
     Code
       plot_skew(params = dummy_params, skew_values = 1.5, pivot_bin = 2, skew_method = "bad input")
@@ -17,7 +17,7 @@
       Caused by error in `match.arg()`:
       ! 'arg' should be one of "rotate", "uniform"
 
-# tooltip testing
+# skew_tooltip testing
 
     Code
       skew_tooltip()

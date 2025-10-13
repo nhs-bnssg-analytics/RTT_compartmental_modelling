@@ -132,7 +132,8 @@ test_that("calculate_s_given works - latest", {
 test_that("append_steady_state - results", {
   set.seed(1234)
   s_giv <- runif(13) |>
-    (\(x) x / sum(x))()
+    (\(x) round(x / sum(x), 2))()
+  s_giv[13] <- s_giv[13] + 0.01
 
   r <- runif(13, max = 0.25)
 
@@ -189,7 +190,8 @@ test_that("append_steady_state - results", {
 test_that("append_steady_state - closest results", {
   set.seed(1234)
   s_giv <- runif(13) |>
-    (\(x) x / sum(x))()
+    (\(x) round(x / sum(x), 2))()
+  s_giv[13] <- s_giv[13] + 0.01
 
   r <- runif(13, max = 0.25)
 
@@ -244,7 +246,8 @@ test_that("append_steady_state - closest results", {
 test_that("append_steady_state - failed results", {
   set.seed(1234)
   s_giv <- runif(13) |>
-    (\(x) x / sum(x))()
+    (\(x) round(x / sum(x), 2))()
+  s_giv[13] <- s_giv[13] + 0.01
 
   # r <- runif(13, max = 0.25) + 0.2
 
@@ -295,7 +298,8 @@ test_that("append_steady_state - failed results", {
 test_that("append_steady_state - bad results", {
   set.seed(1234)
   s_giv <- runif(13) |>
-    (\(x) x / sum(x))()
+    (\(x) round(x / sum(x), 2))()
+  s_giv[13] <- s_giv[13] + 0.01
 
   r <- runif(13, max = 0.25)
 
