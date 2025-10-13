@@ -360,7 +360,7 @@ test_that("convert_to_date works", {
   )
 })
 
-test_that("aggregate_and_format_raw_data works", {
+test_that("aggregate_and_format_raw_data works - aggregate trust, specific spec", {
   specialty_codes <- "General Surgery"
   processed_results <- aggregate_and_format_raw_data(
     data = result |> filter(specialty == "C_100"),
@@ -374,6 +374,28 @@ test_that("aggregate_and_format_raw_data works", {
   expect_equal(
     dim(processed_results),
     c(81, 7),
+    info = "correct number of columns and rows in processed data"
+  )
+
+  expect_true(
+    all(colSums(is.na(processed_results)) == 0),
+    info = "all columns are not NA"
+  )
+})
+
+test_that("aggregate_and_format_raw_data works - aggregate spec, specific trust", {
+  processed_results <- aggregate_and_format_raw_data(
+    data = result,
+    trust_aggregate = NULL,
+    specialty_aggregate = "Aggregated",
+    selected_specialties = NULL,
+    min_date = min(dates),
+    max_date = max(dates)
+  )
+
+  expect_equal(
+    dim(processed_results),
+    c(2862, 7),
     info = "correct number of columns and rows in processed data"
   )
 

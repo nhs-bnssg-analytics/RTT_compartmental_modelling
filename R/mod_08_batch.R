@@ -1165,7 +1165,7 @@ mod_08_batch_server <- function(id) {
               )
             )
           ) |>
-          write.csv(file, row.names = FALSE)
+          utils::write.csv(file, row.names = FALSE)
       }
     )
 
@@ -1202,7 +1202,7 @@ mod_08_batch_server <- function(id) {
               "Steady state incomplete pathways" = "wlsize"
             )
           ) |>
-          write.csv(file, row.names = FALSE)
+          utils::write.csv(file, row.names = FALSE)
       }
     )
 

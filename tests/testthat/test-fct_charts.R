@@ -1,15 +1,15 @@
-test_that("plot_output function", {
-  target_data <- example_chart_data |>
-    filter(period == as.Date("2026-04-01")) |>
-    mutate(months_waited_id = extract_first_number(months_waited_id)) |>
-    rename(value = incompletes) |>
-    calc_performance(target_bin = 4) |>
-    mutate(prop = 100 * round(prop, 3)) |>
-    rename(
-      Target_date = "period",
-      Target_percentage = "prop"
-    )
+target_data <- example_chart_data |>
+  filter(period == as.Date("2026-04-01")) |>
+  mutate(months_waited_id = extract_first_number(months_waited_id)) |>
+  rename(value = incompletes) |>
+  calc_performance(target_bin = 4) |>
+  mutate(prop = 100 * round(prop, 3)) |>
+  rename(
+    Target_date = "period",
+    Target_percentage = "prop"
+  )
 
+test_that("plot_output function - referrals chart", {
   # referrals chart
   vdiffr::expect_doppelganger(
     title = "referrals chart",
@@ -37,7 +37,8 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
-
+})
+test_that("plot_output function - treatment capacity chart", {
   # treatment capacity charts
 
   vdiffr::expect_doppelganger(
@@ -65,7 +66,8 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
-
+})
+test_that("plot_output function - treatment capacity facet chart", {
   vdiffr::expect_doppelganger(
     title = "capacity facet chart",
     plot_output(
@@ -91,7 +93,9 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
+})
 
+test_that("plot_output function - treatment capacity facet chart (free y axis and period groupings)", {
   vdiffr::expect_doppelganger(
     title = "capacity facet chart free y axis with period groupings",
     plot_output(
@@ -119,7 +123,9 @@ test_that("plot_output function", {
       p_facet_grouping = "period"
     )
   )
+})
 
+test_that("plot_output function - reneges chart", {
   # reneges charts
   vdiffr::expect_doppelganger(
     title = "reneges total chart",
@@ -146,7 +152,9 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
+})
 
+test_that("plot_output function - reneges facet chart", {
   vdiffr::expect_doppelganger(
     title = "reneges facet chart",
     plot_output(
@@ -172,7 +180,9 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
+})
 
+test_that("plot_output function - waiting list chart", {
   # waiting list charts
   vdiffr::expect_doppelganger(
     title = "waiting list total chart",
@@ -199,7 +209,9 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
+})
 
+test_that("plot_output function - waiting list facet chart", {
   vdiffr::expect_doppelganger(
     title = "waiting list facet chart",
     plot_output(
@@ -222,7 +234,9 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
+})
 
+test_that("plot_output function - performance chart", {
   # performance chart
   vdiffr::expect_doppelganger(
     title = "performance chart",
@@ -255,7 +269,9 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
+})
 
+test_that("plot_output function - shortfall chart", {
   # performance chart
   vdiffr::expect_doppelganger(
     title = "shortfall chart",
@@ -289,7 +305,9 @@ test_that("plot_output function", {
       date_input = as.Date("2025-05-08")
     )
   )
+})
 
+test_that("plot_output function - customised referrals chart", {
   # customised referrals chart
   vdiffr::expect_doppelganger(
     title = "customised referrals chart",
@@ -455,13 +473,12 @@ test_that("holding_chart is consistent", {
   )
 })
 
-test_that("plot_skew is consistent", {
-  dummy_params <- dplyr::tibble(
-    months_waited_id = 0:6,
-    renege_param = c(0.3, 0.1, 0.05, 0.02, 0.02, 0.03, 0.15),
-    capacity_param = c(0.4, 0.2, 0.03, 0.04, 0.03, 0.06, 0.25)
-  )
-
+dummy_params <- dplyr::tibble(
+  months_waited_id = 0:6,
+  renege_param = c(0.3, 0.1, 0.05, 0.02, 0.02, 0.03, 0.15),
+  capacity_param = c(0.4, 0.2, 0.03, 0.04, 0.03, 0.06, 0.25)
+)
+test_that("plot_skew error", {
   expect_snapshot(
     plot_skew(
       params = dummy_params,
@@ -471,12 +488,16 @@ test_that("plot_skew is consistent", {
     ),
     error = TRUE
   )
+})
 
+test_that("plot_skew blank", {
   vdiffr::expect_doppelganger(
     title = "NULL data",
     fig = plot_skew(params = NULL)
   )
+})
 
+test_that("plot_skew uniform", {
   vdiffr::expect_doppelganger(
     title = "uniform skew",
     fig = plot_skew(
@@ -486,7 +507,9 @@ test_that("plot_skew is consistent", {
       skew_method = "uniform"
     )
   )
+})
 
+test_that("plot_skew rotate", {
   vdiffr::expect_doppelganger(
     title = "rotate skew",
     fig = plot_skew(
@@ -496,7 +519,9 @@ test_that("plot_skew is consistent", {
       skew_method = "rotate"
     )
   )
+})
 
+test_that("plot_skew multiple", {
   vdiffr::expect_doppelganger(
     title = "multiple skews",
     fig = plot_skew(
@@ -506,7 +531,9 @@ test_that("plot_skew is consistent", {
       skew_method = "rotate"
     )
   )
+})
 
+test_that("plot_skew error with too many skew values", {
   expect_error(
     plot_skew(
       params = dummy_params,
@@ -660,24 +687,29 @@ test_that("click_info works", {
 
 # tool tip tests ----------------------------------------------------------
 
-test_that("tooltip testing", {
+test_that("tooltip testing - linear", {
   vdiffr::expect_doppelganger(
     title = "Linear tooltip",
     linear_tooltip()
   )
-
+})
+test_that("tooltip testing - uniform", {
   vdiffr::expect_doppelganger(
     title = "Uniform tooltip",
     uniform_tooltip()
   )
+})
 
+test_that("tooltip testing - combined", {
   golem::expect_shinytag(
     linear_uniform_tooltip(
       uniform_id = "dummy_uniform",
       linear_id = "dummy_linear"
     )
   )
+})
 
+test_that("skew_tooltip testing", {
   expect_snapshot(
     skew_tooltip()
   )

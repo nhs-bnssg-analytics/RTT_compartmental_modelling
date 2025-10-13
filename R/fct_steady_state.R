@@ -274,6 +274,18 @@ calculate_s_given <- function(
 }
 
 #' @importFrom NHSRtt optimise_steady_state
+#' @param referrals numeric length 1; the steady state number of referrals per month
+#' @param target numeric length 1; between 0 and 1 - the target proportion of departures
+#'   that are reneges
+#' @param renege_params numeric vector; the proportion of people entering a compartment
+#'   that renege
+#' @param percentile numeric length 1; between 0 and 1 - the target percentile of patients
+#'   waiting for less than the target_time
+#' @param target_time number of weeks waiting that the percentile is assessed on
+#' @param s_given numeric vector, same length as renege_params, representing the
+#'   proportion of overall treatments in each compartment
+#' @param method string, one of "lp" (linear programming) or "bs" (binary search)
+#' @noRd
 append_steady_state <- function(
   referrals,
   target,
@@ -300,6 +312,22 @@ append_steady_state <- function(
       )
     )
   } else {
+    if (!dplyr::between(target, 0, 1)) {
+      stop("target must be between 0 and 1")
+    }
+
+    if (!dplyr::between(percentile, 0, 1)) {
+      stop("percentile must be between 0 and 1")
+    }
+
+    if (sum(s_given) != 1) {
+      stop("s_given must sum to 1")
+    }
+
+    if (!method %in% c("lp", "bs")) {
+      stop("method must be 'lp' or 'bs'")
+    }
+
     # convert weeks input to months
     target_time <- convert_weeks_to_months(target_time)
 
