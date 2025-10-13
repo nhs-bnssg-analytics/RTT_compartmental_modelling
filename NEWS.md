@@ -1,4 +1,3 @@
-
 # RTTshiny 1.0.2.9000
 
 * On the results page, following "calculating performance from capacity inputs", the user can now edit the input data for treatment capacity and referrals for the projection period to understand the impact of temporary measures on performance.
@@ -17,6 +16,7 @@
 
 * Fixes minor bug when some data are downloaded, which occurred when referrals exceeded treatments in the first compartment in the calibration period.
 * Fixes bug where optimisation can't occur because it is attempting to use negative treatment capacities.
+
 
 # RTTshiny 1.0.0
 

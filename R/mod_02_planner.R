@@ -684,6 +684,7 @@ mod_02_planner_server <- function(id, r) {
           100
         )
 
+        # reset statuses for the tick marks and status cards
         reactive_values$optimise_status_card_visible <- FALSE
         reactive_values$performance_calculated <- FALSE
 
@@ -2452,6 +2453,7 @@ mod_02_planner_server <- function(id, r) {
                         percent_change = (y - 1) * 100 # convert the uplift value into a percent
                       )
 
+                    cap_projections[cap_projections < 0] <- 0
                     x[[j]] <- cap_projections
                     x
                   }
@@ -2582,6 +2584,13 @@ mod_02_planner_server <- function(id, r) {
           projection_calcs <- projection_calcs |>
             dplyr::filter(
               .data$total_capacity == min(.data$total_capacity)
+            ) |>
+            filter(
+              # if there are multiple records that have the same capacity
+              # uplift, select the record that has the smallest change from the
+              # calibrated period's capacity utilisation profile (eg, the one
+              # closest to 1)
+              abs(.data$skew_param - 1) == min(abs(.data$skew_param - 1))
             )
 
           # create treatment capacity projections profile

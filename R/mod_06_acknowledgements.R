@@ -16,9 +16,6 @@ mod_06_acknowledgements_ui <- function(id) {
     p("The story of how this tool unfolded", class = "text-left text-muted"),
     uiOutput(ns("card_container_ui")), # Placeholder for the generated cards
     card(
-      card_header(
-        "Specific acknowledgements"
-      ),
       card_body(
         HTML(
           paste(
