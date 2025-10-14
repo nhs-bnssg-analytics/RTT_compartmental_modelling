@@ -8,7 +8,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS uiOutput numericInput selectizeInput p dateInput
-#'   sliderInput hr radioButtons
+#'   sliderInput hr radioButtons conditionalPanel
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   layout_columns card_body page_fillable bs_theme
 #' @importFrom lubridate years ceiling_date `%m+%`
@@ -177,28 +177,58 @@ mod_08_batch_ui <- function(id) {
       )
     ),
     hr(),
+    bslib::input_task_button(
+      id = ns("batch_run_rtt_data"),
+      label = "Calculate steady state",
+      label_busy = "Running...",
+      type = "dark"
+    ),
+    hr(),
+    p("Method settings"),
+    radioButtons(
+      inputId = ns("s_given_method"),
+      label = HTML(paste(
+        "Base the",
+        tooltip_label("treatment profile"),
+        "in the solution on a treatment profile seen in over the last 12 months, using the:"
+      )),
+      choices = list(
+        Average = "mean",
+        Median = "median",
+        Latest = "latest"
+      ),
+      selected = "mean"
+    ),
     layout_columns(
       col_widths = c(12),
-      bslib::input_task_button(
-        id = ns("batch_run_rtt_data"),
-        label = "Calculate steady state",
-        label_busy = "Running...",
-        type = "dark"
-      ),
+      p(HTML(paste(
+        "Base the",
+        tooltip_label("renege proportions", "renege proportion"),
+        "in the solution on:"
+      ))),
       radioButtons(
-        inputId = ns("s_given_method"),
-
-        label = HTML(paste(
-          "Base the",
-          tooltip_label("treatment profile"),
-          "in the solution on a treatment profile seen in over the last 12 months, using the:"
-        )),
+        inputId = ns("renege_rate_option"),
+        label = NULL,
         choices = list(
-          Average = "mean",
-          Median = "median",
-          Latest = "latest"
+          "Recent historic rates" = "historic",
+          "User input (between 0% and 100%)" = "user_input"
         ),
-        selected = "mean"
+        selected = "historic"
+      ),
+
+      conditionalPanel(
+        condition = "input.renege_rate_option == 'user_input'",
+        ns = ns,
+        shinyWidgets::numericInputIcon(
+          inputId = ns("user_rate"),
+          label = NULL,
+          value = 10,
+          min = 0,
+          max = 100,
+          step = 1,
+          icon = list(NULL, icon("percent")),
+          size = "sm"
+        )
       )
     )
   )
@@ -254,7 +284,11 @@ mod_08_batch_ui <- function(id) {
                 "</li>"
               ),
               "<li>These inputs, along with the projected referrals, are then optimised using a <a href='http://en.wikipedia.org/wiki/Linear_programming' target='_blank'>linear programming</a> method, finding a solution that minimises the difference between the treatment profile compared with the profile provided.</li>",
-              "<li>If the resulting profile looks too different to the one provided, the renege proportion is incrementally reduced to allow for more realistic treatment profiles.</li></ol>",
+              paste0(
+                "<li>If the resulting profile looks too different to the one provided, the",
+                tooltip_label("renege proportion"),
+                "is incrementally reduced to allow for more realistic treatment profiles.</li></ol>"
+              ),
               sep = "<br>"
             ))
           )
@@ -435,34 +469,40 @@ mod_08_batch_server <- function(id) {
               filter(specialty %in% c(input$specialty_codes))
 
             # calculate targets
-            targets <- raw_data |>
-              calibrate_parameters(
-                max_months_waited = 12,
-                redistribute_m0_reneges = FALSE,
-                referrals_uplift = NULL,
-                full_breakdown = TRUE,
-                allow_negative_params = TRUE
-              ) |>
-              dplyr::select("trust", "specialty", "params") |>
-              tidyr::unnest("params") |>
-              dplyr::mutate(
-                reneges = case_when(
-                  .data$reneges < 0 & .data$months_waited_id == 0 ~ 0,
-                  .default = .data$reneges
+            if (input$renege_rate_option == "historic") {
+              targets <- raw_data |>
+                calibrate_parameters(
+                  max_months_waited = 12,
+                  redistribute_m0_reneges = FALSE,
+                  referrals_uplift = NULL,
+                  full_breakdown = TRUE,
+                  allow_negative_params = TRUE
+                ) |>
+                dplyr::select("trust", "specialty", "params") |>
+                tidyr::unnest("params") |>
+                dplyr::mutate(
+                  reneges = case_when(
+                    .data$reneges < 0 & .data$months_waited_id == 0 ~ 0,
+                    .default = .data$reneges
+                  )
+                ) |>
+                summarise(
+                  renege_proportion = sum(.data$reneges) /
+                    (sum(.data$reneges) + sum(.data$treatments)),
+                  .by = c("trust", "specialty", "period_id")
+                ) |>
+                summarise(
+                  renege_proportion = stats::median(
+                    .data$renege_proportion,
+                    na.rm = TRUE
+                  ),
+                  .by = c("trust", "specialty")
                 )
-              ) |>
-              summarise(
-                renege_proportion = sum(.data$reneges) /
-                  (sum(.data$reneges) + sum(.data$treatments)),
-                .by = c("trust", "specialty", "period_id")
-              ) |>
-              summarise(
-                renege_proportion = stats::median(
-                  .data$renege_proportion,
-                  na.rm = TRUE
-                ),
-                .by = c("trust", "specialty")
-              )
+            } else {
+              targets <- raw_data |>
+                dplyr::distinct(.data$trust, .data$specialty) |>
+                dplyr::mutate(renege_proportion = input$user_rate / 100)
+            }
 
             # the latest month of data to use for calibrating the models
             max_download_date <- max(raw_data$period)
@@ -1230,6 +1270,12 @@ mod_08_batch_server <- function(id) {
           overwrite = TRUE
         )
 
+        if (input$renege_rate_option == "historic") {
+          report_renege_rate <- "historic"
+        } else {
+          report_renege_rate <- input$user_rate
+        }
+
         params <- list(
           optimised_wl = reactive_values$optimised_waiting_list,
           optimised_projections = reactive_values$optimised_projections,
@@ -1270,7 +1316,8 @@ mod_08_batch_server <- function(id) {
             )
           ) |>
             dplyr::filter(!is.na(.data$Value)),
-          method = input$s_given_method
+          method = input$s_given_method,
+          renege_rate = report_renege_rate
         )
 
         rmarkdown::render(
