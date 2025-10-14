@@ -8,7 +8,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS uiOutput numericInput selectizeInput p dateInput
-#'   sliderInput hr radioButtons
+#'   sliderInput hr radioButtons conditionalPanel
 #' @importFrom bslib input_task_button card card_header layout_sidebar sidebar
 #'   layout_columns card_body page_fillable bs_theme
 #' @importFrom lubridate years ceiling_date `%m+%`
@@ -177,8 +177,6 @@ mod_08_batch_ui <- function(id) {
       )
     ),
     hr(),
-    # layout_columns(
-    # col_widths = c(12),
     bslib::input_task_button(
       id = ns("batch_run_rtt_data"),
       label = "Calculate steady state",
@@ -201,28 +199,38 @@ mod_08_batch_ui <- function(id) {
       ),
       selected = "mean"
     ),
-    radioButtons(
-      inputId = ns("rate_option"),
-      label = "Select Rate Option:",
-      choices = list(
-        "Historic rates" = "historic",
-        "User input" = "user_input"
+    layout_columns(
+      col_widths = c(12),
+      p(HTML(paste(
+        "Base the",
+        tooltip_label("renege proportions", "renege proportion"),
+        "in the solution on:"
+      ))),
+      radioButtons(
+        inputId = ns("renege_rate_option"),
+        label = NULL,
+        choices = list(
+          "Recent historic rates" = "historic",
+          "User input (between 0% and 100%)" = "user_input"
+        ),
+        selected = "historic"
       ),
-      selected = "historic"
-    ),
 
-    conditionalPanel(
-      condition = "input.rate_option == 'user_input'",
-      numericInput(
-        inputId = "user_rate",
-        label = "Enter rate (0 to 1):",
-        value = 0.1,
-        min = 0,
-        max = 1,
-        step = 0.01
+      conditionalPanel(
+        condition = "input.renege_rate_option == 'user_input'",
+        ns = ns,
+        shinyWidgets::numericInputIcon(
+          inputId = ns("user_rate"),
+          label = NULL,
+          value = 10,
+          min = 0,
+          max = 100,
+          step = 1,
+          icon = list(NULL, icon("percent")),
+          size = "sm"
+        )
       )
     )
-    # )
   )
 
   # Right Pane
@@ -276,7 +284,11 @@ mod_08_batch_ui <- function(id) {
                 "</li>"
               ),
               "<li>These inputs, along with the projected referrals, are then optimised using a <a href='http://en.wikipedia.org/wiki/Linear_programming' target='_blank'>linear programming</a> method, finding a solution that minimises the difference between the treatment profile compared with the profile provided.</li>",
-              "<li>If the resulting profile looks too different to the one provided, the renege proportion is incrementally reduced to allow for more realistic treatment profiles.</li></ol>",
+              paste0(
+                "<li>If the resulting profile looks too different to the one provided, the",
+                tooltip_label("renege proportion"),
+                "is incrementally reduced to allow for more realistic treatment profiles.</li></ol>"
+              ),
               sep = "<br>"
             ))
           )
@@ -457,7 +469,7 @@ mod_08_batch_server <- function(id) {
               filter(specialty %in% c(input$specialty_codes))
 
             # calculate targets
-            if (input$rate_option == "historic") {
+            if (input$renege_rate_option == "historic") {
               targets <- raw_data |>
                 calibrate_parameters(
                   max_months_waited = 12,
@@ -489,7 +501,7 @@ mod_08_batch_server <- function(id) {
             } else {
               targets <- raw_data |>
                 dplyr::distinct(.data$trust, .data$specialty) |>
-                dplyr::mutate(renege_proportion = input$user_rate)
+                dplyr::mutate(renege_proportion = input$user_rate / 100)
             }
 
             # the latest month of data to use for calibrating the models
@@ -1258,6 +1270,12 @@ mod_08_batch_server <- function(id) {
           overwrite = TRUE
         )
 
+        if (input$renege_rate_option == "historic") {
+          report_renege_rate <- "historic"
+        } else {
+          report_renege_rate <- input$user_rate
+        }
+
         params <- list(
           optimised_wl = reactive_values$optimised_waiting_list,
           optimised_projections = reactive_values$optimised_projections,
@@ -1298,7 +1316,8 @@ mod_08_batch_server <- function(id) {
             )
           ) |>
             dplyr::filter(!is.na(.data$Value)),
-          method = input$s_given_method
+          method = input$s_given_method,
+          renege_rate = report_renege_rate
         )
 
         rmarkdown::render(
