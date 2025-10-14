@@ -177,30 +177,52 @@ mod_08_batch_ui <- function(id) {
       )
     ),
     hr(),
-    layout_columns(
-      col_widths = c(12),
-      bslib::input_task_button(
-        id = ns("batch_run_rtt_data"),
-        label = "Calculate steady state",
-        label_busy = "Running...",
-        type = "dark"
+    # layout_columns(
+    # col_widths = c(12),
+    bslib::input_task_button(
+      id = ns("batch_run_rtt_data"),
+      label = "Calculate steady state",
+      label_busy = "Running...",
+      type = "dark"
+    ),
+    hr(),
+    p("Method settings"),
+    radioButtons(
+      inputId = ns("s_given_method"),
+      label = HTML(paste(
+        "Base the",
+        tooltip_label("treatment profile"),
+        "in the solution on a treatment profile seen in over the last 12 months, using the:"
+      )),
+      choices = list(
+        Average = "mean",
+        Median = "median",
+        Latest = "latest"
       ),
-      radioButtons(
-        inputId = ns("s_given_method"),
+      selected = "mean"
+    ),
+    radioButtons(
+      inputId = ns("rate_option"),
+      label = "Select Rate Option:",
+      choices = list(
+        "Historic rates" = "historic",
+        "User input" = "user_input"
+      ),
+      selected = "historic"
+    ),
 
-        label = HTML(paste(
-          "Base the",
-          tooltip_label("treatment profile"),
-          "in the solution on a treatment profile seen in over the last 12 months, using the:"
-        )),
-        choices = list(
-          Average = "mean",
-          Median = "median",
-          Latest = "latest"
-        ),
-        selected = "mean"
+    conditionalPanel(
+      condition = "input.rate_option == 'user_input'",
+      numericInput(
+        inputId = "user_rate",
+        label = "Enter rate (0 to 1):",
+        value = 0.1,
+        min = 0,
+        max = 1,
+        step = 0.01
       )
     )
+    # )
   )
 
   # Right Pane
@@ -435,34 +457,40 @@ mod_08_batch_server <- function(id) {
               filter(specialty %in% c(input$specialty_codes))
 
             # calculate targets
-            targets <- raw_data |>
-              calibrate_parameters(
-                max_months_waited = 12,
-                redistribute_m0_reneges = FALSE,
-                referrals_uplift = NULL,
-                full_breakdown = TRUE,
-                allow_negative_params = TRUE
-              ) |>
-              dplyr::select("trust", "specialty", "params") |>
-              tidyr::unnest("params") |>
-              dplyr::mutate(
-                reneges = case_when(
-                  .data$reneges < 0 & .data$months_waited_id == 0 ~ 0,
-                  .default = .data$reneges
+            if (input$rate_option == "historic") {
+              targets <- raw_data |>
+                calibrate_parameters(
+                  max_months_waited = 12,
+                  redistribute_m0_reneges = FALSE,
+                  referrals_uplift = NULL,
+                  full_breakdown = TRUE,
+                  allow_negative_params = TRUE
+                ) |>
+                dplyr::select("trust", "specialty", "params") |>
+                tidyr::unnest("params") |>
+                dplyr::mutate(
+                  reneges = case_when(
+                    .data$reneges < 0 & .data$months_waited_id == 0 ~ 0,
+                    .default = .data$reneges
+                  )
+                ) |>
+                summarise(
+                  renege_proportion = sum(.data$reneges) /
+                    (sum(.data$reneges) + sum(.data$treatments)),
+                  .by = c("trust", "specialty", "period_id")
+                ) |>
+                summarise(
+                  renege_proportion = stats::median(
+                    .data$renege_proportion,
+                    na.rm = TRUE
+                  ),
+                  .by = c("trust", "specialty")
                 )
-              ) |>
-              summarise(
-                renege_proportion = sum(.data$reneges) /
-                  (sum(.data$reneges) + sum(.data$treatments)),
-                .by = c("trust", "specialty", "period_id")
-              ) |>
-              summarise(
-                renege_proportion = stats::median(
-                  .data$renege_proportion,
-                  na.rm = TRUE
-                ),
-                .by = c("trust", "specialty")
-              )
+            } else {
+              targets <- raw_data |>
+                dplyr::distinct(.data$trust, .data$specialty) |>
+                dplyr::mutate(renege_proportion = input$user_rate)
+            }
 
             # the latest month of data to use for calibrating the models
             max_download_date <- max(raw_data$period)
