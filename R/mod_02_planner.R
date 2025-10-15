@@ -826,6 +826,7 @@ mod_02_planner_server <- function(id, r) {
                 "<li>Small numbers can lead to noisy monthly data, making the model error metric higher.</li>",
                 "<li>Operational changes over the time period can mean the model parameters will not reflect the reality of the underpinning processes.</li>",
                 "<li>If there is seasonal variation in the data and winter data, for example, is being used to project for the summer - this can increase the error metric.</li>",
+                "<li>Projecting waiting lists for longer time periods leads to higher errors</li>",
                 "</ul>"
                 # end bullet points
               ))
