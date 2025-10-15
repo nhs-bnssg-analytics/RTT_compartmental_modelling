@@ -96,17 +96,6 @@ mod_02_planner_ui <- function(id) {
     ),
     hr(),
     uiOutput(ns("calibration_months_ui")),
-    layout_columns(
-      col_widths = c(11, 1),
-      bslib::input_task_button(
-        id = ns("dwnld_rtt_data"),
-        label = "Download RTT data",
-        label_busy = "Downloading...",
-        type = "dark"
-      ),
-      uiOutput(ns("tick_mark_dwnld")),
-      uiOutput(ns("accuracy_information_ui"))
-    ),
     card(
       bslib::accordion(
         open = FALSE,
@@ -484,12 +473,26 @@ mod_02_planner_server <- function(id, r) {
       )
 
       # Return the slider with the dynamic label
-      sliderInput(
-        inputId = ns("calibration_months"),
-        label = label_text,
-        min = 2,
-        max = 24,
-        value = current_value
+      span(
+        sliderInput(
+          inputId = ns("calibration_months"),
+          label = label_text,
+          min = 2,
+          max = 24,
+          value = current_value
+        ),
+        br(),
+        layout_columns(
+          col_widths = c(11, 1),
+          bslib::input_task_button(
+            id = ns("dwnld_rtt_data"),
+            label = "Download RTT data",
+            label_busy = "Downloading...",
+            type = "dark"
+          ),
+          uiOutput(ns("tick_mark_dwnld")),
+          uiOutput(ns("accuracy_information_ui"))
+        )
       )
     })
 
@@ -805,7 +808,7 @@ mod_02_planner_server <- function(id, r) {
         )
         showModal(
           modalDialog(
-            title = "Model error",
+            title = "Model uncertainty",
             size = "l", # large modal
             span(
               style = "font-size: 0.85rem;",

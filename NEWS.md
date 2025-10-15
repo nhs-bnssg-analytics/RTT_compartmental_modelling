@@ -12,7 +12,7 @@
 * Includes information about model accuracy once data has been imported/downloaded.
 * When data are uploaded, the user is now required to enter a data description, which is used as the chart title.
 * Nov 2024 performance is displayed when estimating capacity to meet performance.
-* How to allocate surplus treatment capacity is now a user option in the advanced skew section
+* How to allocate surplus treatment capacity is now a user option in the advanced skew section.
 
 ## Results
 

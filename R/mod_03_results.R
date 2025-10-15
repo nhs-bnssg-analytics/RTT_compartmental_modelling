@@ -1092,7 +1092,11 @@ mod_03_results_server <- function(id, r) {
           "btn_performance",
           "Performance information",
           "Performance",
-          "percent"
+          "percent",
+          "btn_shortfall",
+          "Shortfall information",
+          "Number of long waiters",
+          "number"
         ) |>
           dplyr::filter(
             .data$button == reactive_data$btn_val
