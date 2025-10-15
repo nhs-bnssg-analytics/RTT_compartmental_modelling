@@ -324,8 +324,7 @@ mod_02_planner_server <- function(id, r) {
       latest_date = final_data_period,
       forecast_start_date = final_data_period %m+%
         months(1),
-      forecast_end_date = final_data_period %m+%
-        months(36),
+      forecast_end_date = get_next_march(),
       forecast_end_date_label = paste0(
         "Forecast end date (start date - ",
         format(
@@ -711,8 +710,9 @@ mod_02_planner_server <- function(id, r) {
         )
 
         # update default forecast end date
-        reactive_values$forecast_end_date <- reactive_values$forecast_start_date %m+%
-          months(35)
+        reactive_values$forecast_end_date <- get_next_march(
+          reactive_values$forecast_start_date
+        )
 
         # create period_lkp table from the first time period in the calibration data
         # to the final time period in the projection period
@@ -1028,8 +1028,9 @@ mod_02_planner_server <- function(id, r) {
           )
 
           # update default forecast end date
-          reactive_values$forecast_end_date <- reactive_values$forecast_start_date %m+%
-            months(35)
+          reactive_values$forecast_end_date <- get_next_march(
+            reactive_values$forecast_start_date
+          )
 
           # create period lookup, but append the imported data to the start of the
           # horizon period so the start point of the projections begin at the end of
