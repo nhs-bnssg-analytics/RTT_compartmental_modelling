@@ -1,16 +1,30 @@
 # RTTshiny 1.0.2.9000
 
-* On the results page, following "calculating performance from capacity inputs", the user can now edit the input data for treatment capacity and referrals for the projection period to understand the impact of temporary measures on performance.
-* On the results page, the distribution charts now can allow for "free" scales as well as being able to flip the view to see distributions by different time periods.
-* Allows for filtering providers by NHS and non-NHS providers.
-* Includes information about model error once data has been imported/downloaded.
-* A new "Steady state" tab has been introduced. This applies a new methodology to allow users to model multiple trusts and specialties together. The modelling provides a view of what a healthy waiting list looks like when it is in steady state (e.g., clock starts equals clock stops) and achieving a specific target.
-* A new "Performance shortfall" chart is displayed on the results page when using the Scenario Planner to predict performance from capacity inputs. This displays the number of additional 'long-waiter' clock stops that would be required to achieve a particular performance target.
-* When data are uploaded to the Scenario Planner, the user is now required to enter a data description, which is used as the chart title.
+## Throughout tool
+
 * Fixes bug for data import causing low counts for completes pathways.
 * Definitions of words are displayed on hover.
 * The list of collaborators has increased on the acknoledgements tab.
-* Nov 2024 performance is displayed on the scenario planner when estimating capacity to meet performance.
+
+## Scenario planner
+
+* Allows for filtering providers by NHS and non-NHS providers.
+* Includes information about model accuracy once data has been imported/downloaded.
+* When data are uploaded, the user is now required to enter a data description, which is used as the chart title.
+* Nov 2024 performance is displayed when estimating capacity to meet performance.
+* How to allocate surplus treatment capacity is now a user option in the advanced skew section
+
+## Results
+
+* Following "calculating performance from capacity inputs", the user can now edit the input data for treatment capacity and referrals for the projection period to understand the impact of short-term measures on performance.
+* The distribution charts allow for "free" scales as well as being able to flip the view to see distributions by different time periods.
+* A new "Performance shortfall" chart is displayed when projecting performance from capacity inputs. This displays the number of additional 'long-waiter' clock stops that would be required to achieve a particular performance target.
+
+## Steady state
+
+* This applies a new methodology to allow users to model multiple trusts and specialties together. The modelling provides a view of what a "healthy" waiting list looks like when it is in steady state (e.g., clock starts equals clock stops) and achieving a specific performance and renege rate target.
+
+
 
 # RTTshiny 1.0.2
 
