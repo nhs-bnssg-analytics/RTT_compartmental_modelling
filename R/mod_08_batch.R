@@ -272,7 +272,7 @@ mod_08_batch_ui <- function(id) {
                   "<ul><li>on average, the proportion of people that ",
                   tooltip_label("renege"),
                   " who are on the waiting list, by how long they have been waiting.</li>",
-                  "<li>the median proportion of departures that were ",
+                  "<li>the average/median/latest proportion of departures that were ",
                   tooltip_label("reneges", "renege"),
                   "</li>",
                   paste(
@@ -491,12 +491,24 @@ mod_08_batch_server <- function(id) {
                     (sum(.data$reneges) + sum(.data$treatments)),
                   .by = c("trust", "specialty", "period_id")
                 ) |>
+                dplyr::mutate(
+                  renege_proportion = case_when(
+                    .data$renege_proportion < 0 ~ NA_real_,
+                    .default = .data$renege_proportion
+                  )
+                ) |>
                 summarise(
                   renege_proportion = stats::median(
                     .data$renege_proportion,
                     na.rm = TRUE
                   ),
                   .by = c("trust", "specialty")
+                ) |>
+                mutate(
+                  renege_proportion = case_when(
+                    is.na(.data$renege_proportion) ~ 0.15,
+                    .default = .data$renege_proportion
+                  )
                 )
             } else {
               targets <- raw_data |>
@@ -557,7 +569,7 @@ mod_08_batch_server <- function(id) {
               value = 0,
               {
                 n <- nrow(current)
-
+                # browser()
                 optimised_projections <- current |>
                   # add historic s
                   left_join(
@@ -1157,8 +1169,8 @@ mod_08_batch_server <- function(id) {
               style = "padding: 16px;",
               plotOutput(
                 outputId = ns(paste0("plot_wl", index)),
-                height = "600px",
-                width = "1200px"
+                height = "450px",
+                width = "1100px"
               )
             )
           },

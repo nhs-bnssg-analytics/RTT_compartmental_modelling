@@ -946,6 +946,7 @@ plot_waiting_lists_chart <- function(
           colour = .data$status,
           label = .data$label
         ),
+        size = 4.5,
         show.legend = FALSE
       ) +
       geom_segment(

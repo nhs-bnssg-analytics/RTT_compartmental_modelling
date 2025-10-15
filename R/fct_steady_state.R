@@ -251,6 +251,10 @@ calculate_s_given <- function(
       summarise(
         s_vals = stats::median(.data$s, na.rm = TRUE),
         .by = c("trust", "specialty", "months_waited_id")
+      ) |>
+      mutate(
+        s_vals = .data$s_vals / sum(.data$s_vals),
+        .by = c("trust", "specialty")
       )
   } else if (method == "latest") {
     s_given <- s_given |>
@@ -320,7 +324,7 @@ append_steady_state <- function(
       stop("percentile must be between 0 and 1")
     }
 
-    if (sum(s_given) != 1) {
+    if (round(sum(s_given), 5) != 1) {
       stop("s_given must sum to 1")
     }
 
