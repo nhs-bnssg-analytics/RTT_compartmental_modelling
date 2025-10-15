@@ -769,7 +769,7 @@ mod_02_planner_server <- function(id, r) {
           # insert text with model accuracy
           p(
             paste(
-              "Model error:",
+              "Model uncertainty:",
               reactive_values$error_calc
             ),
             style = "margin:0;"
