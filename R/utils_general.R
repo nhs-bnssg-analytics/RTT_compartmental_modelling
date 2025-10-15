@@ -937,9 +937,10 @@ definitions <- function() {
     "Performance shortfall" = "The number of additional clock stops required to achieve a defined performance target. The clock stops would need to occur on pathways that are longer than the specified time that the target refers to.",
     "Treatment profile" = "The distribution of total treatments by how long patients have waited.",
     "Healthy waiting list" = "A situation where arrivals (referrals) are equal to departures (treatments plus reneges), a performance target is being met, and the proportion of departures that are reneges are consistent with recent proportions.",
-    "Target proportion" = "The proportion of people on a waiting list that have been waiting less than the 'target week'",
-    "Target week" = "The week that the 'target proportion' applies to",
-    "Target date" = "The date to achieve the target criteria by"
+    "Target proportion" = "The proportion of people on a waiting list that have been waiting less than the 'target week'.",
+    "Target week" = "The week that the 'target proportion' applies to.",
+    "Target date" = "The date to achieve the target criteria by.",
+    "Renege proportion" = "The proportion of total departures (treatments plus reneges) that are reneges."
   )
 }
 

@@ -1601,7 +1601,7 @@ mod_02_planner_server <- function(id, r) {
 
       skew_settings <- tagList(
         layout_columns(
-          col_widths = c(3, 4),
+          col_widths = c(5, 7),
           span(
             "Select where to pivot:",
             tooltip(
@@ -1620,10 +1620,6 @@ mod_02_planner_server <- function(id, r) {
             max = 12,
             value = 4
           ),
-          fill = FALSE
-        ),
-        layout_columns(
-          col_widths = c(3, 4),
           span(
             "Choose skew method:",
             tooltip(
@@ -1644,6 +1640,29 @@ mod_02_planner_server <- function(id, r) {
               "Rotate" = "rotate",
               "Uniform" = "uniform"
             )
+          ),
+          span(
+            "Distribute surplus treatment capacity:",
+            tooltip(
+              shiny::icon("info-circle"),
+              shiny::HTML(
+                paste0(
+                  "Available treatment capacity is calculated per month waited. Where it exceeds the number of people waiting in that month, select what to do with the surplus:<br><br>",
+                  "Option 1: <strong>evenly</strong> to distribute the surplus capacity equally among the compartments where there are still people waiting. <br>",
+                  "Option 2: <strong>on longest waiters</strong> to preferentially use the surplus capacity in the compartments that contain people waiting the longest, prioritising by length of time waited."
+                )
+              ),
+              placement = "right"
+            )
+          ),
+          radioButtons(
+            inputId = ns("surplus_capacity_option"),
+            label = NULL,
+            choices = c(
+              "Evenly" = "evenly",
+              "On longest waiters" = "prioritise_long_waiters"
+            ),
+            selected = "evenly"
           ),
           fill = FALSE
         )
@@ -1771,7 +1790,7 @@ mod_02_planner_server <- function(id, r) {
                 "settings"
               )),
               layout_columns(
-                col_widths = c(5, 5),
+                col_widths = c(6, 6),
                 skew_settings,
                 plotOutput(
                   ns("skew_visual"),
@@ -1869,7 +1888,7 @@ mod_02_planner_server <- function(id, r) {
                 "settings"
               )),
               layout_columns(
-                col_widths = c(5, 5),
+                col_widths = c(6, 6),
                 skew_settings,
                 plotOutput(
                   ns("skew_visual"),
@@ -2033,7 +2052,8 @@ mod_02_planner_server <- function(id, r) {
                   pivot_bin = input$pivot_bin
                 )
               ),
-            max_months_waited = 12
+            max_months_waited = 12,
+            surplus_treatment_redistribution_method = input$surplus_capacity_option
           ) |>
             # add referrals onto data
             dplyr::left_join(
@@ -2143,7 +2163,8 @@ mod_02_planner_server <- function(id, r) {
         input$target_achievement_date,
         input$capacity_growth,
         input$capacity_growth_type,
-        input$capacity_track_referrals
+        input$capacity_track_referrals,
+        input$surplus_capacity_option
       ),
       {
         reactive_values$performance_calculated <- FALSE
@@ -2479,7 +2500,8 @@ mod_02_planner_server <- function(id, r) {
                       referrals_projections = interval_projected_referrals,
                       incomplete_pathways = incomp,
                       renege_capacity_params = par,
-                      max_months_waited = 12
+                      max_months_waited = 12,
+                      surplus_treatment_redistribution_method = input$surplus_capacity_option
                     ) |>
                       filter(.data$period_id == max(.data$period_id)) |>
                       select(
@@ -2616,7 +2638,8 @@ mod_02_planner_server <- function(id, r) {
             referrals_projections = projections_referrals,
             incomplete_pathways = baseline_incompletes,
             renege_capacity_params = projection_calcs$params[[1]],
-            max_months_waited = 12
+            max_months_waited = 12,
+            surplus_treatment_redistribution_method = input$surplus_capacity_option
           ) |>
             # add referrals onto data
             dplyr::left_join(

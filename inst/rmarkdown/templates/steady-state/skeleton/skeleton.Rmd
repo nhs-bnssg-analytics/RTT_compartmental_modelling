@@ -13,6 +13,7 @@ params:
   target_value: NULL
   settings: NULL
   method: NULL
+  renege_rate: NULL
 ---
 
 
@@ -50,6 +51,12 @@ if (params$method == "mean") {
 } else if (params$method == "latest") {
   method_text <- "the latest"
 }
+
+if (params$renege_rate == "historic") {
+  rr_text <- "the median proportion observed for each trust-specialty combination over the last 12 months"
+} else {
+  rr_text <- paste0("the user defined proportion of ", params$renege_rate, "%")
+}
 ```
 
 :::::: {.columns}
@@ -58,7 +65,7 @@ The following results for steady-state satisfy the three simultaneous requiremen
 
 1. Arrivals (referrals) is equal to departures (treatments plus reneges).
 2. The waiting list structure satisfies the target percentage waiting described in the table opposite.
-3. The proportion of departures that are reneges is equal to (or as close to) the median proportion observed for each trust-specialty combination over the last 12 months
+3. The proportion of departures that are reneges is equal to (or as close to) `r rr_text`.
 
 The profile of how treatments are distributed across the waiting list is based on the treatment distribution observed over the last 12 months, taking `r method_text` distribution for the period.
 
