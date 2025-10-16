@@ -65,3 +65,18 @@
 .datepicker-dropdown {
   width:auto;
 }
+
+.error-table {
+  border-collapse: collapse;
+  width: 50%;
+  background-color: #ffffff00;
+  --bs-table-bg:#ffffff00;
+}
+.error-table th, .error-table td {
+  border: 1px solid black;
+  padding: 8px;
+  text-align: center;
+}
+.error-table th {
+  background-color: rgba(0, 0, 0, 0.05);
+}

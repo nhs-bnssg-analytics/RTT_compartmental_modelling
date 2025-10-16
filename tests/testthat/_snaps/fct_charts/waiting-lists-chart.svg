@@ -162,9 +162,9 @@
 <line x1='67.59' y1='245.11' x2='123.45' y2='245.11' style='stroke-width: 2.13; stroke: #009E73; stroke-linecap: butt;' />
 <line x1='123.45' y1='245.11' x2='194.26' y2='245.11' style='stroke-width: 2.13; stroke: #E69F00; stroke-linecap: butt;' />
 <line x1='194.26' y1='245.11' x2='243.03' y2='245.11' style='stroke-width: 2.13; stroke: #D55E00; stroke-linecap: butt;' />
-<text x='95.52' y='258.93' text-anchor='middle' style='font-size: 15.00px; fill: #009E73; font-family: sans;' textLength='120.08px' lengthAdjust='spacingAndGlyphs'>60.6% (18 weeks)</text>
-<text x='158.86' y='258.93' text-anchor='middle' style='font-size: 15.00px; fill: #E69F00; font-family: sans;' textLength='42.53px' lengthAdjust='spacingAndGlyphs'>31.4%</text>
-<text x='218.64' y='258.93' text-anchor='middle' style='font-size: 15.00px; fill: #D55E00; font-family: sans;' textLength='34.19px' lengthAdjust='spacingAndGlyphs'>8.0%</text>
+<text x='95.52' y='258.17' text-anchor='middle' style='font-size: 12.80px; fill: #009E73; font-family: sans;' textLength='102.50px' lengthAdjust='spacingAndGlyphs'>60.6% (18 weeks)</text>
+<text x='158.86' y='258.17' text-anchor='middle' style='font-size: 12.80px; fill: #E69F00; font-family: sans;' textLength='36.31px' lengthAdjust='spacingAndGlyphs'>31.4%</text>
+<text x='218.64' y='258.17' text-anchor='middle' style='font-size: 12.80px; fill: #D55E00; font-family: sans;' textLength='29.18px' lengthAdjust='spacingAndGlyphs'>8.0%</text>
 <line x1='194.26' y1='236.45' x2='194.26' y2='53.77' style='stroke-width: 1.45; stroke-dasharray: 7.76,7.76; stroke-linecap: butt;' />
 <text transform='translate(209.74,76.29) rotate(-90)' text-anchor='end' style='font-size: 15.00px; font-family: sans;' textLength='45.03px' lengthAdjust='spacingAndGlyphs'>92%ile</text>
 <rect x='51.39' y='53.77' width='207.83' height='209.52' style='stroke-width: 1.45; stroke: #333333;' />
@@ -417,9 +417,9 @@
 <line x1='282.89' y1='245.11' x2='338.75' y2='245.11' style='stroke-width: 2.13; stroke: #009E73; stroke-linecap: butt;' />
 <line x1='338.75' y1='245.11' x2='388.16' y2='245.11' style='stroke-width: 2.13; stroke: #E69F00; stroke-linecap: butt;' />
 <line x1='388.16' y1='245.11' x2='458.33' y2='245.11' style='stroke-width: 2.13; stroke: #D55E00; stroke-linecap: butt;' />
-<text x='310.82' y='258.93' text-anchor='middle' style='font-size: 15.00px; fill: #009E73; font-family: sans;' textLength='120.08px' lengthAdjust='spacingAndGlyphs'>64.4% (18 weeks)</text>
-<text x='363.46' y='258.93' text-anchor='middle' style='font-size: 15.00px; fill: #E69F00; font-family: sans;' textLength='42.53px' lengthAdjust='spacingAndGlyphs'>27.6%</text>
-<text x='423.25' y='258.93' text-anchor='middle' style='font-size: 15.00px; fill: #D55E00; font-family: sans;' textLength='34.19px' lengthAdjust='spacingAndGlyphs'>8.0%</text>
+<text x='310.82' y='258.17' text-anchor='middle' style='font-size: 12.80px; fill: #009E73; font-family: sans;' textLength='102.50px' lengthAdjust='spacingAndGlyphs'>64.4% (18 weeks)</text>
+<text x='363.46' y='258.17' text-anchor='middle' style='font-size: 12.80px; fill: #E69F00; font-family: sans;' textLength='36.31px' lengthAdjust='spacingAndGlyphs'>27.6%</text>
+<text x='423.25' y='258.17' text-anchor='middle' style='font-size: 12.80px; fill: #D55E00; font-family: sans;' textLength='29.18px' lengthAdjust='spacingAndGlyphs'>8.0%</text>
 <line x1='388.16' y1='236.45' x2='388.16' y2='53.77' style='stroke-width: 1.45; stroke-dasharray: 7.76,7.76; stroke-linecap: butt;' />
 <text transform='translate(403.65,76.29) rotate(-90)' text-anchor='end' style='font-size: 15.00px; font-family: sans;' textLength='45.03px' lengthAdjust='spacingAndGlyphs'>92%ile</text>
 <rect x='266.69' y='53.77' width='207.83' height='209.52' style='stroke-width: 1.45; stroke: #333333;' />
@@ -672,8 +672,8 @@
 <line x1='498.19' y1='245.11' x2='554.05' y2='245.11' style='stroke-width: 2.13; stroke: #009E73; stroke-linecap: butt;' />
 <line x1='554.05' y1='245.11' x2='554.05' y2='245.11' style='stroke-width: 2.13; stroke: #E69F00; stroke-linecap: butt;' />
 <line x1='554.05' y1='245.11' x2='673.63' y2='245.11' style='stroke-width: 2.13; stroke: #D55E00; stroke-linecap: butt;' />
-<text x='526.12' y='258.93' text-anchor='middle' style='font-size: 15.00px; fill: #009E73; font-family: sans;' textLength='120.08px' lengthAdjust='spacingAndGlyphs'>92.0% (18 weeks)</text>
-<text x='613.84' y='258.93' text-anchor='middle' style='font-size: 15.00px; fill: #D55E00; font-family: sans;' textLength='34.19px' lengthAdjust='spacingAndGlyphs'>8.0%</text>
+<text x='526.12' y='258.17' text-anchor='middle' style='font-size: 12.80px; fill: #009E73; font-family: sans;' textLength='102.50px' lengthAdjust='spacingAndGlyphs'>92.0% (18 weeks)</text>
+<text x='613.84' y='258.17' text-anchor='middle' style='font-size: 12.80px; fill: #D55E00; font-family: sans;' textLength='29.18px' lengthAdjust='spacingAndGlyphs'>8.0%</text>
 <line x1='554.05' y1='236.45' x2='554.05' y2='53.77' style='stroke-width: 1.45; stroke-dasharray: 7.76,7.76; stroke-linecap: butt;' />
 <text transform='translate(569.54,76.29) rotate(-90)' text-anchor='end' style='font-size: 15.00px; font-family: sans;' textLength='45.03px' lengthAdjust='spacingAndGlyphs'>92%ile</text>
 <rect x='481.99' y='53.77' width='207.83' height='209.52' style='stroke-width: 1.45; stroke: #333333;' />

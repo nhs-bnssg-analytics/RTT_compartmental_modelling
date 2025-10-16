@@ -611,37 +611,83 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
 #' @return a string indicating the mean absolute percentage error (above 0%) or the mean
 #'   absolute error (if any of the original values are 0 in the waiting list)
 #' @noRd
-error_calc <- function(data) {
-  error <- data |>
-    summarise(
-      mae = format(
-        round(
-          mean(
-            abs(.data$original - .data$modelled_incompletes),
-            na.rm = TRUE
+error_calc <- function(data, target_bin = 4) {
+  summarise_error <- function(data, nsmall = 0) {
+    data |>
+      summarise(
+        MAE = format(
+          round(
+            mean(
+              abs(.data$original - .data$modelled_incompletes),
+              na.rm = TRUE
+            ),
+            nsmall
           ),
-          2
+          nsmall = nsmall,
+          big.mark = ","
         ),
-        nsmall = 2,
-        big.mark = ","
-      ),
-      mape = mean(
-        abs(.data$original - .data$modelled_incompletes) / .data$original,
-        na.rm = TRUE
-      ) *
-        100
-    )
-
-  if (is.infinite(error$mape)) {
-    error <- error$mae
-  } else {
-    error <- paste0(
-      error$mae,
-      " (",
-      paste0(round(error$mape, 2), "%"),
-      ")"
-    )
+        MAPE = mean(
+          abs(.data$original - .data$modelled_incompletes) / .data$original,
+          na.rm = TRUE
+        ) *
+          100
+      )
   }
 
-  return(error)
+  # calculate the compartmental error --------------------------------------
+
+  error_compartment <- data |>
+    summarise_error() |>
+    mutate(Scope = "Waiting list size (by months waited)", .before = "MAE")
+
+  # calculate the error on the overall WL size -----------------------------
+  error_wl_size <- data |>
+    dplyr::summarise(
+      across(c("original", "modelled_incompletes"), sum),
+      .by = "period_id"
+    ) |>
+    summarise_error() |>
+    mutate(Scope = "Overall waiting list size", .before = "MAE")
+
+  # calculate the error on the performance metric --------------------------
+
+  performance_wl_original <- data |>
+    rename(
+      period = "period_id",
+      value = "original"
+    ) |>
+    calc_performance(target_bin = target_bin) |>
+    rename(original = "prop")
+
+  performance_wl_modelled <- data |>
+    rename(
+      period = "period_id",
+      value = "modelled_incompletes"
+    ) |>
+    calc_performance(target_bin = target_bin) |>
+    rename(modelled_incompletes = "prop")
+
+  error_performance <- performance_wl_original |>
+    left_join(performance_wl_modelled, by = "period") |>
+    mutate(across(c("original", "modelled_incompletes"), \(x) x * 100)) |>
+    summarise_error(nsmall = 1) |>
+    mutate(Scope = "18 week performance (% pts)", .before = "MAE")
+
+  output <- bind_rows(
+    error_wl_size,
+    error_performance,
+    error_compartment
+  ) |>
+    mutate(
+      MAE = case_when(
+        is.na(.data$MAE) ~ "",
+        .default = as.character(.data$MAE)
+      ),
+      MAPE = case_when(
+        is.infinite(.data$MAPE) ~ "",
+        .default = paste0(round(.data$MAPE, 1), "%")
+      )
+    )
+
+  return(output)
 }

@@ -480,7 +480,19 @@ test_that("split_and_model_calibration_data works", {
     error_calc(
       data = cal_data_modelled
     ),
-    "537.32 (30.34%)",
+    structure(
+      list(
+        Scope = c(
+          "Overall waiting list size",
+          "18 week performance (% pts)",
+          "Waiting list size (by months waited)"
+        ),
+        MAE = c("4,504", "11.2", "537"),
+        MAPE = c("15.3%", "22.5%", "30.3%")
+      ),
+      row.names = c(NA, -3L),
+      class = c("tbl_df", "tbl", "data.frame")
+    ),
     info = "error_calc is calculated correctly (MAE and MAPE)"
   )
 
@@ -492,7 +504,19 @@ test_that("split_and_model_calibration_data works", {
           x - min(cal_data_modelled$original)
         }))
     ),
-    "537.32",
+    structure(
+      list(
+        Scope = c(
+          "Overall waiting list size",
+          "18 week performance (% pts)",
+          "Waiting list size (by months waited)"
+        ),
+        MAE = c("4,504", "20.4", "537"),
+        MAPE = c("21.8%", "35.2%", "")
+      ),
+      row.names = c(NA, -3L),
+      class = c("tbl_df", "tbl", "data.frame")
+    ),
     info = "error_calc is calculated correctly (MAE)"
   )
 })

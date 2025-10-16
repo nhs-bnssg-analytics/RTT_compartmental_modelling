@@ -737,7 +737,8 @@ mod_02_planner_server <- function(id, r) {
         )
 
         reactive_values$error_calc <- error_calc(
-          data = modelled_calibration_data
+          data = modelled_calibration_data,
+          target_bin = 4
         )
 
         reactive_values$error_plot <- plot_error(
@@ -762,29 +763,49 @@ mod_02_planner_server <- function(id, r) {
     )
 
     # accuracy information ui ----------------------------------------------------
+    output$accuracy_table <- renderDT({
+      DT::datatable(
+        reactive_values$error_calc,
+        class = "error-table",
+        rownames = FALSE,
+        options = list(
+          columnDefs = list(
+            list(width = '500px', targets = 0), # Wider first column
+            list(className = 'dt-left', targets = 0) # Left-align first column
+          ),
+          dom = 't', # Only show the table (no search, pagination, etc.)
+          paging = FALSE, # Disable pagination
+          searching = FALSE, # Disable search box
+          info = FALSE # Hide "Showing X of Y entries" text
+        )
+      )
+    })
 
     output$accuracy_information_ui <- renderUI({
-      if (is.null(reactive_values$error_calc)) {
+      if (isFALSE(reactive_values$data_downloaded)) {
         return(NULL)
       } else {
         div(
-          style = "display: flex; align-items: center; gap: 10px;",
-          # insert text with model accuracy
-          p(
-            paste(
-              "Model uncertainty:",
-              reactive_values$error_calc
-            ),
-            style = "margin:0;"
+          span(
+            style = "display: flex; align-items: center; gap: 3px;",
+            layout_columns(
+              col_widths = c(5, -7),
+              layout_columns(
+                col_widths = c(9, 3),
+                # insert text with model accuracy
+                p("Model uncertainty:"),
+                # insert info symbol, which when clicked, opens a modal with more info
+                actionButton(
+                  inputId = ns("accuracy_info_modal"),
+                  label = NULL,
+                  icon = shiny::icon("info-circle"),
+                  class = "btn-outline-info btn-sm",
+                  style = "border: none;"
+                )
+              )
+            )
           ),
-          # insert info symbol, which when clicked, opens a modal with more info
-          actionButton(
-            inputId = ns("accuracy_info_modal"),
-            label = NULL,
-            icon = shiny::icon("info-circle"),
-            class = "btn-outline-info btn-sm",
-            style = "border: none;"
-          )
+          DTOutput(ns("accuracy_table"), fill = FALSE)
         )
       }
     })
@@ -794,7 +815,7 @@ mod_02_planner_server <- function(id, r) {
       input$accuracy_info_modal,
       {
         error_text <- paste0(
-          "The model error metric is the mean absolute error (MAE) followed by the mean absolute percentage error (MAPE) if it is possible to calculate it. To calculate this:",
+          "The model error metric is the mean absolute error (MAE) and the mean absolute percentage error (MAPE). To calculate this:",
           paste0(
             "<ol><li>The calibration data is divided in half based on the months of data included.</li>",
             "<li>The model parameters are calculated based on the first half of the data.</li>",
@@ -803,7 +824,7 @@ mod_02_planner_server <- function(id, r) {
             "<li>This is then compared to the observed waiting list.</li></ol>"
           ),
           "MAE can be interpreted as the average absolute error between the observed waiting list and the modelled waiting list.<br>",
-          "MAPE can be interpreted as the average percentage error between the observed waiting list and the modelled waiting list.<br>",
+          "MAPE can be interpreted as the absolute error between the observed waiting list and the modelled waiting list as a proportion of the observed waiting list (sometimes there might be a 0 in the observed waiting list, in which case this metric can not be calculated).<br>",
           "A lower MAE and MAPE indicates a more accurate model."
         )
         showModal(
@@ -822,14 +843,14 @@ mod_02_planner_server <- function(id, r) {
               ),
               HTML(paste(
                 "<br>",
-                "<strong>Caution</strong> must be exercised when interpreting the model error metric.",
-                "The model error can be affected by:",
+                "<strong>Caution</strong> must be exercised when interpreting the model uncertainty metrics.",
+                "The model uncertainty can be affected by:",
                 # start bullet points
                 "<ul>",
-                "<li>Small numbers can lead to noisy monthly data, making the model error metric higher.</li>",
+                "<li>Small numbers can lead to noisy monthly data, making the model uncertainty metric higher.</li>",
                 "<li>Operational changes over the time period can mean the model parameters will not reflect the reality of the underpinning processes.</li>",
-                "<li>If there is seasonal variation in the data and winter data, for example, is being used to project for the summer - this can increase the error metric.</li>",
-                "<li>Projecting waiting lists for longer time periods leads to higher errors</li>",
+                "<li>If there is seasonal variation in the data and winter data, for example, is being used to project for the summer - this can increase the uncertainty metric.</li>",
+                "<li>Projecting waiting lists for longer time periods leads to higher uncertainty</li>",
                 "</ul>"
                 # end bullet points
               ))
@@ -1199,7 +1220,8 @@ mod_02_planner_server <- function(id, r) {
         )
 
         reactive_values$error_calc <- error_calc(
-          data = modelled_calibration_data
+          data = modelled_calibration_data,
+          target_bin = 4
         )
 
         reactive_values$data_source <- "upload"

@@ -101,6 +101,7 @@ test_that("calculate_s_given works - median", {
     filter(type == "Complete") |>
     mutate(value = value / sum(value), .by = c("period")) |>
     summarise(value = stats::median(value), .by = c("months_waited_id")) |>
+    mutate(value = value / sum(value)) |> # to make sure it adds up to 1
     pull(value)
 
   expect_equal(
