@@ -1170,7 +1170,7 @@ mod_08_batch_server <- function(id) {
               plotOutput(
                 outputId = ns(paste0("plot_wl", index)),
                 height = "450px",
-                width = "1100px"
+                width = "1200px"
               )
             )
           },

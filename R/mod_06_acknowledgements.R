@@ -18,22 +18,19 @@ mod_06_acknowledgements_ui <- function(id) {
     card(
       card_body(
         HTML(
-          paste(
-            "The RTT Planner was a collaboration driven by the SW Decision Support Network.",
-            "",
+          paste0(
+            "The RTT Planner was a collaboration driven by the SW Decision Support Network.<br><br>",
             "Many thanks to the collaborators:",
-            "Sebastian Fox (SW Decision Support Network)",
-            "Simon Wellesley-Miller (NHSE SW)",
-            "Richard Wood (BNSSG ICB)",
-            "Richard Blackwell (Health Innovation SW)",
-            "Claire Rudler (Devon ICB)",
-            "Nick Cooper (Gloucestershire Foundation Trust)",
-            "Euan Ives (NHSE SW)",
-            "Neil Walton (Durham University)",
-            "Lucy Morgan (the Midlands Strategy Unit)",
-            "",
-            "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs.",
-            sep = "<br>"
+            "<ul><li>Sebastian Fox (SW Decision Support Network)</li>",
+            "<li>Simon Wellesley-Miller (NHSE SW)</li>",
+            "<li>Richard Wood (BNSSG ICB)</li>",
+            "<li>Richard Blackwell (Health Innovation SW)</li>",
+            "<li>Claire Rudler (Devon ICB)</li>",
+            "<li>Nick Cooper (Gloucestershire Foundation Trust)</li>",
+            "<li>Euan Ives (NHSE SW)</li>",
+            "<li>Neil Walton (Durham University)</li>",
+            "<li>Lucy Morgan (the Midlands Strategy Unit)</li></ul>",
+            "And input from Cornwall, Devon, Dorset, Gloucestershire, Birmingham and Solihull and BNSSG ICSs, Nottingham University Hospitals NHS Trust and the Midlands Strategy Unit."
           )
         )
       )
@@ -79,7 +76,7 @@ mod_06_acknowledgements_server <- function(id) {
         "NHS BNSSG ICB and NHS Devon ICB, who have also been working on stock-and-flow models, agree to develop common RTT model to reduce multiplication. This is facilitated by the South West Decision Support Network's 'At Scale Analytics' workstream.",
         "Collaboration expands to include NHS England South West team and NHS Gloucestershire ICB, and the development of the interactive online tool begins.",
         "First release of the online tool occurs.",
-        "A 'healthy waiting list' method developed and <a href='https://doi.org/10.1016/j.fhj.2025.100478' target = '_blank'>published</a>, and then included in the second release of the online tool ."
+        "A 'healthy waiting list' method developed and <a href='https://doi.org/10.1016/j.fhj.2025.100478' target = '_blank'>published</a>, and then included in the second release of the online tool."
       ),
       colour = c(
         "#330072",

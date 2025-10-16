@@ -1308,7 +1308,7 @@ linear_uniform_tooltip <- function(uniform_id, linear_id) {
     shiny::HTML(
       paste0(
         "<strong>Linear:</strong> ",
-        "The first month of the 'Forecast horizon' period is estimated from the historic data, and then treatment capacity/referral is changed linearly until the end of the 'Forecast horizon'."
+        "The first month of the 'Forecast horizon' period is estimated from the historic data, and then treatment capacity/referral is changed linearly using the annual percentage change figure until the end of the 'Forecast horizon'."
       )
     ),
     plotOutput(

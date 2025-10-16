@@ -89,7 +89,7 @@ mod_01_introduction_ui <- function(id) {
 
           h3("Future developments"),
           p(
-            "We are continuously improving this tool to better serve healthcare professionals.
+            "We are continuously improving this tool to better serve healthcare planning teams.
           The following enhancements are currently in development:"
           ),
 
@@ -156,13 +156,7 @@ mod_01_introduction_server <- function(id) {
                 tooltip_label("referrals", "referral"),
                 "projection information."
               ),
-              paste(
-                "Select the scenario type 'Calculate",
-                tooltip_label("performance"),
-                "(from",
-                tooltip_label("treatment capacity"),
-                "inputs)'."
-              ),
+              "Select the scenario type 'Calculate performance (from treatment capacity inputs)'.",
               paste(
                 "Provide the",
                 tooltip_label("treatment capacity"),

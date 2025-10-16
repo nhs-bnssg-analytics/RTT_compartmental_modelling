@@ -31,22 +31,6 @@ forecast_function <- function(
       first_val * (1 + (percent_change / 100)),
       number_timesteps
     )
-
-    # } else if (method == "tbats") {
-    #   fcast <- rtt_table |>
-    #     pull(value) |>
-    #     ts(frequency = 12) |>
-    #     forecast::tbats() |>
-    #     forecast::forecast(h = number_timesteps) |>
-    #     tidyr::as_tibble() |>
-    #     select(
-    #       Expected_referrals = "Point Forecast",
-    #       Low_referrals = "Lo 80",
-    #       High_referrals = "Hi 80"
-    #     ) |>
-    #     mutate(
-    #       period_id = dplyr::row_number()
-    #     )
   } else if (method == "Linear") {
     # first, calculate the value for the first time step as either a linear
     # extrapolation of the data provided (if significant) or a mean (if linear
