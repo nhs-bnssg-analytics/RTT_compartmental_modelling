@@ -638,7 +638,10 @@ error_calc <- function(data, target_bin = 4) {
 
   error_compartment <- data |>
     summarise_error() |>
-    mutate(Scope = "Waiting list size (by months waited)", .before = "MAE")
+    mutate(
+      `Scope of metric` = "Waiting list size (by months waited)",
+      .before = "MAE"
+    )
 
   # calculate the error on the overall WL size -----------------------------
   error_wl_size <- data |>
@@ -647,7 +650,7 @@ error_calc <- function(data, target_bin = 4) {
       .by = "period_id"
     ) |>
     summarise_error() |>
-    mutate(Scope = "Overall waiting list size", .before = "MAE")
+    mutate(`Scope of metric` = "Overall waiting list size", .before = "MAE")
 
   # calculate the error on the performance metric --------------------------
 
@@ -671,7 +674,7 @@ error_calc <- function(data, target_bin = 4) {
     left_join(performance_wl_modelled, by = "period") |>
     mutate(across(c("original", "modelled_incompletes"), \(x) x * 100)) |>
     summarise_error(nsmall = 1) |>
-    mutate(Scope = "18 week performance (% pts)", .before = "MAE")
+    mutate(`Scope of metric` = "18 week performance (% pts)", .before = "MAE")
 
   output <- bind_rows(
     error_wl_size,

@@ -87,8 +87,11 @@ forecast_function <- function(
 #' @importFrom dplyr select arrange summarise `%>%` filter pull mutate case_when
 #' @param monthly_rtt tibble; required a "period_id" and "value" field arranged
 #'   by period
+#' @param p_val_threshold numeric length 1; the threshold below which the
+#'   linear model is accepted as the method to use for the projection of the
+#'   first value
 #' @noRd
-calculate_t1_value <- function(monthly_rtt) {
+calculate_t1_value <- function(monthly_rtt, p_val_threshold = 0.01) {
   # check names
   if (length(setdiff(c("period_id", "value"), names(monthly_rtt))) > 0) {
     stop("monthly_rtt is missing either 'period_id' or 'value' field")
@@ -117,7 +120,7 @@ calculate_t1_value <- function(monthly_rtt) {
     ) |>
     mutate(
       t_1_val = case_when(
-        pval <= 0.05 ~ as.numeric(.data$lm_val),
+        pval <= p_val_threshold ~ as.numeric(.data$lm_val),
         .default = .data$mean_val
       ),
       # treatment capacity can't be less than zero, so it is fixed to zero if so

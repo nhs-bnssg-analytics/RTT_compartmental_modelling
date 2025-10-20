@@ -325,7 +325,11 @@ mod_02_planner_server <- function(id, r) {
       ),
       import_success = NULL,
       error_calc = NULL,
-      error_plot = NULL
+      error_plot = NULL,
+      target_data = dplyr::tibble(
+        "Target_date" = get_next_march(),
+        "Target_percentage" = NA_real_
+      )
     )
 
     r$chart_specification <- list(
@@ -1322,21 +1326,11 @@ mod_02_planner_server <- function(id, r) {
     # create ui for multiple performance targets ------------------------------
 
     # create ui based on whether single or multiple target option selected
-    # Initialize empty data frame
-
-    target_data <- reactiveVal(
-      dplyr::tibble(
-        "Target_date" = as.Date(
-          paste(lubridate::year(Sys.Date()) + 1, "03-01", sep = "-")
-        ),
-        "Target_percentage" = NA_real_
-      )
-    )
 
     # Add initial empty row
     observe(
       {
-        if (nrow(target_data()) == 0) {
+        if (nrow(reactive_values$target_data) == 0) {
           add_target()
         }
       },
@@ -1345,12 +1339,12 @@ mod_02_planner_server <- function(id, r) {
 
     # Function to add a new target
     add_target <- function() {
-      current_data <- target_data()
+      current_data <- reactive_values$target_data
       new_row <- dplyr::tibble(
         "Target_date" = NA,
         "Target_percentage" = NA_real_
       )
-      target_data(rbind(current_data, new_row))
+      reactive_values$target_data <- rbind(current_data, new_row)
     }
 
     # Add target button
@@ -1362,12 +1356,16 @@ mod_02_planner_server <- function(id, r) {
     # Remove selected target
     observeEvent(input$remove_target, {
       if (!is.null(input$target_table_rows_selected)) {
-        current_data <- target_data()
+        current_data <- reactive_values$target_data
         selected_rows <- input$target_table_rows_selected
         if (length(selected_rows) > 0) {
-          target_data(current_data[-selected_rows, , drop = FALSE])
+          reactive_values$target_data <- current_data[
+            -selected_rows,
+            ,
+            drop = FALSE
+          ]
           # Add a row if table becomes empty
-          if (nrow(target_data()) == 0) {
+          if (nrow(reactive_values$target_data) == 0) {
             add_target()
           }
         }
@@ -1378,7 +1376,7 @@ mod_02_planner_server <- function(id, r) {
     # Render editable table
     output$target_table <- renderDT({
       DT::datatable(
-        target_data(),
+        reactive_values$target_data,
         class = "customDT",
         editable = list(
           target = "cell",
@@ -1400,7 +1398,12 @@ mod_02_planner_server <- function(id, r) {
           "Target date" = "Target_date",
           "Target percentage" = "Target_percentage"
         )
-      )
+      ) |>
+        DT::formatDate(
+          columns = "Target date",
+          method = "toLocaleDateString",
+          params = list("en-GB", list(month = "short", year = "numeric"))
+        )
     })
 
     # Handle cell edits
@@ -1410,7 +1413,7 @@ mod_02_planner_server <- function(id, r) {
       col <- info$col + 1 # Column indices start at 0 in JavaScript
       value <- info$value
 
-      current_data <- target_data()
+      current_data <- reactive_values$target_data
 
       # Validation for Target date
       if (colnames(current_data)[col] == "Target_date") {
@@ -1431,8 +1434,8 @@ mod_02_planner_server <- function(id, r) {
             if (
               !dplyr::between(
                 date_value,
-                min = reactive_values$forecast_start_date,
-                max = reactive_values$forecast_end_date
+                left = reactive_values$forecast_start_date,
+                right = reactive_values$forecast_end_date
               )
             ) {
               showNotification(
@@ -1480,7 +1483,8 @@ mod_02_planner_server <- function(id, r) {
         )
       }
       reactive_values$performance_calculated <- FALSE
-      target_data(current_data)
+      reactive_values$target_data <- current_data |>
+        dplyr::arrange(.data$Target_date)
     })
 
     # dynamic ui based on single or multiple targets --------------------------
@@ -2265,11 +2269,9 @@ mod_02_planner_server <- function(id, r) {
 
           if (input$target_type == "Single target") {
             # replace the target_data reactiveVal with the single target inputs
-            target_data(
-              dplyr::tibble(
-                "Target_date" = input$target_achievement_date,
-                "Target_percentage" = input$target_value
-              )
+            reactive_values$target_data <- dplyr::tibble(
+              "Target_date" = input$target_achievement_date,
+              "Target_percentage" = input$target_value
             )
           }
 
@@ -2383,7 +2385,7 @@ mod_02_planner_server <- function(id, r) {
           progress <- Progress$new(
             session,
             min = 1,
-            max = nrow(skewed_params) * nrow(target_data())
+            max = nrow(skewed_params) * nrow(reactive_values$target_data)
           )
           on.exit(progress$close())
 
@@ -2414,8 +2416,8 @@ mod_02_planner_server <- function(id, r) {
               incompletes_1 = c("months_waited_id", "incompletes")
             )
 
-          for (i in seq_len(nrow(target_data()))) {
-            i_target_data <- target_data() |>
+          for (i in seq_len(nrow(reactive_values$target_data))) {
+            i_target_data <- reactive_values$target_data |>
               dplyr::slice(i)
 
             # create dummy value to store treatment capacity projections to
@@ -2718,7 +2720,7 @@ mod_02_planner_server <- function(id, r) {
           r$chart_specification$capacity_skew <- projection_calcs$skew_param[[
             1
           ]]
-          r$chart_specification$target_data <- target_data()
+          r$chart_specification$target_data <- reactive_values$target_data
 
           # calculate the convergence status
           r$chart_specification$optimise_status <- r$waiting_list |>
