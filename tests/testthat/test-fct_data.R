@@ -482,7 +482,7 @@ test_that("split_and_model_calibration_data works", {
     ),
     structure(
       list(
-        Scope = c(
+        `Scope of metric` = c(
           "Overall waiting list size",
           "18 week performance (% pts)",
           "Waiting list size (by months waited)"
@@ -506,7 +506,7 @@ test_that("split_and_model_calibration_data works", {
     ),
     structure(
       list(
-        Scope = c(
+        `Scope of metric` = c(
           "Overall waiting list size",
           "18 week performance (% pts)",
           "Waiting list size (by months waited)"
