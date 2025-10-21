@@ -306,6 +306,7 @@ mod_02_planner_server <- function(id, r) {
       calibration_data = NULL,
       latest_performance = NULL,
       default_target = NULL,
+      default_target_date = get_next_march(),
       referrals_uplift = NULL,
       optimise_status_card_visible = NULL,
       performance_calculated = FALSE,
@@ -487,7 +488,7 @@ mod_02_planner_server <- function(id, r) {
         ),
         br(),
         layout_columns(
-          col_widths = c(11, 1),
+          col_widths = c(11, 1, 12, 12),
           bslib::input_task_button(
             id = ns("dwnld_rtt_data"),
             label = "Download RTT data",
@@ -495,6 +496,7 @@ mod_02_planner_server <- function(id, r) {
             type = "dark"
           ),
           uiOutput(ns("tick_mark_dwnld")),
+          uiOutput(ns("renege_warning")),
           uiOutput(ns("accuracy_information_ui"))
         )
       )
@@ -765,6 +767,25 @@ mod_02_planner_server <- function(id, r) {
       },
       ignoreInit = TRUE
     )
+
+    # provide renege params warning text --------------------------------------------
+    output$renege_warning <- renderUI({
+      # browser()
+      if (is.null(reactive_values$params)) {
+        renege_params <- 1
+      } else {
+        renege_params <- reactive_values$params$params[[1]]$renege_param |>
+          tail(12)
+      }
+      if (any(renege_params < 0)) {
+        p(
+          "\u26A0 Warning: during the calibration period, on average for some waiting times, there are more 'clock stops' than the reduction in the waiting list size. This can lead to unusual results as 'reneges' will act as an addition to rather than a removal from the waiting list.",
+          style = "color: red; font-weight: bold; font-size: 0.8rem;"
+        )
+      } else {
+        NULL
+      }
+    })
 
     # accuracy information ui ----------------------------------------------------
     output$accuracy_table <- renderDT({
@@ -1273,8 +1294,16 @@ mod_02_planner_server <- function(id, r) {
     observeEvent(
       c(input$forecast_date),
       {
-        reactive_values$forecast_end_date <- input$forecast_date
+        reactive_values$forecast_end_date <- lubridate::floor_date(
+          input$forecast_date,
+          unit = "months"
+        )
         reactive_values$performance_calculated <- FALSE
+        reactive_values$default_target_date <- min(
+          reactive_values$forecast_end_date,
+          input$forecast_date,
+          na.rm = TRUE
+        )
       }
     )
 
@@ -1296,7 +1325,8 @@ mod_02_planner_server <- function(id, r) {
           label = NULL,
           min = reactive_values$forecast_start_date,
           max = reactive_values$forecast_end_date,
-          value = get_next_march()
+          value = reactive_values$default_target_date,
+          format = "mm-yyyy"
         ),
         fill = FALSE
       )
@@ -1609,6 +1639,12 @@ mod_02_planner_server <- function(id, r) {
           val <- "Optimisation successful"
           icn <- shiny::icon("clipboard-check")
           thm <- "green"
+        } else if (
+          r$chart_specification$optimise_status == "waitlist_reduced"
+        ) {
+          val <- "Waitlist significantly reduced"
+          icn <- shiny::icon("person-circle-question")
+          thm <- "orange"
         } else {
           val <- r$chart_specification$optimise_status
           icn <- shiny::icon("question")
@@ -2728,15 +2764,11 @@ mod_02_planner_server <- function(id, r) {
               incompletes = sum(.data$incompletes),
               .by = c("period", "period_type")
             ) |>
-            filter(
-              .data$period_type == "Projected"
+            local_deframe(
+              name_col = "period_type",
+              value_col = "incompletes"
             ) |>
-            filter(
-              .data$incompletes == min(.data$incompletes)
-            ) |>
-            pull(.data$incompletes) |>
-            min() |>
-            (\(x) ifelse(x == 0, "waitlist_cleared", "converged"))()
+            min_incompletes_in_projected_period()
 
           reactive_values$optimise_status_card_visible <- TRUE
         }

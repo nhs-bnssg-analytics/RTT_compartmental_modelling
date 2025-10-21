@@ -31,7 +31,7 @@ columns 'period', 'period_type' (either "Observed" or "Projected"), and
 
 \item{p_trust}{A character string specifying the trust name.}
 
-\item{p_speciality}{A character string specifying the speciality.}
+\item{p_speciality}{A character string specifying the specialty.}
 
 \item{p_chart}{A character string describing the chart type or variable being
 plotted.}

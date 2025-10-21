@@ -104,11 +104,11 @@ mod_08_batch_ui <- function(id) {
     ),
     layout_columns(
       col_widths = c(6, 6),
-      p("Low:", class = "steady-state-body"),
+      p("Low (optional):", class = "steady-state-body"),
       shinyWidgets::numericInputIcon(
         inputId = ns("referral_bin_low"),
         label = NULL,
-        value = -1,
+        value = NULL,
         icon = list(NULL, icon("percent")),
         size = "sm"
       ),
@@ -120,11 +120,11 @@ mod_08_batch_ui <- function(id) {
         icon = list(NULL, icon("percent")),
         size = "sm"
       ),
-      p("High:", class = "steady-state-body"),
+      p("High (optional):", class = "steady-state-body"),
       shinyWidgets::numericInputIcon(
         inputId = ns("referral_bin_high"),
         label = NULL,
-        value = 1,
+        value = NULL,
         icon = list(NULL, icon("percent")),
         size = "sm"
       )
@@ -285,9 +285,9 @@ mod_08_batch_ui <- function(id) {
               ),
               "<li>These inputs, along with the projected referrals, are then optimised using a <a href='http://en.wikipedia.org/wiki/Linear_programming' target='_blank'>linear programming</a> method, finding a solution that minimises the difference between the treatment profile compared with the profile provided.</li>",
               paste0(
-                "<li>If the resulting profile looks too different to the one provided, the",
+                "<li>If the resulting profile looks too different to the one provided, the ",
                 tooltip_label("renege proportion"),
-                "is incrementally reduced to allow for more realistic treatment profiles.</li></ol>"
+                " is incrementally reduced to allow for more realistic treatment profiles.</li></ol>"
               ),
               sep = "<br>"
             ))
@@ -434,12 +434,20 @@ mod_08_batch_server <- function(id) {
       c(input$batch_run_rtt_data),
       {
         if (input$batch_run_rtt_data > 0) {
-          if (is.null(input$selectedtrusts) || is.null(input$specialty_codes)) {
+          if (
+            is.null(input$selectedtrusts) ||
+              is.null(input$specialty_codes) ||
+              all(
+                is.null(input$referral_bin_low),
+                is.null(input$referral_bin_medium),
+                is.null(input$referral_bin_high)
+              )
+          ) {
             # If input is empty, show a modal dialog (popup)
             showModal(
               modalDialog(
                 title = "Input Error",
-                "Please make a selection for both Trust & Specialty before submitting",
+                "Please make a selection for Trust, Specialty and one referrals scenario before submitting",
                 easyClose = TRUE, # Allows closing by clicking outside the modal
                 footer = tagList(
                   modalButton("Close")

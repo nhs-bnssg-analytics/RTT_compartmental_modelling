@@ -4,7 +4,7 @@
 
 * Fixes bug for data import causing low counts for completes pathways.
 * Definitions of words are displayed on hover.
-* The list of collaborators has increased on the acknoledgements tab.
+* The list of collaborators has increased on the acknowledgements tab.
 
 ## Scenario planner
 
@@ -13,6 +13,7 @@
 * When data are uploaded, the user is now required to enter a data description, which is used as the chart title.
 * Nov 2024 performance is displayed when estimating capacity to meet performance.
 * How to allocate surplus treatment capacity is now a user option in the advanced skew section.
+* Provides warning when "negative reneging" occurring in the calibration period.
 
 ## Results
 

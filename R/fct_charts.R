@@ -12,7 +12,7 @@
 #'   columns 'period', 'period_type' (either "Observed" or "Projected"), and
 #'   'p_var' (the variable to be plotted).
 #' @param p_trust A character string specifying the trust name.
-#' @param p_speciality A character string specifying the speciality.
+#' @param p_speciality A character string specifying the specialty.
 #' @param p_chart A character string describing the chart type or variable being
 #'   plotted.
 #' @param p_scenario A character string specifying the scenario type, either

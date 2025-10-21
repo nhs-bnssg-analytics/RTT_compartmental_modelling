@@ -181,6 +181,67 @@ test_that("local_enframe works", {
   )
 })
 
+test_data <- data.frame(
+  key = c("a", "b", "c"),
+  val = c(1, 2, 3),
+  extra = c("x", "y", "z"),
+  stringsAsFactors = FALSE
+)
+
+test_that("local_deframe returns named vector correctly", {
+  result <- local_deframe(test_data, "key", "val")
+  expect_named(result, c("a", "b", "c"))
+  expect_equal(result, c(a = 1, b = 2, c = 3))
+})
+
+test_that("local_deframe works with character values", {
+  result <- local_deframe(test_data, "key", "extra")
+  expect_equal(result, c(a = "x", b = "y", c = "z"))
+})
+
+test_that("local_deframe errors if name_col is missing", {
+  expect_error(
+    local_deframe(test_data, "missing", "val"),
+    "name_col must be column name in data"
+  )
+})
+
+test_that("local_deframe errors if value_col is missing", {
+  expect_error(
+    local_deframe(test_data, "key", "missing"),
+    "value_col must be column name in data"
+  )
+})
+
+test_that("local_deframe handles empty data frame", {
+  empty_data <- data.frame(key = character(), val = numeric())
+  result <- local_deframe(empty_data, "key", "val")
+  expect_equal(length(result), 0)
+  expect_named(result, character())
+})
+
+
+test_that("returns 'waitlist_cleared' when min projected is zero", {
+  incompletes <- c(Projected = 0, Projected = 2, Observed = 5)
+  expect_equal(
+    min_incompletes_in_projected_period(incompletes),
+    "waitlist_cleared"
+  )
+})
+
+test_that("returns 'waitlist_reduced' when projected < observed", {
+  incompletes <- c(Projected = 2, Projected = 3, Observed = 50)
+  expect_equal(
+    min_incompletes_in_projected_period(incompletes),
+    "waitlist_reduced"
+  )
+})
+
+test_that("returns 'converged' when projected >= observed", {
+  incompletes <- c(Projected = 5, Projected = 6, Observed = 5)
+  expect_equal(min_incompletes_in_projected_period(incompletes), "converged")
+})
+
 
 test_that("org_name_lkp errors", {
   expect_snapshot(

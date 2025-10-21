@@ -584,6 +584,40 @@ local_enframe <- function(named_vector, name, value_name) {
   return(df)
 }
 
+local_deframe <- function(data, name_col, value_col) {
+  if (!name_col %in% names(data)) {
+    stop("name_col must be column name in data")
+  }
+
+  if (!value_col %in% names(data)) {
+    stop("value_col must be column name in data")
+  }
+
+  vec <- setNames(
+    object = data[[value_col]],
+    nm = data[[name_col]]
+  )
+
+  return(vec)
+}
+
+min_incompletes_in_projected_period <- function(incompletes) {
+  min_projected_value <- min(incompletes[names(incompletes) == "Projected"])
+  final_observed_value <- tail(
+    incompletes[names(incompletes) == "Observed"],
+    1
+  )
+
+  if (min_projected_value == 0) {
+    summary_info <- "waitlist_cleared"
+  } else if (min_projected_value / final_observed_value < 0.1) {
+    summary_info <- "waitlist_reduced"
+  } else {
+    summary_info <- "converged"
+  }
+  return(summary_info)
+}
+
 
 value_box_text <- function(x_val, y_title, y_val, y_val_type, facet = NA) {
   x_val <- format(x_val, "%b %Y")

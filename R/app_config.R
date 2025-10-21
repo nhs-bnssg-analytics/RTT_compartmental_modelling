@@ -44,7 +44,8 @@ get_golem_config <- function(
 }
 
 #' Prevent check warnings
-#' This is receommended here : https://r-pkgs.org/dependencies-in-practice.html#sec-dependencies-in-imports-r-code
+#' This is recommended here : https://r-pkgs.org/dependencies-in-practice.html#sec-dependencies-in-imports-r-code
+#' @noRd
 ignore_unused_imports <- function() {
   pkgload::load_all
 }
