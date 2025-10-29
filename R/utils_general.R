@@ -974,7 +974,11 @@ definitions <- function() {
     "Target proportion" = "The proportion of people on a waiting list that have been waiting less than the 'target week'.",
     "Target week" = "The week that the 'target proportion' applies to.",
     "Target date" = "The date to achieve the target criteria by.",
-    "Renege proportion" = "The proportion of total departures (treatments plus reneges) that are reneges."
+    "Renege proportion" = "The proportion of total departures (treatments plus reneges) that are reneges.",
+    "Adjusted" = paste(
+      "Where the number of people entering a compartment (inflow) minus the number of people treated within a compartment is less than the number of people remaining in the compartment at the end of the period, the inflow is 'adjusted'.",
+      "This can be for a number of reasons, such as the under-reporting of referrals or where clock-starts occur on one pathway before the patient is transferred to another pathway."
+    )
   )
 }
 

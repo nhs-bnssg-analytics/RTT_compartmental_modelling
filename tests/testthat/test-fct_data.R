@@ -431,7 +431,7 @@ test_that("split_and_model_calibration_data works", {
     )
   cal_data_modelled <- split_and_model_calibration_data(
     data = modified_sample_data,
-    referrals_uplift = TRUE
+    allow_negative_reneges = FALSE
   )
 
   # check that number of periods in the modelled data is the correct
@@ -467,7 +467,7 @@ test_that("split_and_model_calibration_data works", {
         ) |>
         filter(period != max(period)) |>
         split_and_model_calibration_data(
-          referrals_uplift = TRUE
+          allow_negative_reneges = FALSE
         ) |>
         dim()
     ),
@@ -487,8 +487,8 @@ test_that("split_and_model_calibration_data works", {
           "18 week performance (% pts)",
           "Waiting list size (by months waited)"
         ),
-        MAE = c("4,504", "11.2", "537"),
-        MAPE = c("15.3%", "22.5%", "30.3%")
+        MAE = c("5,144", "11.7", "564"),
+        MAPE = c("17.9%", "23.6%", "33.4%")
       ),
       row.names = c(NA, -3L),
       class = c("tbl_df", "tbl", "data.frame")
@@ -511,8 +511,8 @@ test_that("split_and_model_calibration_data works", {
           "18 week performance (% pts)",
           "Waiting list size (by months waited)"
         ),
-        MAE = c("4,504", "20.4", "537"),
-        MAPE = c("21.8%", "35.2%", "")
+        MAE = c("5,144", "22.0", "564"),
+        MAPE = c("25.6%", "37.8%", "")
       ),
       row.names = c(NA, -3L),
       class = c("tbl_df", "tbl", "data.frame")

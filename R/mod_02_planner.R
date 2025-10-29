@@ -213,9 +213,7 @@ mod_02_planner_ui <- function(id) {
           inputId = ns("referral_growth_type"),
           label = NULL,
           choices = c("Uniform", "Linear"),
-          selected = "Linear" #,
-          # choiceNames = c("Uplift referrals uniformly", "Uplift referrals to change by a percentage (linearly) by the end of the time period"),
-          # choiceValues = c("uniform", "linear")
+          selected = "Linear"
         ),
         fill = FALSE
       )
@@ -308,6 +306,8 @@ mod_02_planner_server <- function(id, r) {
       default_target = NULL,
       default_target_date = get_next_march(),
       referrals_uplift = NULL,
+      incompletes_uplifted = NULL,
+      incompletes_uplifted_value = NULL,
       optimise_status_card_visible = NULL,
       performance_calculated = FALSE,
       data_source = NULL, # should be either "upload" or "download"
@@ -596,72 +596,104 @@ mod_02_planner_server <- function(id, r) {
             unadjusted_referrals = "value"
           )
 
-        # calculate the referrals uplift value by calibrating the parameters
-        # with redistribute_m0_reneges set to FALSE
-        reactive_values$referrals_uplift <- calibrate_parameters(
+        # calculate unadjusted incompletes
+        unadjusted_incompletes <- r$all_data |>
+          filter(
+            .data$type == "Incomplete"
+          ) |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            unadjusted_incompletes = "value"
+          )
+
+        full_data_uplifted <- calibrate_parameters(
           r$all_data,
           max_months_waited = 12,
           redistribute_m0_reneges = FALSE,
           referrals_uplift = NULL,
-          allow_negative_params = TRUE
+          allow_negative_params = FALSE,
+          full_breakdown = TRUE
         ) |>
-          tidyr::unnest(.data$params) |>
-          dplyr::filter(
-            .data$months_waited_id == 0
+          tidyr::unnest("params") |>
+          dplyr::select(
+            "period_id",
+            "months_waited_id",
+            "node_inflow",
+            "waiting_same_node",
+            "treatments",
+            "reneges"
+          )
+
+        # calculate the referrals uplift value by calibrating the parameters
+        # with redistribute_m0_reneges set to FALSE
+        reactive_values$referrals_uplift <- r$all_data |>
+          dplyr::distinct(
+            "trust",
+            "specialty"
           ) |>
-          dplyr::mutate(
-            referrals_uplift = case_when(
-              .data$renege_param < 0 ~ abs(.data$renege_param),
-              .default = 0
+          mutate(
+            referrals_uplift = uplifted_val_referrals(
+              uplifted_data_breakdown = full_data_uplifted |>
+                dplyr::select(!c("treatments", "reneges")),
+              original_data = r$all_data
             )
+          )
+
+        # store the t0 uplifted value for later
+        # incompletes uplift data
+        reactive_values$incompletes_uplifted <- full_data_uplifted |>
+          select(
+            "period_id",
+            "months_waited_id",
+            uplifted_incompletes = "waiting_same_node"
+          )
+
+        # incompletes uplift parameters
+        reactive_values$incompletes_uplifted_value <- r$all_data |>
+          dplyr::filter(.data$type == "Incomplete") |>
+          dplyr::select("period_id", "months_waited_id", "value") |>
+          left_join(
+            reactive_values$incompletes_uplifted,
+            by = c("period_id", "months_waited_id")
           ) |>
-          select("trust", "specialty", "referrals_uplift")
+          mutate(
+            monthly_uplift = (.data$uplifted_incompletes / .data$value) - 1
+          ) |>
+          summarise(
+            mean_uplift = mean(monthly_uplift, na.rm = TRUE),
+            .by = "months_waited_id"
+          )
 
         # calculate the modelling parameters using the uplifted referrals
         reactive_values$params <- calibrate_parameters(
           r$all_data,
           max_months_waited = 12,
           redistribute_m0_reneges = FALSE,
-          referrals_uplift = reactive_values$referrals_uplift,
-          # negative renege parameters are rare when the data are aggregated.
-          # It is more common for  the independent sector, where  patients are
-          # added to RTT waiting lists without an accompanying clock-start.
-          # A negative renege parameter then occurs in locations beyong the first
-          # compartment. Here we allow it to occur to enable better short term
-          # modelling for the independent sector. It still causes issues
-          # because the renege parameter is related to list size (eg, the larger
-          # the list size the more reneging). When the renege parameter is
-          # negative, then the larger the list size, the more people are entering
-          # the list - this is unlikely to occur in reality with the independent
-          # sector but has the effect of exponentially growing the list size
-          allow_negative_params = TRUE
+          referrals_uplift = NULL,
+          allow_negative_params = FALSE,
+          full_breakdown = FALSE
         )
 
         # data frame of counts by period which get supplied to the 3rd module
         # for charting
-        reactive_values$calibration_data <- calibrate_parameters(
-          r$all_data,
-          max_months_waited = 12,
-          full_breakdown = TRUE,
-          referrals_uplift = reactive_values$referrals_uplift,
-          redistribute_m0_reneges = FALSE,
-          # when providing the full breakdown, allow capacity and renege
-          # parameters to be negative as these are what are displayed on
-          # the charts and by flooring them at zero, the actual parameters
-          # wouldn't be able to be calculated
-          allow_negative_params = TRUE
-        ) |>
-          select(
-            "params"
-          ) |>
-          tidyr::unnest(.data$params) |>
+        reactive_values$calibration_data <- full_data_uplifted |>
           dplyr::select(
             "period_id",
             "months_waited_id",
             calculated_treatments = "treatments",
             "reneges",
-            incompletes = "waiting_same_node"
+            adjusted_incompletes = "waiting_same_node"
           ) |>
+          # add unadjusted incompletes
+          left_join(
+            unadjusted_incompletes,
+            by = join_by(
+              period_id,
+              months_waited_id
+            )
+          ) |>
+          # add unadjusted referrals
           left_join(
             unadjusted_referrals,
             by = join_by(
@@ -739,7 +771,7 @@ mod_02_planner_server <- function(id, r) {
         # create accuracy information
         modelled_calibration_data <- split_and_model_calibration_data(
           data = r$all_data,
-          referrals_uplift = TRUE
+          allow_negative_reneges = FALSE
         )
 
         reactive_values$error_calc <- error_calc(
@@ -747,6 +779,7 @@ mod_02_planner_server <- function(id, r) {
           target_bin = 4
         )
 
+        # create the plot showing the observed and calculated performance
         reactive_values$error_plot <- plot_error(
           modelled_data = modelled_calibration_data |>
             left_join(
@@ -770,7 +803,6 @@ mod_02_planner_server <- function(id, r) {
 
     # provide renege params warning text --------------------------------------------
     output$renege_warning <- renderUI({
-      # browser()
       if (is.null(reactive_values$params)) {
         renege_params <- 1
       } else {
@@ -974,17 +1006,43 @@ mod_02_planner_server <- function(id, r) {
           spec = input$specialty_codes
         )
 
-        # download and aggregate data
-        template_data <- get_rtt_data_with_progress(
-          date_start = min_download_date,
-          date_end = max_download_date,
-          trust_parent_codes = selections_labels$trust_parents$selected_code,
-          trust_codes = selections_labels$trusts$selected_code,
-          commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
-          commissioner_org_codes = selections_labels$commissioners$selected_code,
-          specialty_codes = selections_labels$specialties$selected_code,
-          progress = progress
-        ) |>
+        if (
+          all(
+            is.null(selections_labels$trust_parents$selected_code),
+            is.null(selections_labels$commissioner_parents$selected_code),
+            is.null(selections_labels$commissioners$selected_code)
+          )
+        ) {
+          template_data <- readRDS(
+            system.file(
+              "extdata",
+              "rtt_24months.rds",
+              package = "RTTshiny"
+            )
+          ) |>
+            dplyr::filter(
+              .data$period >= min_download_date,
+              .data$trust %in% selections_labels$trusts$selected_name,
+              .data$specialty %in% selections_labels$specialties$selected_name
+            ) |>
+            mutate(
+              months_waited = convert_month_to_factor(.data$months_waited_id)
+            )
+        } else {
+          template_data <- get_rtt_data_with_progress(
+            date_start = min_download_date,
+            date_end = max_download_date,
+            trust_parent_codes = selections_labels$trust_parents$selected_code,
+            trust_codes = selections_labels$trusts$selected_code,
+            commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
+            commissioner_org_codes = selections_labels$commissioners$selected_code,
+            specialty_codes = selections_labels$specialties$selected_code,
+            progress = progress
+          )
+        }
+
+        # aggregate data
+        template_data <- template_data |>
           mutate(
             months_waited_id = NHSRtt::convert_months_waited_to_id(
               .data$months_waited,
@@ -1151,21 +1209,75 @@ mod_02_planner_server <- function(id, r) {
               unadjusted_referrals = "value"
             )
 
-          # there is no uplift to referrals when bringing own data
-          reactive_values$referrals_uplift <- dplyr::tibble(
-            trust = selections_labels$trusts$display,
-            specialty = selections_labels$specialties$display,
-            referrals_uplift = 0
-          )
+          # calculate "unadjusted" incompletes
+          unadjusted_incompletes <- r$all_data |>
+            filter(
+              .data$type == "Incomplete"
+            ) |>
+            dplyr::select(
+              "period_id",
+              "months_waited_id",
+              unadjusted_incompletes = "value"
+            )
 
-          # calculate the modelling parameters assuming referrals don't need to be
-          # uplifted
+          # ensure there are no negative reneges in the provided data
+          full_data_uplifted <- calibrate_parameters(
+            r$all_data,
+            max_months_waited = 12,
+            referrals_uplift = NULL,
+            redistribute_m0_reneges = FALSE,
+            allow_negative_params = FALSE,
+            full_breakdown = TRUE
+          ) |>
+            purrr::pluck("params", 1)
+
+          # calculate the referrals uplift value by calibrating the parameters
+          # with redistribute_m0_reneges set to FALSE
+          reactive_values$referrals_uplift <- r$all_data |>
+            dplyr::distinct(
+              "trust",
+              "specialty"
+            ) |>
+            mutate(
+              referrals_uplift = uplifted_val_referrals(
+                uplifted_data_breakdown = full_data_uplifted |>
+                  dplyr::select(!c("treatments", "reneges")),
+                original_data = r$all_data
+              )
+            )
+
+          # store the t0 uplifted value for later
+          # incompletes uplift data
+          reactive_values$incompletes_uplifted <- full_data_uplifted |>
+            select(
+              "period_id",
+              "months_waited_id",
+              uplifted_incompletes = "waiting_same_node"
+            )
+
+          # incompletes uplift parameters
+          reactive_values$incompletes_uplifted_value <- r$all_data |>
+            dplyr::filter(.data$type == "Incomplete") |>
+            dplyr::select("period_id", "months_waited_id", "value") |>
+            left_join(
+              reactive_values$incompletes_uplifted,
+              by = c("period_id", "months_waited_id")
+            ) |>
+            mutate(
+              monthly_uplift = (.data$uplifted_incompletes / .data$value) - 1
+            ) |>
+            summarise(
+              mean_uplift = mean(.data$monthly_uplift, na.rm = TRUE),
+              .by = "months_waited_id"
+            )
+
+          # calculate the modelling parameters
           reactive_values$params <- calibrate_parameters(
             r$all_data,
             max_months_waited = 12,
             referrals_uplift = NULL,
             redistribute_m0_reneges = FALSE,
-            allow_negative_params = TRUE
+            allow_negative_params = FALSE
           )
 
           # data frame of counts by period which get supplied to the 3rd module
@@ -1176,11 +1288,7 @@ mod_02_planner_server <- function(id, r) {
             full_breakdown = TRUE,
             referrals_uplift = NULL,
             redistribute_m0_reneges = FALSE,
-            # when providing the full breakdown, allow capacity and renege
-            # parameters to be negative as these are what are displayed on
-            # the charts and by flooring them at zero, the actual parameters
-            # wouldn't be able to be calculated
-            allow_negative_params = TRUE
+            allow_negative_params = FALSE
           ) |>
             select(
               "params"
@@ -1191,8 +1299,17 @@ mod_02_planner_server <- function(id, r) {
               "months_waited_id",
               calculated_treatments = "treatments",
               "reneges",
-              incompletes = "waiting_same_node"
+              adjusted_incompletes = "waiting_same_node"
             ) |>
+            # add unadjusted incompletes
+            left_join(
+              unadjusted_incompletes,
+              by = join_by(
+                period_id,
+                months_waited_id
+              )
+            ) |>
+            # add unadjusted referrals
             left_join(
               unadjusted_referrals,
               by = join_by(
@@ -1241,7 +1358,7 @@ mod_02_planner_server <- function(id, r) {
         # create accuracy information
         modelled_calibration_data <- split_and_model_calibration_data(
           data = r$all_data,
-          referrals_uplift = FALSE
+          allow_negative_reneges = FALSE
         )
 
         reactive_values$error_calc <- error_calc(
@@ -2096,20 +2213,17 @@ mod_02_planner_server <- function(id, r) {
               percent_change = input$capacity_growth
             )
 
-          t0_incompletes <- r$all_data |>
-            filter(
-              .data$type == "Incomplete",
-              .data$period == max(.data$period)
-            ) |>
-            select(
+          incompletes_t0_uplifted <- reactive_values$incompletes_uplifted |>
+            dplyr::filter(.data$period_id == max(.data$period_id)) |>
+            dplyr::select(
               "months_waited_id",
-              incompletes = "value"
+              incompletes = "uplifted_incompletes"
             )
 
           r$waiting_list <- NHSRtt::apply_params_to_projections(
             capacity_projections = projections_capacity,
             referrals_projections = projections_referrals,
-            incomplete_pathways = t0_incompletes,
+            incomplete_pathways = incompletes_t0_uplifted,
             renege_capacity_params = reactive_values$params$params[[1]] |>
               mutate(
                 capacity_param = NHSRtt::apply_parameter_skew(
@@ -2122,6 +2236,17 @@ mod_02_planner_server <- function(id, r) {
             max_months_waited = 12,
             surplus_treatment_redistribution_method = input$surplus_capacity_option
           ) |>
+            # deflate the incompletes
+            dplyr::rename(adjusted_incompletes = "incompletes") |>
+            dplyr::left_join(
+              reactive_values$incompletes_uplifted_value,
+              by = "months_waited_id"
+            ) |>
+            mutate(
+              unadjusted_incompletes = .data$adjusted_incompletes /
+                (1 + .data$mean_uplift)
+            ) |>
+            select(!c("mean_uplift")) |>
             # add referrals onto data
             dplyr::left_join(
               dplyr::tibble(
@@ -2236,6 +2361,7 @@ mod_02_planner_server <- function(id, r) {
       {
         reactive_values$performance_calculated <- FALSE
         reactive_values$optimise_status_card_visible <- FALSE
+        r$surplus_capacity_option <- input$surplus_capacity_option
       }
     )
 

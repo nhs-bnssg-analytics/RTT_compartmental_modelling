@@ -134,15 +134,21 @@ calculate_t1_value <- function(monthly_rtt, p_val_threshold = 0.01) {
   return(first_val)
 }
 
-#' @param original_wl_data tibble; same structure as the r$waiting_list object ("period", "period_id", "")
-#' @param new_referrals_capacity tibble; fields for "period", "calculated_treatments", and "adjusted_referrals" for the projected period
+
+#' @param original_wl_data tibble; same structure as the r$waiting_list object,
+#'   containing the fields: "period", "period_id", "months_waited_id",
+#'   "calculate_treatments", "reneges", "unadjusted_incompletes", "adjusted_incompletes",
+#'   "unadjusted_referrals", "adjusted_referrals", "capacity_skew", "period_type"
+#' @param new_referrals_capacity tibble; fields for "period", "calculated_treatments",
+#'   and "adjusted_referrals" for the projected period
 #' @param original_params list; the parameters used to calculate the original
 #'   waiting list
 #' @noRd
 calculate_customised_projections <- function(
   original_wl_data,
   new_referrals_capacity,
-  original_params
+  original_params,
+  surplus_capacity_option
 ) {
   projections_capacity <- new_referrals_capacity |>
     dplyr::pull(.data$calculated_treatments)
@@ -176,12 +182,34 @@ calculate_customised_projections <- function(
     ) |>
     dplyr::select(
       "months_waited_id",
-      "incompletes"
+      incompletes = "adjusted_incompletes"
     ) |>
     dplyr::mutate(
       months_waited_id = extract_first_number(
         .data$months_waited_id
       )
+    )
+
+  # calculate the adjustment value for incompletes
+  incompletes_adjustment_value <- calibration_data |>
+    dplyr::select(
+      "period_id",
+      "months_waited_id",
+      "adjusted_incompletes",
+      "unadjusted_incompletes"
+    ) |>
+    mutate(
+      monthly_uplift = (.data$adjusted_incompletes /
+        .data$unadjusted_incompletes) -
+        1,
+      months_waited_id = convert_months_waited_to_id(
+        .data$months_waited_id,
+        max_months_waited = 12
+      )
+    ) |>
+    summarise(
+      mean_uplift = mean(.data$monthly_uplift, na.rm = TRUE),
+      .by = "months_waited_id"
     )
 
   # recalculate projections
@@ -190,8 +218,20 @@ calculate_customised_projections <- function(
     referrals_projections = projections_referrals,
     incomplete_pathways = t0_incompletes,
     renege_capacity_params = original_params,
-    max_months_waited = 12
+    max_months_waited = 12,
+    surplus_treatment_redistribution_method = surplus_capacity_option
   ) |>
+    # deflate incompletes
+    dplyr::rename(adjusted_incompletes = "incompletes") |>
+    dplyr::left_join(
+      incompletes_adjustment_value,
+      by = "months_waited_id"
+    ) |>
+    mutate(
+      unadjusted_incompletes = .data$adjusted_incompletes /
+        (1 + .data$mean_uplift)
+    ) |>
+    select(!c("mean_uplift")) |>
     # add referrals onto data
     dplyr::left_join(
       dplyr::tibble(

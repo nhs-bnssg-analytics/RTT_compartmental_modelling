@@ -450,12 +450,15 @@ update_sample_data <- function(final_month) {
   return(final_sample_data)
 }
 
-#' function that splits the calibration data into two halves and returns a dataset that models the second half from the first half
+#' function that splits the calibration data into two halves and returns
+#' a dataset that models the second half from the first half
 #' @param data the processed calibration data
-#' @param referrals_uplift logical; whether the referrals should be uplifted if they appear under-reported
+#' @param allow_negative_reneges logical; whether negative reneging is allowed
+#'   as when it is prevented it results in an inflated referral value and
+#'   waiting list size within each compartment
 #' @return a tibble with the processed data
 #' @noRd
-split_and_model_calibration_data <- function(data, referrals_uplift) {
+split_and_model_calibration_data <- function(data, allow_negative_reneges) {
   # order the data by period and months_waited_id
   data <- data |>
     arrange(
@@ -482,47 +485,65 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
       .data$period %in% first_half_periods
     )
 
-  if (isTRUE(referrals_uplift)) {
+  if (isFALSE(allow_negative_reneges)) {
     # calculate the referrals uplift value by calibrating the parameters
     # with redistribute_m0_reneges set to FALSE
-    referrals_uplift_value <- calibrate_parameters(
+    full_data_uplifted <- calibrate_parameters(
       first_half_data,
       max_months_waited = 12,
       redistribute_m0_reneges = FALSE,
       referrals_uplift = NULL,
-      allow_negative_params = TRUE
+      allow_negative_params = FALSE,
+      full_breakdown = TRUE
     ) |>
       tidyr::unnest("params") |>
-      dplyr::filter(
-        .data$months_waited_id == 0
-      ) |>
-      dplyr::pull(.data$renege_param)
-
-    # check whether the referrals uplift value is negative
-    if (referrals_uplift_value < 0) {
-      referrals_uplift_value <- abs(
-        referrals_uplift_value
+      dplyr::select(
+        "period_id",
+        "months_waited_id",
+        "node_inflow",
+        "waiting_same_node"
       )
-    } else {
-      referrals_uplift_value <- 0
-    }
+
+    referrals_uplift_value <- uplifted_val_referrals(
+      uplifted_data_breakdown = full_data_uplifted,
+      original_data = first_half_data
+    )
+
+    # incompletes uplift data
+    incompletes_uplifted <- full_data_uplifted |>
+      select(
+        "period_id",
+        "months_waited_id",
+        adjusted_incompletes = "waiting_same_node"
+      )
+
+    # incompletes uplift parameters
+    incompletes_uplifted_value <- first_half_data |>
+      dplyr::filter(.data$type == "Incomplete") |>
+      dplyr::select("period_id", "months_waited_id", "value") |>
+      left_join(
+        incompletes_uplifted,
+        by = c("period_id", "months_waited_id")
+      ) |>
+      mutate(
+        monthly_uplift = (.data$adjusted_incompletes / .data$value) - 1
+      ) |>
+      summarise(
+        mean_uplift = mean(monthly_uplift, na.rm = TRUE),
+        .by = "months_waited_id"
+      )
   } else {
     referrals_uplift_value <- 0
   }
 
-  referrals_uplift <- dplyr::tibble(
-    trust = unique(first_half_data$trust),
-    specialty = unique(first_half_data$specialty),
-    referrals_uplift = referrals_uplift_value
-  )
-
-  # calculate the modelling parameters using the uplifted referrals
+  # calculate the modelling parameters
   params <- calibrate_parameters(
     first_half_data,
     max_months_waited = 12,
     redistribute_m0_reneges = FALSE,
-    referrals_uplift = referrals_uplift,
-    allow_negative_params = FALSE
+    referrals_uplift = NULL,
+    allow_negative_params = allow_negative_reneges,
+    full_breakdown = FALSE
   )
 
   # apply parameters to projections
@@ -551,16 +572,19 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
     ) |>
     pull(.data$value)
 
-  # fourth, extract the incompletes for the start of the projected period
-  t0_incompletes <- first_half_data |>
-    filter(
-      .data$type == "Incomplete",
-      .data$period == max(.data$period)
-    ) |>
-    select(
-      "months_waited_id",
-      incompletes = "value"
-    )
+  if (isFALSE(allow_negative_reneges)) {
+    # fourth, extract the incompletes for the start of the projected period
+    t0_incompletes <- incompletes_uplifted |>
+      dplyr::filter(.data$period_id == max(.data$period_id)) |>
+      dplyr::select("months_waited_id", incompletes = "adjusted_incompletes")
+  } else {
+    t0_incompletes <- first_half_data |>
+      filter(
+        .data$type == "Incomplete",
+        .data$period_id == max(.data$period_id)
+      ) |>
+      dplyr::select("months_waited_id", incompletes = "value")
+  }
 
   # fifth, apply the parameters to the projection data
   projection_calcs <- NHSRtt::apply_params_to_projections(
@@ -573,11 +597,19 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
     select(
       "period_id",
       "months_waited_id",
-      modelled_incompletes = "incompletes"
+      adjusted_incompletes = "incompletes"
+    ) |>
+    left_join(
+      incompletes_uplifted_value,
+      by = "months_waited_id"
     ) |>
     mutate(
-      period_id = .data$period_id + max(first_half_data$period_id)
-    )
+      period_id = .data$period_id + max(first_half_data$period_id),
+      # reduce uplifted incompletes to original estimate
+      modelled_incompletes = .data$adjusted_incompletes /
+        (1 + .data$mean_uplift)
+    ) |>
+    select(!c("adjusted_incompletes", "mean_uplift"))
 
   # filter original data for incompletes
   original_incompletes <- data |>
@@ -603,6 +635,34 @@ split_and_model_calibration_data <- function(data, referrals_uplift) {
   return(modelled_incompletes)
 }
 
+
+uplifted_val_referrals <- function(uplifted_data_breakdown, original_data) {
+  referrals_uplifted <- uplifted_data_breakdown |>
+    dplyr::filter(
+      .data$months_waited_id == 0
+    ) |>
+    dplyr::select(
+      "period_id",
+      uplifted_referrals = "node_inflow"
+    )
+
+  referrals_uplift_value <- original_data |>
+    dplyr::filter(.data$type == "Referrals") |>
+    dplyr::select("period_id", "value") |>
+    left_join(
+      referrals_uplifted,
+      by = "period_id"
+    ) |>
+    mutate(
+      monthly_uplift = (.data$uplifted_referrals / .data$value) - 1
+    ) |>
+    summarise(
+      mean_uplift = mean(monthly_uplift, na.rm = TRUE)
+    ) |>
+    dplyr::pull(.data$mean_uplift)
+
+  return(referrals_uplift_value)
+}
 
 #' function to determine the mean absolute percentage error for the calibration data period
 #' @param data the output of the split_and_model_calibration_data function

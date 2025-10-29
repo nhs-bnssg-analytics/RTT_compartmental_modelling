@@ -26,17 +26,17 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpMzIuNzl8NzE0LjUyfDIyLjc4fDUwNS45MQ==)'>
-<polyline points='32.79,414.32 714.52,414.32 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='32.79,275.05 714.52,275.05 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='32.79,135.78 714.52,135.78 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='32.79,415.35 714.52,415.35 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='32.79,278.13 714.52,278.13 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='32.79,140.92 714.52,140.92 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='140.83,505.91 140.83,22.78 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='294.92,505.91 294.92,22.78 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='449.86,505.91 449.86,22.78 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='605.64,505.91 605.64,22.78 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='32.79,483.95 714.52,483.95 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='32.79,344.68 714.52,344.68 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='32.79,205.41 714.52,205.41 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='32.79,66.14 714.52,66.14 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='32.79,346.74 714.52,346.74 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='32.79,209.52 714.52,209.52 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='32.79,72.31 714.52,72.31 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='63.78,505.91 63.78,22.78 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='217.87,505.91 217.87,22.78 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
 <polyline points='371.96,505.91 371.96,22.78 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
@@ -83,14 +83,14 @@
 <text x='63.78' y='471.84' style='font-size: 11.38px; font-family: sans;' textLength='210.06px' lengthAdjust='spacingAndGlyphs'>Model calibration period is shaded in grey</text>
 <text x='63.78' y='455.45' style='font-size: 11.38px; font-family: sans;' textLength='104.37px' lengthAdjust='spacingAndGlyphs'>For error calculation:</text>
 <text x='63.78' y='471.84' style='font-size: 11.38px; font-family: sans;' textLength='210.06px' lengthAdjust='spacingAndGlyphs'>Model calibration period is shaded in grey</text>
-<polyline points='371.96,99.24 424.46,99.24 424.46,77.08 476.95,77.08 476.95,45.84 527.75,45.84 527.75,46.16 580.24,46.16 580.24,46.12 631.04,46.12 631.04,44.74 683.53,44.74 683.53,44.74 ' style='stroke-width: 1.07; stroke: #0000FF; stroke-dasharray: 5.69,5.69; stroke-linecap: butt;' />
-<polyline points='63.78,176.89 116.27,176.89 116.27,171.44 165.38,171.44 165.38,129.50 217.87,129.50 217.87,140.63 268.67,140.63 268.67,108.00 321.16,108.00 321.16,139.74 371.96,139.74 371.96,137.11 424.46,137.11 424.46,131.01 476.95,131.01 476.95,137.79 527.75,137.79 527.75,149.81 580.24,149.81 580.24,130.17 631.04,130.17 631.04,139.65 683.53,139.65 683.53,139.65 ' style='stroke-width: 1.07; stroke-linecap: butt;' />
+<polyline points='371.96,98.88 424.46,98.88 424.46,75.60 476.95,75.60 476.95,44.74 527.75,44.74 527.75,46.69 580.24,46.69 580.24,52.50 631.04,52.50 631.04,56.37 683.53,56.37 683.53,56.37 ' style='stroke-width: 1.07; stroke: #0000FF; stroke-dasharray: 5.69,5.69; stroke-linecap: butt;' />
+<polyline points='63.78,181.42 116.27,181.42 116.27,176.05 165.38,176.05 165.38,134.73 217.87,134.73 217.87,145.70 268.67,145.70 268.67,113.54 321.16,113.54 321.16,144.82 371.96,144.82 371.96,142.23 424.46,142.23 424.46,136.21 476.95,136.21 476.95,142.90 527.75,142.90 527.75,154.74 580.24,154.74 580.24,135.39 631.04,135.39 631.04,144.73 683.53,144.73 683.53,144.73 ' style='stroke-width: 1.07; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
 <text x='27.86' y='486.98' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='27.86' y='347.71' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='9.79px' lengthAdjust='spacingAndGlyphs'>20</text>
-<text x='27.86' y='208.44' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='9.79px' lengthAdjust='spacingAndGlyphs'>40</text>
-<text x='27.86' y='69.17' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='9.79px' lengthAdjust='spacingAndGlyphs'>60</text>
+<text x='27.86' y='349.77' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='9.79px' lengthAdjust='spacingAndGlyphs'>20</text>
+<text x='27.86' y='212.55' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='9.79px' lengthAdjust='spacingAndGlyphs'>40</text>
+<text x='27.86' y='75.34' text-anchor='end' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='9.79px' lengthAdjust='spacingAndGlyphs'>60</text>
 <text x='63.78' y='516.90' text-anchor='middle' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='36.22px' lengthAdjust='spacingAndGlyphs'>Jan 2024</text>
 <text x='217.87' y='516.90' text-anchor='middle' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='35.72px' lengthAdjust='spacingAndGlyphs'>Apr 2024</text>
 <text x='371.96' y='516.90' text-anchor='middle' style='font-size: 8.80px; fill: #4D4D4D; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>Jul 2024</text>
