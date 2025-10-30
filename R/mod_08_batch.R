@@ -484,27 +484,27 @@ mod_08_batch_server <- function(id) {
                   redistribute_m0_reneges = FALSE,
                   referrals_uplift = NULL,
                   full_breakdown = TRUE,
-                  allow_negative_params = TRUE
+                  allow_negative_params = FALSE
                 ) |>
                 dplyr::select("trust", "specialty", "params") |>
                 tidyr::unnest("params") |>
-                dplyr::mutate(
-                  reneges = case_when(
-                    .data$reneges < 0 & .data$months_waited_id == 0 ~ 0,
-                    .default = .data$reneges
-                  )
-                ) |>
+                # dplyr::mutate(
+                #   reneges = case_when(
+                #     .data$reneges < 0 & .data$months_waited_id == 0 ~ 0,
+                #     .default = .data$reneges
+                #   )
+                # ) |>
                 summarise(
                   renege_proportion = sum(.data$reneges) /
                     (sum(.data$reneges) + sum(.data$treatments)),
                   .by = c("trust", "specialty", "period_id")
                 ) |>
-                dplyr::mutate(
-                  renege_proportion = case_when(
-                    .data$renege_proportion < 0 ~ NA_real_,
-                    .default = .data$renege_proportion
-                  )
-                ) |>
+                # dplyr::mutate(
+                #   renege_proportion = case_when(
+                #     .data$renege_proportion < 0 ~ NA_real_,
+                #     .default = .data$renege_proportion
+                #   )
+                # ) |>
                 summarise(
                   renege_proportion = stats::median(
                     .data$renege_proportion,
@@ -719,15 +719,86 @@ mod_08_batch_server <- function(id) {
                 by = join_by(trust, specialty)
               )
 
-            # add in the counterfactual reneges and wl size
-            wl_t0 <- raw_data |>
-              filter(
-                .data$type == "Incomplete",
-                .data$period == max(.data$period)
+            # create full data breakdown that is uplifted
+            full_data_uplifted <- raw_data |>
+              calibrate_parameters(
+                max_months_waited = 12,
+                redistribute_m0_reneges = FALSE,
+                referrals_uplift = NULL,
+                full_breakdown = TRUE,
+                allow_negative_params = FALSE
               ) |>
-              select(!c("period", "period_id", "type")) |>
-              rename(incompletes = "value") |>
-              tidyr::nest(wl_t0 = c("months_waited_id", "incompletes"))
+              dplyr::select("trust", "specialty", "params") |>
+              dplyr::mutate(
+                params = purrr::map(
+                  .data$params,
+                  ~ dplyr::select(
+                    .x,
+                    "period_id",
+                    "months_waited_id",
+                    "incompletes" = "waiting_same_node"
+                  )
+                )
+              )
+
+            # calculate incomplete uplift parameters
+            incomplete_adjustment_parameters <- raw_data |>
+              dplyr::filter(.data$type == "Incomplete") |>
+              dplyr::select(
+                "trust",
+                "specialty",
+                "period_id",
+                "months_waited_id",
+                "value"
+              ) |>
+              tidyr::nest(
+                unadjusted_incompletes = c(
+                  "period_id",
+                  "months_waited_id",
+                  "value"
+                )
+              ) |>
+              left_join(
+                full_data_uplifted,
+                by = c("trust", "specialty")
+              ) |>
+              mutate(
+                adjustment_factor = purrr::map2(
+                  .x = .data$unadjusted_incompletes,
+                  .y = .data$params,
+                  ~ dplyr::left_join(
+                    .x,
+                    .y,
+                    by = c("period_id", "months_waited_id")
+                  ) |>
+                    dplyr::mutate(
+                      monthly_uplift = (.data$incompletes / .data$value) - 1
+                    ) |>
+                    dplyr::summarise(
+                      adjustment_factor = mean(
+                        .data$monthly_uplift,
+                        na.rm = TRUE
+                      ),
+                      .by = "months_waited_id"
+                    ) |>
+                    dplyr::as_tibble()
+                ),
+                .keep = "unused"
+              )
+
+            # add in the counterfactual reneges and wl size
+            wl_t0 <- full_data_uplifted |>
+              dplyr::mutate(
+                wl_t0 = purrr::map(
+                  .data$params,
+                  ~ dplyr::filter(
+                    .x,
+                    .data$period_id == max(.data$period_id)
+                  ) |>
+                    dplyr::select(!c("period_id"))
+                )
+              ) |>
+              dplyr::select(!c("params"))
 
             shiny::withProgress(
               message = "Calculating counterfactuals",
@@ -736,6 +807,10 @@ mod_08_batch_server <- function(id) {
                 n <- nrow(optimised_projections)
                 reactive_values$optimised_projections <- optimised_projections |>
                   left_join(wl_t0, by = c("trust", "specialty")) |>
+                  left_join(
+                    incomplete_adjustment_parameters,
+                    by = c("trust", "specialty")
+                  ) |>
                   mutate(
                     id = dplyr::row_number(),
                     counterfactual = purrr::pmap(
@@ -744,17 +819,29 @@ mod_08_batch_server <- function(id) {
                         ref_start = .data$referrals_t1,
                         ref_end = .data$referrals_ss,
                         inc = .data$wl_t0,
+                        inc_adj_par = .data$adjustment_factor,
                         par = .data$params,
                         t = .data$trust,
                         sp = .data$specialty,
                         id = .data$id
                       ),
-                      \(cap, ref_start, ref_end, inc, par, t, sp, id) {
+                      \(
+                        cap,
+                        ref_start,
+                        ref_end,
+                        inc,
+                        inc_adj_par,
+                        par,
+                        t,
+                        sp,
+                        id
+                      ) {
                         counterf <- append_counterfactual(
                           capacity = cap,
                           referrals_start = ref_start,
                           referrals_end = ref_end,
                           incompletes_t0 = inc,
+                          incomplete_adjustment_factor = inc_adj_par,
                           renege_capacity_params = par,
                           forecast_months = forecast_months,
                           target_week = input$target_week
@@ -797,6 +884,10 @@ mod_08_batch_server <- function(id) {
                       )
                     ),
                     .before = "referrals_ss"
+                  ) |>
+                  dplyr::relocate(
+                    "referrals_scenario",
+                    .after = "specialty"
                   )
               }
             )
@@ -882,7 +973,6 @@ mod_08_batch_server <- function(id) {
         )
 
         counterf_cols <- c(
-          "referrals_scenario",
           "referrals_counterf",
           "capacity_counterf",
           "reneges_counterf",
@@ -911,42 +1001,58 @@ mod_08_batch_server <- function(id) {
           ),
           columns = list(
             trust = colDef(
-              header = name_with_tooltip("Trust", definition = "Trust name"),
+              header = name_with_tooltip("Trust", definition = "Trust name."),
               sticky = "left"
             ),
             specialty = colDef(
               header = name_with_tooltip(
                 "Specialty",
-                definition = "Specialty name"
+                definition = "Specialty name."
+              ),
+              sticky = "left"
+            ),
+            referrals_scenario = colDef(
+              header = name_with_tooltip(
+                "Demand scenario",
+                definition = "The demand scenario based on the user inputs."
               ),
               class = "divider-right",
               sticky = "left"
             ),
             referrals_t1 = colDef(
               header = name_with_tooltip(
-                "Demand",
-                definition = "The calculated current demand based on the previous 12 months"
+                "Demand (adjusted)",
+                definition = paste(
+                  "The calculated current demand based on the previous 12 months.",
+                  "This is adjusted for unreported referrals and patients that join part way through their RTT pathway with no clock-start."
+                )
               ),
               format = colFormat(digits = 2)
             ),
             capacity_t1 = colDef(
               header = name_with_tooltip(
                 "Treatments",
-                definition = "The calculated current treatment capacity based on the previous 12 months"
+                definition = "The calculated current treatment capacity based on the previous 12 months."
               ),
               format = colFormat(digits = 2)
             ),
             reneges_t0 = colDef(
               header = name_with_tooltip(
-                "Reneges",
-                definition = "Calculated total reneges for final month of 12 month calibration period"
+                "Reneges (adjusted)",
+                definition = paste(
+                  "Calculated total reneges for final month of 12 month calibration period.",
+                  "This is accounts for patients that join part way through their RTT pathway with no clock-start."
+                )
               ),
               format = colFormat(digits = 2)
             ),
             load = colDef(
               header = name_with_tooltip(
-                "Load",
-                definition = "Arrivals (demand) divided by departures (treatments + reneges), indicating whether list size is growing (>1) or shrinking (<1)"
+                "Load (adjusted)",
+                definition = paste(
+                  "Arrivals (demand) divided by departures (treatments + reneges), indicating whether list size is growing (>1) or shrinking (<1).",
+                  "This is adjusted for unreported referrals and patients that join part way through their RTT pathway with no clock-start."
+                )
               ),
               format = colFormat(digits = 2),
               style = function(value) {
@@ -977,14 +1083,14 @@ mod_08_batch_server <- function(id) {
             incompletes_t0 = colDef(
               header = name_with_tooltip(
                 "Waiting list size",
-                definition = "The number of people on the waiting list for the last observed period"
+                definition = "The number of people on the waiting list for the last observed period."
               ),
               format = colFormat(digits = 0)
             ),
             pressure = colDef(
               header = name_with_tooltip(
                 "Pressure",
-                definition = "The current target percentile waiting time divided by the expected target percentilile wait time"
+                definition = "The current target percentile waiting time divided by the expected target percentilile wait time."
               ),
               format = colFormat(digits = 2),
               class = "divider-right",
@@ -1013,44 +1119,44 @@ mod_08_batch_server <- function(id) {
                 )
               }
             ),
-            referrals_scenario = colDef(
-              header = name_with_tooltip(
-                "Demand scenario",
-                definition = "The demand scenario based on the user inputs"
-              )
-            ),
             referrals_counterf = colDef(
               header = name_with_tooltip(
-                "Demand",
-                definition = "The demand at the the target date based on the user inputs"
+                "Demand (adjusted)",
+                definition = paste(
+                  "The demand at the the target date based on the user inputs.",
+                  "This is adjusted for unreported referrals and patients that join part way through their RTT pathway with no clock-start."
+                )
               ),
               format = colFormat(digits = 2)
             ),
             capacity_counterf = colDef(
               header = name_with_tooltip(
                 "Treatments",
-                definition = "The calculated number of monthly treatments under the 'do nothing' scenario at the target date"
+                definition = "The calculated number of monthly treatments under the 'do nothing' scenario at the target date."
               ),
               format = colFormat(digits = 2)
             ),
             reneges_counterf = colDef(
               header = name_with_tooltip(
-                "Reneges",
-                definition = "The calculated number of monthly reneges under the 'do nothing' scenario at the target date"
+                "Reneges (adjusted)",
+                definition = paste(
+                  "The calculated number of monthly reneges under the 'do nothing' scenario at the target date.",
+                  "This is accounts for patients that join part way through their RTT pathway with no clock-start."
+                )
               ),
               format = colFormat(digits = 2)
             ),
             incompletes_counterf = colDef(
               header = name_with_tooltip(
                 "Waiting list size",
-                definition = "The number of people on the waiting list under the 'do nothing' scenario at the target date"
+                definition = "The number of people on the waiting list under the 'do nothing' scenario at the target date."
               ),
               format = colFormat(digits = 0)
             ),
             perf_counterf = colDef(
               header = name_with_tooltip(
                 paste0(input$target_week, " week performance"),
-                definition = "The proportion of people on the waiting list waiting less than the target time under the 'do nothing' scenario at the target date"
+                definition = "The proportion of people on the waiting list waiting less than the target time under the 'do nothing' scenario at the target date."
               ),
               format = colFormat(digits = 1, percent = TRUE),
               class = "divider-right",
@@ -1082,28 +1188,28 @@ mod_08_batch_server <- function(id) {
             referrals_ss = colDef(
               header = name_with_tooltip(
                 "Demand",
-                definition = "The demand at the the target date based on the user inputs"
+                definition = "The demand at the the target date based on the user inputs."
               ),
               format = colFormat(digits = 2)
             ),
             capacity_ss = colDef(
               header = name_with_tooltip(
                 "Treatments",
-                definition = "The calculated number of monthly treatments to achieve the steady-state solution based on the selected method"
+                definition = "The calculated number of monthly treatments to achieve the steady-state solution based on the selected method."
               ),
               format = colFormat(digits = 2)
             ),
             reneges_ss = colDef(
               header = name_with_tooltip(
                 "Reneges",
-                definition = "The calculated number of monthly reneges in the steady-state solution based on the selected method"
+                definition = "The calculated number of monthly reneges in the steady-state solution based on the selected method."
               ),
               format = colFormat(digits = 2)
             ),
             incompletes_ss = colDef(
               header = name_with_tooltip(
                 "Waiting list size",
-                definition = "The number of people on the waiting list in the steady-state solution based on the selected method"
+                definition = "The number of people on the waiting list in the steady-state solution based on the selected method."
               ),
               format = colFormat(digits = 0),
               class = "divider-right"
@@ -1111,7 +1217,7 @@ mod_08_batch_server <- function(id) {
             current_vs_ss_wl_ratio = colDef(
               header = name_with_tooltip(
                 "Current / steady state waiting list size",
-                definition = "The ratio of the current waiting list size compared with the calculated steady-state waiting list size"
+                definition = "The ratio of the current waiting list size compared with the calculated steady-state waiting list size."
               ),
               format = colFormat(digits = 2),
               style = function(value) {
@@ -1142,7 +1248,7 @@ mod_08_batch_server <- function(id) {
             monthly_removals = colDef(
               header = name_with_tooltip(
                 "Additional monthly removals required",
-                definition = "The number of additional monthly removals (above current treatments and reneges) to achieve the target waiting list size in the number of months specified by the user"
+                definition = "The number of additional monthly removals (above current treatments and reneges) to achieve the target waiting list size in the number of months specified by the user."
               ),
               format = colFormat(digits = 2),
               style = function(value) {
@@ -1204,21 +1310,21 @@ mod_08_batch_server <- function(id) {
               c(
                 "Trust" = "trust",
                 "Specialty" = "specialty",
-                "Current demand" = "referrals_t1",
+                "Demand scenario" = "referrals_scenario",
+                "Current demand (adjusted)" = "referrals_t1",
                 "Current treatment capacity" = "capacity_t1",
-                "Current reneges" = "reneges_t0",
-                "Current load" = "load",
+                "Current reneges (adjusted)" = "reneges_t0",
+                "Current load (adjusted)" = "load",
                 "Current waiting list size" = "incompletes_t0",
                 "Current pressure" = "pressure",
-                "Demand scenario" = "referrals_scenario",
-                "Do nothing demand" = "referrals_counterf",
+                "Do nothing demand (adjusted)" = "referrals_counterf",
                 "Do nothing treatment capacity" = "capacity_counterf",
-                "Do nothing reneges" = "reneges_counterf",
+                "Do nothing reneges (adjusted)" = "reneges_counterf",
                 "Do nothing waiting list size" = "incompletes_counterf",
                 "Do nothing performance" = "perf_counterf",
-                "Steady state demand" = "referrals_ss",
+                "Steady state demand (adjusted)" = "referrals_ss",
                 "Steady state treatment capacity" = "capacity_ss",
-                "Steady state reneges" = "reneges_ss",
+                "Steady state reneges (adjusted)" = "reneges_ss",
                 "Steady state waiting list size" = "incompletes_ss",
                 "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
                 "Additional monthly removals required" = "monthly_removals"

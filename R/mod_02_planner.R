@@ -277,7 +277,7 @@ mod_02_planner_ui <- function(id) {
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
-#'   join_by bind_rows setdiff inner_join as_tibble
+#'   join_by bind_rows setdiff inner_join as_tibble starts_with
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
 #' @importFrom bslib tooltip value_box value_box_theme
@@ -661,7 +661,7 @@ mod_02_planner_server <- function(id, r) {
             monthly_uplift = (.data$uplifted_incompletes / .data$value) - 1
           ) |>
           summarise(
-            adjustment_factor = mean(monthly_uplift, na.rm = TRUE),
+            adjustment_factor = mean(.data$monthly_uplift, na.rm = TRUE),
             .by = "months_waited_id"
           ) |>
           dplyr::as_tibble()
@@ -2905,7 +2905,7 @@ mod_02_planner_server <- function(id, r) {
           r$chart_specification$scenario_type <- "Estimate treatment capacity (from performance targets)"
           r$chart_specification$capacity_percent_change <- projection_calcs |>
             dplyr::select(
-              starts_with("uplift")
+              dplyr::starts_with("uplift")
             ) |>
             tidyr::pivot_longer(
               cols = starts_with("uplift"),

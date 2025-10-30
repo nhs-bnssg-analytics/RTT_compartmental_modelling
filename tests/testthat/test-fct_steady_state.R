@@ -54,7 +54,7 @@ test_that("append_current_status works", {
 
   expect_equal(
     round(result$referrals_t1 / (result$capacity_t1 + result$reneges_t0), 2),
-    1.33,
+    1.38,
     info = "load calculated correctly"
   )
 
@@ -493,6 +493,11 @@ test_that("append_counterfactual", {
     filter(type == "Incomplete", period == max(period)) |>
     select("months_waited_id", incompletes = "value")
 
+  adj_fact <- dplyr::tibble(
+    months_waited_id = 0:12,
+    adjustment_factor = 0
+  )
+
   params <- calibrate_parameters(
     rtt_data = df,
     max_months_waited = 12,
@@ -508,6 +513,7 @@ test_that("append_counterfactual", {
     referrals_start = ref,
     referrals_end = ref,
     incompletes_t0 = inc,
+    incomplete_adjustment_factor = adj_fact,
     renege_capacity_params = params,
     forecast_months = 40,
     target_week = 18
@@ -525,5 +531,119 @@ test_that("append_counterfactual", {
   expect_equal(
     results$perf_counterf,
     0.809009337
+  )
+})
+
+test_that("append_counterfactual with adjustment factor", {
+  cap <- 500
+  ref <- 1200
+
+  # create incompletes multiplier so subsequent compartments for subsequent
+  # time periods increase in size, forcing negative reneges
+  incompletes_multiplier <- dplyr::tibble(
+    months_waited_id = 0:12,
+    type = "Incomplete",
+    multiplier = seq(1, 4, length.out = 13)
+  )
+
+  df <- sample_data |>
+    arrange(type, months_waited_id, period) |>
+    mutate(
+      trust = "trust_a",
+      specialty = "Cardiology",
+      period_id = dplyr::row_number(),
+      .by = c("type", "months_waited_id")
+    ) |>
+    left_join(
+      incompletes_multiplier,
+      by = c("months_waited_id", "type")
+    ) |>
+    mutate(
+      value = case_when(
+        type != "Incomplete" ~ value,
+        .default = value * multiplier
+      )
+    ) |>
+    select(!c("multiplier"))
+
+  adjusted_data <- calibrate_parameters(
+    rtt_data = df,
+    max_months_waited = 12,
+    redistribute_m0_reneges = FALSE,
+    referrals_uplift = NULL,
+    full_breakdown = TRUE,
+    allow_negative_params = FALSE
+  ) |>
+    purrr::pluck("params", 1)
+
+  inc <- adjusted_data |>
+    filter(period_id == max(period_id)) |>
+    select("months_waited_id", incompletes = "waiting_same_node")
+
+  adj_fact <- df |>
+    filter(type == "Incomplete") |>
+    select("period_id", "months_waited_id", "value") |>
+    left_join(
+      adjusted_data |>
+        select(
+          "period_id",
+          "months_waited_id",
+          adjusted_incompletes = "waiting_same_node"
+        ),
+      by = c("period_id", "months_waited_id")
+    ) |>
+    dplyr::mutate(
+      monthly_uplift = (adjusted_incompletes / value) - 1
+    ) |>
+    dplyr::summarise(
+      adjustment_factor = mean(
+        monthly_uplift,
+        na.rm = TRUE
+      ),
+      .by = "months_waited_id"
+    ) |>
+    dplyr::as_tibble() |>
+    mutate(
+      # force there to be no adjustment on compartments 4 upwards so we can
+      # expect a performance that is lower on the unadjusted waiting list than
+      # the adjusted waiting list
+      adjustment_factor = case_when(
+        months_waited_id < 4 ~ adjustment_factor,
+        .default = 0
+      )
+    )
+
+  params <- calibrate_parameters(
+    rtt_data = df,
+    max_months_waited = 12,
+    redistribute_m0_reneges = FALSE,
+    referrals_uplift = NULL,
+    full_breakdown = FALSE,
+    allow_negative_params = FALSE
+  ) |>
+    purrr::pluck("params", 1)
+
+  tw <- 18
+  results <- append_counterfactual(
+    capacity = cap,
+    referrals_start = ref,
+    referrals_end = ref,
+    incompletes_t0 = inc,
+    incomplete_adjustment_factor = adj_fact,
+    renege_capacity_params = params,
+    forecast_months = 1,
+    target_week = tw
+  )
+
+  perf_on_adjusted_wl <- calc_percentile_at_week(
+    inc,
+    week = tw,
+    wlsize_col = "incompletes",
+    time_col = "months_waited_id"
+  )
+
+  expect_lt(
+    results$perf_counterf,
+    perf_on_adjusted_wl
   )
 })

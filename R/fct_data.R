@@ -529,7 +529,7 @@ split_and_model_calibration_data <- function(data, allow_negative_reneges) {
         monthly_uplift = (.data$adjusted_incompletes / .data$value) - 1
       ) |>
       summarise(
-        mean_uplift = mean(monthly_uplift, na.rm = TRUE),
+        mean_uplift = mean(.data$monthly_uplift, na.rm = TRUE),
         .by = "months_waited_id"
       )
   } else {
@@ -657,7 +657,7 @@ uplifted_val_referrals <- function(uplifted_data_breakdown, original_data) {
       monthly_uplift = (.data$uplifted_referrals / .data$value) - 1
     ) |>
     summarise(
-      mean_uplift = mean(monthly_uplift, na.rm = TRUE)
+      mean_uplift = mean(.data$monthly_uplift, na.rm = TRUE)
     ) |>
     dplyr::pull(.data$mean_uplift)
 
