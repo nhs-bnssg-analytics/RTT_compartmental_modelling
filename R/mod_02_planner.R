@@ -277,7 +277,7 @@ mod_02_planner_ui <- function(id) {
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
-#'   join_by bind_rows setdiff inner_join
+#'   join_by bind_rows setdiff inner_join as_tibble
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
 #' @importFrom bslib tooltip value_box value_box_theme
@@ -661,9 +661,10 @@ mod_02_planner_server <- function(id, r) {
             monthly_uplift = (.data$uplifted_incompletes / .data$value) - 1
           ) |>
           summarise(
-            mean_uplift = mean(monthly_uplift, na.rm = TRUE),
+            adjustment_factor = mean(monthly_uplift, na.rm = TRUE),
             .by = "months_waited_id"
-          )
+          ) |>
+          dplyr::as_tibble()
 
         # calculate the modelling parameters using the uplifted referrals
         reactive_values$params <- calibrate_parameters(
@@ -1267,9 +1268,10 @@ mod_02_planner_server <- function(id, r) {
               monthly_uplift = (.data$uplifted_incompletes / .data$value) - 1
             ) |>
             summarise(
-              mean_uplift = mean(.data$monthly_uplift, na.rm = TRUE),
+              adjustment_factor = mean(.data$monthly_uplift, na.rm = TRUE),
               .by = "months_waited_id"
-            )
+            ) |>
+            dplyr::as_tibble()
 
           # calculate the modelling parameters
           reactive_values$params <- calibrate_parameters(
@@ -1579,14 +1581,17 @@ mod_02_planner_server <- function(id, r) {
               unit = "months"
             )
             if (
-              !dplyr::between(
-                date_value,
-                left = reactive_values$forecast_start_date,
-                right = reactive_values$forecast_end_date
-              )
+              date_value %m-% months(1) < reactive_values$forecast_start_date
             ) {
+              # browser()
               showNotification(
                 "Selected date must be at least one month after the start of the planning horizon",
+                type = "error"
+              )
+              return()
+            } else if (date_value > reactive_values$forecast_end_date) {
+              showNotification(
+                "Selected date must be before (or equal to) the end of the planning horizon",
                 type = "error"
               )
               return()
@@ -2244,9 +2249,9 @@ mod_02_planner_server <- function(id, r) {
             ) |>
             mutate(
               unadjusted_incompletes = .data$adjusted_incompletes /
-                (1 + .data$mean_uplift)
+                (1 + .data$adjustment_factor)
             ) |>
-            select(!c("mean_uplift")) |>
+            select(!c("adjustment_factor")) |>
             # add referrals onto data
             dplyr::left_join(
               dplyr::tibble(
@@ -2500,19 +2505,29 @@ mod_02_planner_server <- function(id, r) {
           t1_capacity <- projections_capacity |>
             calculate_t1_value()
 
-          baseline_incompletes <- r$all_data |>
-            filter(
-              .data$type == "Incomplete",
-              .data$period == max(.data$period)
-            ) |>
-            select(
+          # t0 incompletes must be adjusted
+          # HERE
+          # baseline_incompletes <- r$all_data |>
+          #   filter(
+          #     .data$type == "Incomplete",
+          #     .data$period == max(.data$period)
+          #   ) |>
+          #   select(
+          #     "months_waited_id",
+          #     incompletes = "value"
+          #   )
+
+          baseline_incompletes <- reactive_values$incompletes_uplifted |>
+            dplyr::filter(.data$period_id == max(.data$period_id)) |>
+            dplyr::select(
               "months_waited_id",
-              incompletes = "value"
+              incompletes = "uplifted_incompletes"
             )
 
           # note, baseline incompletes is used again when creating the final
           # dataset at the end
-          t0_incompletes <- baseline_incompletes
+          # HERE
+          incompletes_t0_adjusted <- baseline_incompletes
 
           skewed_params <- reactive_values$params |>
             dplyr::cross_join(
@@ -2572,7 +2587,7 @@ mod_02_planner_server <- function(id, r) {
               start_capacity_1 = t1_capacity
             ) |>
             dplyr::cross_join(
-              t0_incompletes
+              incompletes_t0_adjusted
             ) |>
             tidyr::nest(
               incompletes_1 = c("months_waited_id", "incompletes")
@@ -2616,7 +2631,7 @@ mod_02_planner_server <- function(id, r) {
             # col names for the next time period
             start_capacity_tj_col <- paste("start_capacity", j, sep = "_")
             incompletes_tj_col <- paste("incompletes", j, sep = "_")
-
+            # browser()
             # calculate optimised uplift
             projection_calcs <- projection_calcs |>
               mutate(
@@ -2635,6 +2650,7 @@ mod_02_planner_server <- function(id, r) {
                       t_1_capacity = cap,
                       referrals_projections = interval_projected_referrals,
                       incomplete_pathways = incomp,
+                      incomplete_adjustment_factor = reactive_values$incompletes_uplifted_value,
                       renege_capacity_params = par,
                       target = paste0(
                         100 - i_target_data[["Target_percentage"]],
@@ -2832,6 +2848,17 @@ mod_02_planner_server <- function(id, r) {
             max_months_waited = 12,
             surplus_treatment_redistribution_method = input$surplus_capacity_option
           ) |>
+            # deflate the incompletes
+            dplyr::rename(adjusted_incompletes = "incompletes") |>
+            dplyr::left_join(
+              reactive_values$incompletes_uplifted_value,
+              by = "months_waited_id"
+            ) |>
+            mutate(
+              unadjusted_incompletes = .data$adjusted_incompletes /
+                (1 + .data$adjustment_factor)
+            ) |>
+            select(!c("adjustment_factor")) |>
             # add referrals onto data
             dplyr::left_join(
               dplyr::tibble(
@@ -2876,7 +2903,35 @@ mod_02_planner_server <- function(id, r) {
           r$chart_specification$referrals_percent_change <- input$referral_growth
           r$chart_specification$referrals_change_type <- input$referral_growth_type
           r$chart_specification$scenario_type <- "Estimate treatment capacity (from performance targets)"
-          r$chart_specification$capacity_percent_change <- "NEEDS TO BE REVIEWED FOR MULTIPLE CHANGES IN CAPACITY"
+          r$chart_specification$capacity_percent_change <- projection_calcs |>
+            dplyr::select(
+              starts_with("uplift")
+            ) |>
+            tidyr::pivot_longer(
+              cols = starts_with("uplift"),
+              names_to = "uplift_target",
+              values_to = "annual_uplift"
+            ) |>
+            dplyr::bind_cols(reactive_values$target_data) |>
+            mutate(
+              annual_percent_change = paste0(
+                format(100 * (.data$annual_uplift - 1), digits = 1),
+                "%"
+              ),
+              text = paste0(
+                .data$annual_percent_change,
+                " (to ",
+                format(
+                  .data$Target_date,
+                  "%b %Y"
+                ),
+                ")"
+              )
+            ) |>
+            dplyr::pull(.data$text) |>
+            (\(x) {
+              paste0("Averaged annually: ", paste(trimws(x), collapse = ", "))
+            })()
 
           r$chart_specification$capacity_change_type <- input$optimised_capacity_growth_type
           r$chart_specification$capacity_skew <- projection_calcs$skew_param[[
@@ -2887,12 +2942,12 @@ mod_02_planner_server <- function(id, r) {
           # calculate the convergence status
           r$chart_specification$optimise_status <- r$waiting_list |>
             summarise(
-              incompletes = sum(.data$incompletes),
+              unadjusted_incompletes = sum(.data$unadjusted_incompletes),
               .by = c("period", "period_type")
             ) |>
             local_deframe(
               name_col = "period_type",
-              value_col = "incompletes"
+              value_col = "unadjusted_incompletes"
             ) |>
             min_incompletes_in_projected_period()
 
