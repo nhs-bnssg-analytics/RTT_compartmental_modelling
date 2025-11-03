@@ -181,9 +181,9 @@ mod_02_planner_ui <- function(id) {
       layout_columns(
         col_widths = c(3, 2),
         span(HTML(paste(
-          "Percentage change in",
+          "Annual percentage change in",
           tooltip_label("referrals", "referral"),
-          "(between -20% and 200%):"
+          ":"
         ))),
         shinyWidgets::numericInputIcon(
           inputId = ns("referral_growth"),
@@ -277,7 +277,7 @@ mod_02_planner_ui <- function(id) {
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
-#'   join_by bind_rows setdiff inner_join as_tibble starts_with
+#'   join_by bind_rows setdiff inner_join as_tibble starts_with sym
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
 #' @importFrom bslib tooltip value_box value_box_theme
@@ -2002,9 +2002,9 @@ mod_02_planner_server <- function(id, r) {
             col_widths = c(3, 4),
             span(
               HTML(paste(
-                "Percentage change for",
+                "Annual percentage change for",
                 tooltip_label("treatment capacity"),
-                "(between -20% and 20%):"
+                ":"
               ))
             ),
             shinyWidgets::numericInputIcon(
@@ -2808,6 +2808,15 @@ mod_02_planner_server <- function(id, r) {
               )
             )
 
+          # if the waiting list at the final target time has converged,
+          # filter the projection calcs for only converged scenarios
+          if (any(projection_calcs[[status_col]] == "converged")) {
+            projection_calcs <- projection_calcs |>
+              dplyr::filter(
+                !!sym(status_col) == "converged"
+              )
+          }
+
           # filter for the optimal scenario according to the selection
 
           projection_calcs <- projection_calcs |>
@@ -2942,7 +2951,10 @@ mod_02_planner_server <- function(id, r) {
           # calculate the convergence status
           r$chart_specification$optimise_status <- r$waiting_list |>
             summarise(
-              unadjusted_incompletes = sum(.data$unadjusted_incompletes),
+              unadjusted_incompletes = round(
+                sum(.data$unadjusted_incompletes),
+                2
+              ),
               .by = c("period", "period_type")
             ) |>
             local_deframe(
