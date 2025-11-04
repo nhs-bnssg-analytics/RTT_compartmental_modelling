@@ -4,6 +4,7 @@
 #' @import shiny
 #' @importFrom bslib navset_tab nav_panel nav_spacer nav_menu nav_item
 #'   page_fillable page_navbar accordion accordion_panel layout_columns
+#'   navbar_options
 #' @importFrom utils packageVersion
 #' @noRd
 app_ui <- function(request) {
@@ -31,7 +32,7 @@ app_ui <- function(request) {
   email <- tags$a(
     shiny::icon("envelope"),
     "Contact us",
-    href = "mailto:sebastian.fox3@nhs.net?subject=RTT planning tool",
+    href = "mailto:bnssg.analytics@nhs.net?subject=RTT planning tool",
     target = "_blank"
   )
 
@@ -46,13 +47,15 @@ app_ui <- function(request) {
     page_navbar(
       title = HTML(
         paste0(
-        'RTT Planner ',
-        '<span style="font-size: 0.7rem;">(v',
-        packageVersion("RTTshiny"),
-        ') </span>'
+          'RTT Planner ',
+          '<span style="font-size: 0.7rem;">(v',
+          packageVersion("RTTshiny"),
+          ') </span>'
         )
       ),
-      bg = "#0072CE",
+      navbar_options = navbar_options(
+        bg = "#0072CE"
+      ),
       theme = bs_theme(bootswatch = theme_selection),
       nav_panel(
         title = "How to use the tool",
@@ -68,6 +71,11 @@ app_ui <- function(request) {
         title = "Results",
         value = "tab_results",
         mod_03_results_ui("03_results_1")
+      ),
+      nav_panel(
+        title = "Steady state",
+        value = "tab_batch",
+        mod_08_batch_ui("08_batch_1")
       ),
       nav_spacer(),
       nav_panel(
@@ -93,16 +101,38 @@ app_ui <- function(request) {
         nav_item(email),
         align = "right"
       ),
+      # Add custom CSS to create divider lines after Tab 1 and Tab 3 so the
+      # scenario planner is grouped with the results
+      header = tags$head(
+        tags$style(HTML(
+          "
+        .navbar-nav .nav-item:nth-child(1) .nav-link::after,
+        .navbar-nav .nav-item:nth-child(3) .nav-link::after {
+          content: '';
+          position: absolute;
+          right: -10px;
+          top: 50%;
+          transform: translateY(-50%);
+          height: 20px;
+          width: 1px;
+          background-color: #81BEE7;
+        }
+        .navbar-nav .nav-item {
+          position: relative;
+        }
+      "
+        ))
+      ),
       footer = card_footer(
         layout_columns(
           col_widths = c(12),
           p(
             HTML(
               paste0(
-              "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a> or send feedback to
-             <a href='mailto:sebastian.fox3@nhs.net?subject=RTT planning tool (version ",
-              packageVersion("RTTshiny"),
-              ")'>sebastian.fox3@nhs.net</a>"
+                "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a> or send feedback to
+             <a href='mailto:bnssg.analytics@nhs.net?subject=RTT planning tool (version ",
+                packageVersion("RTTshiny"),
+                ")'>bnssg.analytics@nhs.net</a>"
               )
             ),
             class = "text-center text-muted"

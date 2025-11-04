@@ -8,38 +8,29 @@
 #'
 #' @importFrom shiny NS h2 p div HTML
 #' @importFrom bslib page_fluid card card_header card_body layout_column_wrap
-mod_06_acknowledgements_ui <- function(id){
+mod_06_acknowledgements_ui <- function(id) {
   ns <- NS(id)
 
-  page_fillable(
-    title = "Timeline of RTT Planner",
-    h1("Timeline of RTT Planner"),
+  page_fluid(
+    h2("Timeline of RTT Planner", class = "text-left"),
     p("The story of how this tool unfolded", class = "text-left text-muted"),
+    uiOutput(ns("card_container_ui")), # Placeholder for the generated cards
     card(
       card_body(
-        uiOutput(ns("card_container_ui")), # Placeholder for the generated cards
-        card(
-          min_height = "400px",
-          card_header(
-            "Specific acknowledgements"
-          ),
-          card_body(
-            HTML(
-              paste(
-                "The RTT Planner was a collaboration driven by the SW Decision Support Network.",
-                "",
-                "Many thanks to the collaborators:",
-                "Sebastian Fox",
-                "Simon Wellesley-Miller",
-                "Richard Wood",
-                "Richard Blackwell",
-                "Claire Rudler",
-                "Nick Cooper",
-                "",
-                "And input from Cornwall, Devon, Dorset, Gloucestershire and BNSSG ICSs along with NHSE SW.",
-                sep = "<br>"
-              )
-            )
+        HTML(
+          paste0(
+            "The RTT Planner was a collaboration driven by the SW Decision Support Network.<br><br>",
+            "Many thanks to the collaborators:",
+            "<ul><li>Sebastian Fox (SW Decision Support Network)</li>",
+            "<li>Simon Wellesley-Miller (NHSE SW)</li>",
+            "<li>Richard Wood (BNSSG ICB)</li>",
+            "<li>Richard Blackwell (Health Innovation SW)</li>",
+            "<li>Claire Rudler (Devon ICB)</li>",
+            "<li>Nick Cooper (Gloucestershire Foundation Trust)</li>",
+            "<li>Euan Ives (NHSE SW)</li>",
+            "<li>Neil Walton (Durham University)</li>",
+            "<li>Lucy Morgan (the Midlands Strategy Unit)</li></ul>",
+            "And input from Cornwall, Devon, Dorset, Gloucestershire, Birmingham and Solihull and BNSSG ICSs, Nottingham University Hospitals NHS Trust and the Midlands Strategy Unit."
           )
         )
       )
@@ -50,54 +41,84 @@ mod_06_acknowledgements_ui <- function(id){
 #' 06_stories Server Functions
 #'
 #' @noRd
-mod_06_acknowledgements_server <- function(id){
-  moduleServer( id, function(input, output, session){
+mod_06_acknowledgements_server <- function(id) {
+  moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
     timeline_data <- data.frame(
-      id = 1:5,
+      id = 1:6,
       content = c(
         "Single-stock RTT research",
         "Multi-stock RTT collaboration",
         "ICS collaboration",
         "ICS and NHS England development",
-        "First release"
+        "First release",
+        "Second release"
       ),
-      date = c("October 2022", "Winter 2024", "November 2024", "December 2024 to March 2025", "May 2025"),
+      date = c(
+        "October 2022",
+        "Winter 2024",
+        "November 2024",
+        "December 2024 to March 2025",
+        "May 2025",
+        "Oct 2025"
+      ),
       description = c(
         paste0(
-          "First RTT model developed in NHS BNSSG ICB, and <a href='https://link.springer.com/article/10.1007/s10729-022-09615-2'>research paper published.</a>",
+          "First RTT model developed in NHS BNSSG ICB, and <a href='https://link.springer.com/article/10.1007/s10729-022-09615-2' target='_blank'>research paper published.</a>",
           "<br><br>",
           "Research continues along with more associated publications."
         ),
-        "NHS BNSSG ICB, in collaboration with Lancaster University develop multi-stock model using public NHS RTT statistics at England geography. At the time of writing, the associated research paper is in review (URL to be shared once published).",
+        paste0(
+          "NHS BNSSG ICB, in collaboration with Lancaster University, develop multi-stock model using public NHS RTT statistics at England geography. ",
+          "Full details of the model can be found <a href='https://rdcu.be/elVEq' target='_blank'>here</a>."
+        ),
         "NHS BNSSG ICB and NHS Devon ICB, who have also been working on stock-and-flow models, agree to develop common RTT model to reduce multiplication. This is facilitated by the South West Decision Support Network's 'At Scale Analytics' workstream.",
         "Collaboration expands to include NHS England South West team and NHS Gloucestershire ICB, and the development of the interactive online tool begins.",
-        "First release of the online tool occurs."
+        "First release of the online tool occurs.",
+        "A 'healthy waiting list' method developed and <a href='https://doi.org/10.1016/j.fhj.2025.100478' target = '_blank'>published</a>, and then included in the second release of the online tool."
       ),
-      colour = c("#330072", "#AE2573", "#8A1538", "#ED8B00", "#FFB81C")
-    )
+      colour = c(
+        "#330072",
+        "#AE2573",
+        "#8A1538",
+        "#C04A1F",
+        "#ED8B00",
+        "#FFB81C"
+      )
+    ) |>
+      mutate(
+        final = case_when(
+          id == max(id) ~ TRUE,
+          .default = FALSE
+        )
+      )
 
-    generate_cards <- function(id, content, date, description, colour) {
-      # cards_list <- list()
-
-      # for (i in 1:nrow(data)) {
+    generate_cards <- function(id, content, date, description, colour, final) {
       output <- card(
-        style = paste0("border-radius: 5px; border-left: 4px solid ", colour, ";"),
+        style = paste0(
+          "border-radius: 5px; border-left: 4px solid ",
+          colour,
+          ";"
+        ),
         card_header(content),
         card_body(
           div(
             class = "timeline-item mb-4",
-            style = #if(i < nrow(data)) {
-              "border-left: 2px solid #dee2e6; padding-left: 20px; position: relative;",
-            # } else {
-            #   "padding-left: 20px; position: relative;"
-            # },
+            style = if (isFALSE(final)) {
+              "border-left: 2px solid #dee2e6; padding-left: 20px; position: relative;"
+            } else {
+              "padding-left: 20px; position: relative;"
+            },
 
             # Date marker
             div(
               class = "timeline-marker",
-              style = paste0("position: absolute; left: -10px; background-color: ", colour, "; width: 20px; height: 20px; border-radius: 50%;"),
+              style = paste0(
+                "position: absolute; left: -10px; background-color: ",
+                colour,
+                "; width: 20px; height: 20px; border-radius: 50%;"
+              ),
               ""
             ),
 
@@ -120,7 +141,6 @@ mod_06_acknowledgements_server <- function(id){
         )
       )
 
-
       return(output)
     }
 
@@ -134,14 +154,8 @@ mod_06_acknowledgements_server <- function(id){
       layout_column_wrap(
         width = 1 / nrow(timeline_data),
         gap = "10px",
-        card_list[[1]],
-        card_list[[2]],
-        card_list[[3]],
-        card_list[[4]],
-        card_list[[5]]
-        # card_list
+        !!!card_list
       )
-
     })
   })
 }
