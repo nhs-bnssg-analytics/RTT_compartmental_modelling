@@ -9,7 +9,7 @@ Authors@R: c(
   )
 Description: Ingests public NHS Referral to Treatment data and models
     historic relationships, allowing users to forecast future scenarios.
-License: MIT + file LICENSE
+License: GPL (>= 3)
 Depends: 
     R (>= 4.1)
 Imports: 

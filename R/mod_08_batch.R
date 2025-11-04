@@ -1027,14 +1027,14 @@ mod_08_batch_server <- function(id) {
                   "This is adjusted for unreported referrals and patients that join part way through their RTT pathway with no clock-start."
                 )
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             capacity_t1 = colDef(
               header = name_with_tooltip(
                 "Treatments",
                 definition = "The calculated current treatment capacity based on the previous 12 months."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             reneges_t0 = colDef(
               header = name_with_tooltip(
@@ -1044,7 +1044,7 @@ mod_08_batch_server <- function(id) {
                   "This is accounts for patients that join part way through their RTT pathway with no clock-start."
                 )
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             load = colDef(
               header = name_with_tooltip(
@@ -1085,7 +1085,7 @@ mod_08_batch_server <- function(id) {
                 "Waiting list size",
                 definition = "The number of people on the waiting list for the last observed period."
               ),
-              format = colFormat(digits = 0)
+              format = colFormat(digits = 0, separators = TRUE)
             ),
             pressure = colDef(
               header = name_with_tooltip(
@@ -1127,14 +1127,14 @@ mod_08_batch_server <- function(id) {
                   "This is adjusted for unreported referrals and patients that join part way through their RTT pathway with no clock-start."
                 )
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             capacity_counterf = colDef(
               header = name_with_tooltip(
                 "Treatments",
                 definition = "The calculated number of monthly treatments under the 'do nothing' scenario at the target date."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             reneges_counterf = colDef(
               header = name_with_tooltip(
@@ -1144,14 +1144,14 @@ mod_08_batch_server <- function(id) {
                   "This is accounts for patients that join part way through their RTT pathway with no clock-start."
                 )
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             incompletes_counterf = colDef(
               header = name_with_tooltip(
                 "Waiting list size",
                 definition = "The number of people on the waiting list under the 'do nothing' scenario at the target date."
               ),
-              format = colFormat(digits = 0)
+              format = colFormat(digits = 0, separators = TRUE)
             ),
             perf_counterf = colDef(
               header = name_with_tooltip(
@@ -1190,28 +1190,28 @@ mod_08_batch_server <- function(id) {
                 "Demand",
                 definition = "The demand at the the target date based on the user inputs."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             capacity_ss = colDef(
               header = name_with_tooltip(
                 "Treatments",
                 definition = "The calculated number of monthly treatments to achieve the steady-state solution based on the selected method."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             reneges_ss = colDef(
               header = name_with_tooltip(
                 "Reneges",
                 definition = "The calculated number of monthly reneges in the steady-state solution based on the selected method."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             incompletes_ss = colDef(
               header = name_with_tooltip(
                 "Waiting list size",
                 definition = "The number of people on the waiting list in the steady-state solution based on the selected method."
               ),
-              format = colFormat(digits = 0),
+              format = colFormat(digits = 0, separators = TRUE),
               class = "divider-right"
             ),
             current_vs_ss_wl_ratio = colDef(
@@ -1250,7 +1250,7 @@ mod_08_batch_server <- function(id) {
                 "Additional monthly removals required",
                 definition = "The number of additional monthly removals (above current treatments and reneges) to achieve the target waiting list size in the number of months specified by the user."
               ),
-              format = colFormat(digits = 2),
+              format = colFormat(digits = 1),
               style = function(value) {
                 list(
                   backgroundColor = cell_colour(

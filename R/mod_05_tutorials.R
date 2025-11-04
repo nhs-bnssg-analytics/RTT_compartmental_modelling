@@ -7,7 +7,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
-mod_05_tutorials_ui <- function(id){
+mod_05_tutorials_ui <- function(id) {
   ns <- NS(id)
   page_fillable(
     card(
@@ -30,7 +30,6 @@ mod_05_tutorials_ui <- function(id){
               allowfullscreen = TRUE,
               title = "Modelling concepts"
             )
-
           ),
           card(
             height = "400px",
@@ -46,7 +45,21 @@ mod_05_tutorials_ui <- function(id){
               allowfullscreen = TRUE,
               title = "Navigating the tool"
             )
+          ),
+          card(
+            height = "400px",
+            width = "200px",
+            fill = TRUE,
+            card_header("Steady state"),
 
+            tags$iframe(
+              src = "https://www.youtube.com/embed/39syGvz9CIY?si=JHGxR2GVBc93DFBz",
+              width = "100%",
+              height = "100%",
+              frameborder = "0",
+              allowfullscreen = TRUE,
+              title = "Steady state"
+            )
           )
         ),
         h5("Data inputs"),
@@ -67,7 +80,6 @@ mod_05_tutorials_ui <- function(id){
               allowfullscreen = TRUE,
               title = "Downloading data and calibrating the model"
             )
-
           ),
           card(
             height = "400px",
@@ -83,7 +95,21 @@ mod_05_tutorials_ui <- function(id){
               allowfullscreen = TRUE,
               title = "Upload your own data"
             )
+          ),
+          card(
+            height = "400px",
+            width = "200px",
+            fill = TRUE,
+            card_header("Model uncertainty"),
 
+            tags$iframe(
+              src = "https://www.youtube.com/embed/6-xCCP4bRr4?si=MglNr2cxqAEASsYn",
+              width = "100%",
+              height = "100%",
+              frameborder = "0",
+              allowfullscreen = TRUE,
+              title = "Model uncertainty"
+            )
           )
         ),
         h5("Configuring the projections"),
@@ -104,7 +130,6 @@ mod_05_tutorials_ui <- function(id){
               allowfullscreen = TRUE,
               title = "Predicting performance from treatment capacity"
             )
-
           ),
           card(
             height = "400px",
@@ -120,7 +145,6 @@ mod_05_tutorials_ui <- function(id){
               allowfullscreen = TRUE,
               title = "Optimising treatment capacity from performance"
             )
-
           ),
           card(
             height = "400px",
@@ -136,7 +160,21 @@ mod_05_tutorials_ui <- function(id){
               allowfullscreen = TRUE,
               title = "Skew factor"
             )
+          ),
+          card(
+            height = "400px",
+            width = "200px",
+            fill = TRUE,
+            card_header("Short term measures"),
 
+            tags$iframe(
+              src = "https://www.youtube.com/embed/rENSXbJDOt8?si=EpZBo5tckuThkVik",
+              width = "100%",
+              height = "100%",
+              frameborder = "0",
+              allowfullscreen = TRUE,
+              title = "Short term measures"
+            )
           )
         ),
         h5("Results"),
@@ -157,22 +195,34 @@ mod_05_tutorials_ui <- function(id){
               allowfullscreen = TRUE,
               title = "Results and download"
             )
+          ),
+          card(
+            height = "400px",
+            width = "200px",
+            fill = TRUE,
+            card_header("Shortfall chart"),
 
+            tags$iframe(
+              src = "https://www.youtube.com/embed/d96IsheJsQ4?si=n6eHyZWYl-HBBUWJ",
+              width = "100%",
+              height = "100%",
+              frameborder = "0",
+              allowfullscreen = TRUE,
+              title = "Shortfall chart"
+            )
           )
         )
       )
     )
-
   )
 }
 
 #' 05_how_tos Server Functions
 #'
 #' @noRd
-mod_05_tutorials_server <- function(id){
-  moduleServer( id, function(input, output, session){
+mod_05_tutorials_server <- function(id) {
+  moduleServer(id, function(input, output, session) {
     ns <- session$ns
-
   })
 }
 
