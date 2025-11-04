@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">RTTshiny</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,21 +32,49 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.0.2.9000" id="rttshiny-1029000">RTTshiny 1.0.2.9000<a class="anchor" aria-label="anchor" href="#rttshiny-1029000"></a></h2>
+<div class="section level3">
+<h3 id="throughout-tool-1-0-2-9000">Throughout tool<a class="anchor" aria-label="anchor" href="#throughout-tool-1-0-2-9000"></a></h3>
+<ul><li>Fixes bug for data import causing low counts for completes pathways.</li>
+<li>Definitions of words are displayed on hover.</li>
+<li>The list of collaborators has increased on the acknowledgements tab.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="scenario-planner-1-0-2-9000">Scenario planner<a class="anchor" aria-label="anchor" href="#scenario-planner-1-0-2-9000"></a></h3>
+<ul><li>Allows for filtering providers by NHS and non-NHS providers.</li>
+<li>Includes information about model accuracy once data has been imported/downloaded.</li>
+<li>When data are uploaded, the user is now required to enter a data description, which is used as the chart title.</li>
+<li>Nov 2024 performance is displayed when estimating capacity to meet performance.</li>
+<li>How to allocate surplus treatment capacity is now a user option in the advanced skew section.</li>
+<li>Provides warning when “negative reneging” occurring in the calibration period.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="results-1-0-2-9000">Results<a class="anchor" aria-label="anchor" href="#results-1-0-2-9000"></a></h3>
+<ul><li>Following “calculating performance from capacity inputs”, the user can now edit the input data for treatment capacity and referrals for the projection period to understand the impact of short-term measures on performance.</li>
+<li>The distribution charts allow for “free” scales as well as being able to flip the view to see distributions by different time periods.</li>
+<li>A new “Performance shortfall” chart is displayed when projecting performance from capacity inputs. This displays the number of additional ‘long-waiter’ clock stops that would be required to achieve a particular performance target.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="steady-state-1-0-2-9000">Steady state<a class="anchor" aria-label="anchor" href="#steady-state-1-0-2-9000"></a></h3>
+<ul><li>This applies a new methodology to allow users to model multiple trusts and specialties together. The modelling provides a view of what a “healthy” waiting list looks like when it is in steady state (e.g., clock starts equals clock stops) and achieving a specific performance and renege rate target.</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.0.2" id="rttshiny-102">RTTshiny 1.0.2<a class="anchor" aria-label="anchor" href="#rttshiny-102"></a></h2>
-<ul><li>Fixes minor bug when some data are downloaded, which occurred when referrals exceeded treatments in the first compartment in the calibration period</li>
-<li>Fixes bug where optimisation can’t occur because it is attempting to use negative treatment capacities</li>
+<ul><li>Fixes minor bug when some data are downloaded, which occurred when referrals exceeded treatments in the first compartment in the calibration period.</li>
+<li>Fixes bug where optimisation can’t occur because it is attempting to use negative treatment capacities.</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.0.0" id="rttshiny-100">RTTshiny 1.0.0<a class="anchor" aria-label="anchor" href="#rttshiny-100"></a></h2>
-<ul><li>First release of the tool</li>
+<ul><li>First release of the tool.</li>
 </ul><div class="section level3">
 <h3 id="enhancements-1-0-0">Enhancements<a class="anchor" aria-label="anchor" href="#enhancements-1-0-0"></a></h3>
-<ul><li>includes status of optimisation process</li>
-<li>option to put multiple performance targets</li>
-<li>report download feature included</li>
-<li>makes clickable charts, returning information about where the user has clicked</li>
-<li>includes history of the project and acknowledgements</li>
-<li>landing page includes tool information, how to use the tool, and key future developments</li>
+<ul><li>includes status of optimisation process.</li>
+<li>option to put multiple performance targets.</li>
+<li>report download feature included.</li>
+<li>makes clickable charts, returning information about where the user has clicked.</li>
+<li>includes history of the project and acknowledgements.</li>
+<li>landing page includes tool information, how to use the tool, and key future developments.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="bug-fixes-1-0-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-1-0-0"></a></h3>
@@ -55,23 +83,23 @@
 </div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.2" id="rttshiny-002">RTTshiny 0.0.2<a class="anchor" aria-label="anchor" href="#rttshiny-002"></a></h2>
-<ul><li>Minimum viable product created and shared for testing</li>
-<li>Optimisation capability</li>
-<li>Future scenario capability</li>
-<li>progress bars for downloading and optimising</li>
-<li>adds dropdowns to allow for more refined area selections</li>
-<li>advanced options for skew parameter</li>
+<ul><li>Minimum viable product created and shared for testing.</li>
+<li>Optimisation capability.</li>
+<li>Future scenario capability.</li>
+<li>progress bars for downloading and optimising.</li>
+<li>adds dropdowns to allow for more refined area selections.</li>
+<li>advanced options for skew parameter.</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.1" id="rttshiny-001">RTTshiny 0.0.1<a class="anchor" aria-label="anchor" href="#rttshiny-001"></a></h2>
-<ul><li>Minimum interface created</li>
+<ul><li>Minimum interface created.</li>
 </ul></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Seb Fox, Simon Wellesley-Miller.</p>
+  <p>Developed by Seb Fox, Simon Wellesley-Miller, Nick Cooper, Euan Ives.</p>
 </div>
 
 <div class="pkgdown-footer-right">
