@@ -60,8 +60,7 @@ app_ui <- function(request) {
       nav_panel(
         title = "How to use the tool",
         value = "tab_intro",
-        mod_01_introduction_ui("01_introduction_1"),
-        id = "tab-right"
+        mod_01_introduction_ui("01_introduction_1")
       ),
       nav_panel(
         title = "Scenario planner",
@@ -76,8 +75,7 @@ app_ui <- function(request) {
       nav_panel(
         title = "Steady state",
         value = "tab_batch",
-        mod_08_batch_ui("08_batch_1"),
-        id = "tab-left"
+        mod_08_batch_ui("08_batch_1")
       ),
       nav_spacer(),
       nav_panel(
