@@ -134,15 +134,25 @@ calculate_t1_value <- function(monthly_rtt, p_val_threshold = 0.01) {
   return(first_val)
 }
 
-#' @param original_wl_data tibble; same structure as the r$waiting_list object ("period", "period_id", "")
-#' @param new_referrals_capacity tibble; fields for "period", "calculated_treatments", and "adjusted_referrals" for the projected period
+
+#' @param original_wl_data tibble; same structure as the r$waiting_list object,
+#'   containing the fields: "period", "period_id", "months_waited_id",
+#'   "calculate_treatments", "reneges", "unadjusted_incompletes", "adjusted_incompletes",
+#'   "unadjusted_referrals", "adjusted_referrals", "capacity_skew", "period_type"
+#' @param new_referrals_capacity tibble; fields for "period", "calculated_treatments",
+#'   and "adjusted_referrals" for the projected period
 #' @param original_params list; the parameters used to calculate the original
 #'   waiting list
+#' @param surplus_capacity_option string; one of "none", "evenly" or
+#'   "prioritise_long_waiters"; should cases where the counts of reneges and treatments
+#'   exceed the counts of people waiting be redistributed, and if so, which method
+#'   should be used
 #' @noRd
 calculate_customised_projections <- function(
   original_wl_data,
   new_referrals_capacity,
-  original_params
+  original_params,
+  surplus_capacity_option
 ) {
   projections_capacity <- new_referrals_capacity |>
     dplyr::pull(.data$calculated_treatments)
@@ -190,7 +200,8 @@ calculate_customised_projections <- function(
     referrals_projections = projections_referrals,
     incomplete_pathways = t0_incompletes,
     renege_capacity_params = original_params,
-    max_months_waited = 12
+    max_months_waited = 12,
+    surplus_treatment_redistribution_method = surplus_capacity_option
   ) |>
     # add referrals onto data
     dplyr::left_join(

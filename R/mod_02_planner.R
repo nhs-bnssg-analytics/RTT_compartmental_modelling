@@ -181,9 +181,9 @@ mod_02_planner_ui <- function(id) {
       layout_columns(
         col_widths = c(3, 2),
         span(HTML(paste(
-          "Percentage change in",
+          "Annual percentage change in",
           tooltip_label("referrals", "referral"),
-          "(between -20% and 200%):"
+          ":"
         ))),
         shinyWidgets::numericInputIcon(
           inputId = ns("referral_growth"),
@@ -213,9 +213,7 @@ mod_02_planner_ui <- function(id) {
           inputId = ns("referral_growth_type"),
           label = NULL,
           choices = c("Uniform", "Linear"),
-          selected = "Linear" #,
-          # choiceNames = c("Uplift referrals uniformly", "Uplift referrals to change by a percentage (linearly) by the end of the time period"),
-          # choiceValues = c("uniform", "linear")
+          selected = "Linear"
         ),
         fill = FALSE
       )
@@ -279,7 +277,7 @@ mod_02_planner_ui <- function(id) {
 #'   apply_params_to_projections apply_parameter_skew optimise_capacity
 #' @importFrom lubridate `%m+%` `%m-%` floor_date ceiling_date interval
 #' @importFrom dplyr mutate summarise arrange row_number cross_join left_join
-#'   join_by bind_rows setdiff inner_join
+#'   join_by bind_rows setdiff inner_join as_tibble starts_with sym
 #' @importFrom tidyr complete unnest
 #' @importFrom purrr map2 map
 #' @importFrom bslib tooltip value_box value_box_theme
@@ -974,17 +972,43 @@ mod_02_planner_server <- function(id, r) {
           spec = input$specialty_codes
         )
 
-        # download and aggregate data
-        template_data <- get_rtt_data_with_progress(
-          date_start = min_download_date,
-          date_end = max_download_date,
-          trust_parent_codes = selections_labels$trust_parents$selected_code,
-          trust_codes = selections_labels$trusts$selected_code,
-          commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
-          commissioner_org_codes = selections_labels$commissioners$selected_code,
-          specialty_codes = selections_labels$specialties$selected_code,
-          progress = progress
-        ) |>
+        if (
+          all(
+            is.null(selections_labels$trust_parents$selected_code),
+            is.null(selections_labels$commissioner_parents$selected_code),
+            is.null(selections_labels$commissioners$selected_code)
+          )
+        ) {
+          template_data <- readRDS(
+            system.file(
+              "extdata",
+              "rtt_24months.rds",
+              package = "RTTshiny"
+            )
+          ) |>
+            dplyr::filter(
+              .data$period >= min_download_date,
+              .data$trust %in% selections_labels$trusts$selected_name,
+              .data$specialty %in% selections_labels$specialties$selected_name
+            ) |>
+            mutate(
+              months_waited = convert_month_to_factor(.data$months_waited_id)
+            )
+        } else {
+          template_data <- get_rtt_data_with_progress(
+            date_start = min_download_date,
+            date_end = max_download_date,
+            trust_parent_codes = selections_labels$trust_parents$selected_code,
+            trust_codes = selections_labels$trusts$selected_code,
+            commissioner_parent_codes = selections_labels$commissioner_parents$selected_code,
+            commissioner_org_codes = selections_labels$commissioners$selected_code,
+            specialty_codes = selections_labels$specialties$selected_code,
+            progress = progress
+          )
+        }
+
+        # aggregate data
+        template_data <- template_data |>
           mutate(
             months_waited_id = NHSRtt::convert_months_waited_to_id(
               .data$months_waited,
@@ -1462,14 +1486,16 @@ mod_02_planner_server <- function(id, r) {
               unit = "months"
             )
             if (
-              !dplyr::between(
-                date_value,
-                left = reactive_values$forecast_start_date,
-                right = reactive_values$forecast_end_date
-              )
+              date_value %m-% months(1) < reactive_values$forecast_start_date
             ) {
               showNotification(
                 "Selected date must be at least one month after the start of the planning horizon",
+                type = "error"
+              )
+              return()
+            } else if (date_value > reactive_values$forecast_end_date) {
+              showNotification(
+                "Selected date must be before (or equal to) the end of the planning horizon",
                 type = "error"
               )
               return()
@@ -1880,9 +1906,9 @@ mod_02_planner_server <- function(id, r) {
             col_widths = c(3, 4),
             span(
               HTML(paste(
-                "Percentage change for",
+                "Annual percentage change for",
                 tooltip_label("treatment capacity"),
-                "(between -20% and 20%):"
+                ":"
               ))
             ),
             shinyWidgets::numericInputIcon(
@@ -2217,6 +2243,7 @@ mod_02_planner_server <- function(id, r) {
         reactive_values$data_downloaded <- FALSE
         reactive_values$performance_calculated <- FALSE
         reactive_values$optimise_status_card_visible <- FALSE
+        r$surplus_capacity_option <- input$surplus_capacity_option
       }
     )
 
@@ -2666,6 +2693,15 @@ mod_02_planner_server <- function(id, r) {
               )
             )
 
+          # if the waiting list at the final target time has converged,
+          # filter the projection calcs for only converged scenarios
+          if (any(projection_calcs[[status_col]] == "converged")) {
+            projection_calcs <- projection_calcs |>
+              dplyr::filter(
+                !!sym(status_col) == "converged"
+              )
+          }
+
           # filter for the optimal scenario according to the selection
 
           projection_calcs <- projection_calcs |>
@@ -2750,7 +2786,35 @@ mod_02_planner_server <- function(id, r) {
           r$chart_specification$referrals_percent_change <- input$referral_growth
           r$chart_specification$referrals_change_type <- input$referral_growth_type
           r$chart_specification$scenario_type <- "Estimate treatment capacity (from performance targets)"
-          r$chart_specification$capacity_percent_change <- "NEEDS TO BE REVIEWED FOR MULTIPLE CHANGES IN CAPACITY"
+          r$chart_specification$capacity_percent_change <- projection_calcs |>
+            dplyr::select(
+              dplyr::starts_with("uplift")
+            ) |>
+            tidyr::pivot_longer(
+              cols = starts_with("uplift"),
+              names_to = "uplift_target",
+              values_to = "annual_uplift"
+            ) |>
+            dplyr::bind_cols(reactive_values$target_data) |>
+            mutate(
+              annual_percent_change = paste0(
+                format(100 * (.data$annual_uplift - 1), digits = 1),
+                "%"
+              ),
+              text = paste0(
+                .data$annual_percent_change,
+                " (to ",
+                format(
+                  .data$Target_date,
+                  "%b %Y"
+                ),
+                ")"
+              )
+            ) |>
+            dplyr::pull(.data$text) |>
+            (\(x) {
+              paste0("Averaged annually: ", paste(trimws(x), collapse = ", "))
+            })()
 
           r$chart_specification$capacity_change_type <- input$optimised_capacity_growth_type
           r$chart_specification$capacity_skew <- projection_calcs$skew_param[[

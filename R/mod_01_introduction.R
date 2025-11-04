@@ -47,7 +47,7 @@ mod_01_introduction_ui <- function(id) {
               tooltip_label("performance"),
               "metrics based on a model calibrated
             on historical",
-              tooltip_label("referral"),
+              tooltip_label("referral,", "referral"),
               ",",
               tooltip_label("treatment", "treatment capacity"),
               "and",

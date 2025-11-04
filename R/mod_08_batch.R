@@ -235,7 +235,7 @@ mod_08_batch_ui <- function(id) {
 
   # Right Pane
   scenario_card <- card(
-    card_header("Batch Output View"),
+    card_header("Steady state results"),
     card_body(
       bslib::accordion(
         open = FALSE,
@@ -251,18 +251,18 @@ mod_08_batch_ui <- function(id) {
                   "and departures are both",
                   tooltip_label("treatment capacity"),
                   "and",
-                  tooltip_label("reneges", "renege"),
-                  ".</li>"
+                  tooltip_label("reneges.", "renege"),
+                  "</li>"
                 ),
                 paste(
                   "<li>The calculated waiting list is achieving the desired",
-                  tooltip_label("performance target", "target proportion"),
-                  ".</li>"
+                  tooltip_label("performance target.", "target proportion"),
+                  "</li>"
                 ),
                 paste(
                   "<li>The proportion of",
                   tooltip_label("reneges", "renege"),
-                  "that are departures is based on recent historic proportions</li></ol>"
+                  "that are departures is based on recent historic proportions.</li></ol>"
                 )
               ),
               "The steps to identify the resulting solutions are as follows:",
@@ -273,12 +273,12 @@ mod_08_batch_ui <- function(id) {
                   tooltip_label("renege"),
                   " who are on the waiting list, by how long they have been waiting.</li>",
                   "<li>the average/median/latest proportion of departures that were ",
-                  tooltip_label("reneges", "renege"),
+                  tooltip_label("reneges.", "renege"),
                   "</li>",
                   paste(
                     "<li>the observed",
                     tooltip_label("treatment profile"),
-                    "using the method specified by the user</li></ul>"
+                    "using the method specified by the user.</li></ul>"
                   )
                 ),
                 "</li>"
@@ -797,6 +797,10 @@ mod_08_batch_server <- function(id) {
                       )
                     ),
                     .before = "referrals_ss"
+                  ) |>
+                  dplyr::relocate(
+                    "referrals_scenario",
+                    .after = "specialty"
                   )
               }
             )
@@ -882,7 +886,6 @@ mod_08_batch_server <- function(id) {
         )
 
         counterf_cols <- c(
-          "referrals_scenario",
           "referrals_counterf",
           "capacity_counterf",
           "reneges_counterf",
@@ -911,13 +914,20 @@ mod_08_batch_server <- function(id) {
           ),
           columns = list(
             trust = colDef(
-              header = name_with_tooltip("Trust", definition = "Trust name"),
+              header = name_with_tooltip("Trust", definition = "Trust name."),
               sticky = "left"
             ),
             specialty = colDef(
               header = name_with_tooltip(
                 "Specialty",
-                definition = "Specialty name"
+                definition = "Specialty name."
+              ),
+              sticky = "left"
+            ),
+            referrals_scenario = colDef(
+              header = name_with_tooltip(
+                "Demand scenario",
+                definition = "The demand scenario based on the user inputs."
               ),
               class = "divider-right",
               sticky = "left"
@@ -927,21 +937,21 @@ mod_08_batch_server <- function(id) {
                 "Demand",
                 definition = "The calculated current demand based on the previous 12 months"
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             capacity_t1 = colDef(
               header = name_with_tooltip(
                 "Treatments",
                 definition = "The calculated current treatment capacity based on the previous 12 months"
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             reneges_t0 = colDef(
               header = name_with_tooltip(
                 "Reneges",
                 definition = "Calculated total reneges for final month of 12 month calibration period"
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             load = colDef(
               header = name_with_tooltip(
@@ -977,14 +987,14 @@ mod_08_batch_server <- function(id) {
             incompletes_t0 = colDef(
               header = name_with_tooltip(
                 "Waiting list size",
-                definition = "The number of people on the waiting list for the last observed period"
+                definition = "The number of people on the waiting list for the last observed period."
               ),
-              format = colFormat(digits = 0)
+              format = colFormat(digits = 0, separators = TRUE)
             ),
             pressure = colDef(
               header = name_with_tooltip(
                 "Pressure",
-                definition = "The current target percentile waiting time divided by the expected target percentilile wait time"
+                definition = "The current target percentile waiting time divided by the expected target percentilile wait time."
               ),
               format = colFormat(digits = 2),
               class = "divider-right",
@@ -1013,39 +1023,33 @@ mod_08_batch_server <- function(id) {
                 )
               }
             ),
-            referrals_scenario = colDef(
-              header = name_with_tooltip(
-                "Demand scenario",
-                definition = "The demand scenario based on the user inputs"
-              )
-            ),
             referrals_counterf = colDef(
               header = name_with_tooltip(
                 "Demand",
-                definition = "The demand at the the target date based on the user inputs"
+                definition = "The demand at the the target date based on the user inputs."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             capacity_counterf = colDef(
               header = name_with_tooltip(
                 "Treatments",
-                definition = "The calculated number of monthly treatments under the 'do nothing' scenario at the target date"
+                definition = "The calculated number of monthly treatments under the 'do nothing' scenario at the target date."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             reneges_counterf = colDef(
               header = name_with_tooltip(
                 "Reneges",
-                definition = "The calculated number of monthly reneges under the 'do nothing' scenario at the target date"
+                definition = "The calculated number of monthly reneges under the 'do nothing' scenario at the target date."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             incompletes_counterf = colDef(
               header = name_with_tooltip(
                 "Waiting list size",
-                definition = "The number of people on the waiting list under the 'do nothing' scenario at the target date"
+                definition = "The number of people on the waiting list under the 'do nothing' scenario at the target date."
               ),
-              format = colFormat(digits = 0)
+              format = colFormat(digits = 0, separators = TRUE)
             ),
             perf_counterf = colDef(
               header = name_with_tooltip(
@@ -1082,36 +1086,36 @@ mod_08_batch_server <- function(id) {
             referrals_ss = colDef(
               header = name_with_tooltip(
                 "Demand",
-                definition = "The demand at the the target date based on the user inputs"
+                definition = "The demand at the the target date based on the user inputs."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             capacity_ss = colDef(
               header = name_with_tooltip(
                 "Treatments",
-                definition = "The calculated number of monthly treatments to achieve the steady-state solution based on the selected method"
+                definition = "The calculated number of monthly treatments to achieve the steady-state solution based on the selected method."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             reneges_ss = colDef(
               header = name_with_tooltip(
                 "Reneges",
-                definition = "The calculated number of monthly reneges in the steady-state solution based on the selected method"
+                definition = "The calculated number of monthly reneges in the steady-state solution based on the selected method."
               ),
-              format = colFormat(digits = 2)
+              format = colFormat(digits = 1, separators = TRUE)
             ),
             incompletes_ss = colDef(
               header = name_with_tooltip(
                 "Waiting list size",
-                definition = "The number of people on the waiting list in the steady-state solution based on the selected method"
+                definition = "The number of people on the waiting list in the steady-state solution based on the selected method."
               ),
-              format = colFormat(digits = 0),
+              format = colFormat(digits = 0, separators = TRUE),
               class = "divider-right"
             ),
             current_vs_ss_wl_ratio = colDef(
               header = name_with_tooltip(
                 "Current / steady state waiting list size",
-                definition = "The ratio of the current waiting list size compared with the calculated steady-state waiting list size"
+                definition = "The ratio of the current waiting list size compared with the calculated steady-state waiting list size."
               ),
               format = colFormat(digits = 2),
               style = function(value) {
@@ -1144,7 +1148,7 @@ mod_08_batch_server <- function(id) {
                 "Additional monthly removals required",
                 definition = "The number of additional monthly removals (above current treatments and reneges) to achieve the target waiting list size in the number of months specified by the user"
               ),
-              format = colFormat(digits = 2),
+              format = colFormat(digits = 1),
               style = function(value) {
                 list(
                   backgroundColor = cell_colour(
@@ -1204,13 +1208,13 @@ mod_08_batch_server <- function(id) {
               c(
                 "Trust" = "trust",
                 "Specialty" = "specialty",
+                "Demand scenario" = "referrals_scenario",
                 "Current demand" = "referrals_t1",
                 "Current treatment capacity" = "capacity_t1",
                 "Current reneges" = "reneges_t0",
                 "Current load" = "load",
                 "Current waiting list size" = "incompletes_t0",
                 "Current pressure" = "pressure",
-                "Demand scenario" = "referrals_scenario",
                 "Do nothing demand" = "referrals_counterf",
                 "Do nothing treatment capacity" = "capacity_counterf",
                 "Do nothing reneges" = "reneges_counterf",

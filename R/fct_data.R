@@ -450,7 +450,8 @@ update_sample_data <- function(final_month) {
   return(final_sample_data)
 }
 
-#' function that splits the calibration data into two halves and returns a dataset that models the second half from the first half
+#' function that splits the calibration data into two halves and returns
+#' a dataset that models the second half from the first half
 #' @param data the processed calibration data
 #' @param referrals_uplift logical; whether the referrals should be uplifted if they appear under-reported
 #' @return a tibble with the processed data
