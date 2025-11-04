@@ -113,9 +113,9 @@ create_modelling_data <- function(
     referrals <- referrals |>
       left_join(
         referrals_uplift,
-        by = join_by(
-          trust,
-          specialty
+        by = c(
+          "trust",
+          "specialty"
         )
       ) |>
       dplyr::mutate(

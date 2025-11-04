@@ -15,6 +15,7 @@ append_current_status <- function(
   percentile,
   percentile_month
 ) {
+  # make sure all periods are represented for all specialty/trusts
   data <- data |>
     tidyr::complete(
       tidyr::nesting(trust, specialty),
@@ -23,22 +24,57 @@ append_current_status <- function(
       fill = list(value = 0)
     )
 
-  # calculate referrals uplift
-  referrals_uplift <- calibrate_parameters(
+  nested_data <- data |>
+    tidyr::nest(
+      original_data = c(
+        "type",
+        "months_waited_id",
+        "period",
+        "period_id",
+        "value"
+      )
+    )
+
+  # calc all data broken down and uplifted
+  full_data_uplifted <- calibrate_parameters(
     data,
     max_months_waited = max_months_waited,
     redistribute_m0_reneges = FALSE,
     referrals_uplift = NULL,
-    allow_negative_params = TRUE
+    allow_negative_params = FALSE,
+    full_breakdown = TRUE
   ) |>
     tidyr::unnest("params") |>
-    dplyr::filter(
-      .data$months_waited_id == 0
+    dplyr::select(
+      "trust",
+      "specialty",
+      "period_id",
+      "months_waited_id",
+      "node_inflow",
+      "waiting_same_node",
+      "reneges"
+    )
+
+  # calculate referrals uplift
+  referrals_uplift <- full_data_uplifted |>
+    dplyr::select(!c("reneges")) |>
+    tidyr::nest(
+      uplifted_data = c(
+        "period_id",
+        "months_waited_id",
+        "node_inflow",
+        "waiting_same_node"
+      )
     ) |>
-    dplyr::mutate(
-      referrals_uplift = case_when(
-        .data$renege_param < 0 ~ abs(.data$renege_param),
-        .default = 0
+    left_join(
+      nested_data,
+      by = c("trust", "specialty")
+    ) |>
+    mutate(
+      referrals_uplift = purrr::map2_dbl(
+        .x = .data$uplifted_data,
+        .y = .data$original_data,
+        uplifted_val_referrals
       )
     ) |>
     select("trust", "specialty", "referrals_uplift")
@@ -54,10 +90,7 @@ append_current_status <- function(
     # published data
     left_join(
       referrals_uplift,
-      by = join_by(
-        trust,
-        specialty
-      )
+      by = c("trust", "specialty")
     ) |>
     mutate(
       value = .data$value + (.data$value * .data$referrals_uplift)
@@ -99,34 +132,18 @@ append_current_status <- function(
     ) |>
     select(!c("cal_period"))
 
-  reneges_at_t0 <- calibrate_parameters(
-    data,
-    max_months_waited = max_months_waited,
-    redistribute_m0_reneges = FALSE,
-    referrals_uplift = referrals_uplift,
-    allow_negative_params = FALSE,
-    full_breakdown = TRUE
-  ) |>
-    mutate(
-      reneges_t0 = purrr::map_dbl(
-        .data$params,
-        \(x) {
-          x |>
-            filter(.data$period_id == max(.data$period_id)) |>
-            summarise(
-              val = sum(.data$reneges, na.rm = TRUE)
-            ) |>
-            pull(.data$val) |>
-            (\(x) ifelse(x < 0, 0, x))()
-        }
-      )
-    ) |>
-    select("specialty", "trust", "reneges_t0")
+  reneges_at_t0 <- full_data_uplifted |>
+    filter(.data$period_id == max(.data$period_id)) |>
+    summarise(
+      reneges_t0 = sum(.data$reneges),
+      .by = c("trust", "specialty")
+    )
 
   # INCOMPLETES at t = 0
 
   # Here we use the latest observed waiting list as the starting point
-  # for the projections
+  # for the projections (using the unadjusted waiting list as this number
+  # will be more familiar to the user)
   incompletes_at_t0 <- data |>
     filter(
       .data$type == "Incomplete",
@@ -145,8 +162,8 @@ append_current_status <- function(
     data,
     max_months_waited = max_months_waited,
     redistribute_m0_reneges = FALSE,
-    referrals_uplift = referrals_uplift,
-    allow_negative_params = FALSE,
+    referrals_uplift = NULL,
+    allow_negative_params = FALSE, # this uplifts referrals and WL size
     full_breakdown = FALSE
   )
 
@@ -424,6 +441,7 @@ append_counterfactual <- function(
   referrals_start,
   referrals_end,
   incompletes_t0,
+  incomplete_adjustment_factor,
   renege_capacity_params,
   forecast_months,
   target_week
@@ -443,7 +461,14 @@ append_counterfactual <- function(
     renege_capacity_params = renege_capacity_params,
     max_months_waited = 12
   ) |>
-    filter(.data$period_id == max(.data$period_id))
+    filter(.data$period_id == max(.data$period_id)) |>
+    dplyr::left_join(
+      incomplete_adjustment_factor,
+      by = "months_waited_id"
+    ) |>
+    mutate(
+      incompletes = .data$incompletes / (1 + .data$adjustment_factor)
+    )
 
   perf <- calc_percentile_at_week(
     out,

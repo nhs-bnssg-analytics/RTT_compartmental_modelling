@@ -415,7 +415,8 @@ mod_03_results_server <- function(id, r) {
           "Months waited" = "months_waited_id",
           "Calculated treatment capacity" = "calculated_treatments",
           Reneges = "reneges",
-          "Waiting list size (at end of month)" = "incompletes",
+          "Unadjusted waiting list size (at end of month)" = "unadjusted_incompletes",
+          "Adjusted waiting list size (at end of month)" = "adjusted_incompletes",
           "Unadjusted referrals" = "unadjusted_referrals",
           "Adjusted referrals" = "adjusted_referrals",
           "Treatment capacity skew" = "capacity_skew",
@@ -429,7 +430,8 @@ mod_03_results_server <- function(id, r) {
             months_waited_id = NA,
             calculated_treatments = NA,
             reneges = NA,
-            incompletes = NA,
+            unadjusted_incompletes = NA,
+            adjusted_incompletes = NA,
             unadjusted_referrals = NA,
             adjusted_referrals = NA,
             capacity_skew = NA,
@@ -494,7 +496,8 @@ mod_03_results_server <- function(id, r) {
               columns = c(
                 "Calculated treatment capacity",
                 "Reneges",
-                "Waiting list size (at end of month)",
+                "Unadjusted waiting list size (at end of month)",
+                "Adjusted waiting list size (at end of month)",
                 "Unadjusted referrals",
                 "Adjusted referrals"
               ),
@@ -627,7 +630,7 @@ mod_03_results_server <- function(id, r) {
               } else if (reactive_data$btn_val == "btn_waiting_list_ttl") {
                 reactive_data$plot_data <- r$waiting_list |>
                   dplyr::summarise(
-                    p_var = sum(.data$incompletes, na.rm = T),
+                    p_var = sum(.data$unadjusted_incompletes, na.rm = T),
                     .by = c("period", "period_type")
                   ) |>
                   extend_period_type_data()
@@ -639,7 +642,7 @@ mod_03_results_server <- function(id, r) {
                 chart_facet_grouping <- NULL
               } else if (reactive_data$btn_val == "btn_waiting_list_mnth") {
                 reactive_data$plot_data <- r$waiting_list |>
-                  dplyr::mutate(p_var = .data$incompletes) |>
+                  dplyr::mutate(p_var = .data$unadjusted_incompletes) |>
                   extend_period_type_data()
 
                 chart_type <- "numbers waiting by period"
@@ -649,7 +652,7 @@ mod_03_results_server <- function(id, r) {
                 chart_facet_grouping <- reactive_data$facet_grouping
               } else if (reactive_data$btn_val == "btn_performance") {
                 reactive_data$plot_data <- r$waiting_list |>
-                  dplyr::rename(value = "incompletes") |>
+                  dplyr::rename(value = "unadjusted_incompletes") |>
                   dplyr::group_by(.data$period_type) |>
                   mutate(
                     months_waited_id = extract_first_number(
@@ -682,7 +685,7 @@ mod_03_results_server <- function(id, r) {
                 }
 
                 reactive_data$plot_data <- r$waiting_list |>
-                  dplyr::rename(value = "incompletes") |>
+                  dplyr::rename(value = "unadjusted_incompletes") |>
                   dplyr::group_by(.data$period_type) |>
                   mutate(
                     months_waited_id = extract_first_number(
@@ -994,7 +997,8 @@ mod_03_results_server <- function(id, r) {
       r$waiting_list <- calculate_customised_projections(
         original_wl_data = r$chart_specification$original_data$waiting_list,
         new_referrals_capacity = reactive_data$temp_data,
-        original_params = r$chart_specification$params
+        original_params = r$chart_specification$params,
+        surplus_capacity_option = r$surplus_capacity_option
       )
 
       # pass information in the charts
@@ -1024,7 +1028,8 @@ mod_03_results_server <- function(id, r) {
       r$waiting_list <- calculate_customised_projections(
         original_wl_data = r$chart_specification$original_data$waiting_list,
         new_referrals_capacity = original_referrals_capacity,
-        original_params = r$chart_specification$params
+        original_params = r$chart_specification$params,
+        surplus_capacity_option = r$surplus_capacity_option
       )
 
       # pass information in the charts
@@ -1057,45 +1062,45 @@ mod_03_results_server <- function(id, r) {
     output$value_box_container <- renderUI({
       if (isTRUE(reactive_data$plot_clicked)) {
         value_box_info <- dplyr::tribble(
-          ~button,
-          ~title,
-          ~y_title,
-          ~y_val_type,
-          "btn_referrals",
-          "Referral count information",
-          "Referrals",
-          "number",
-          "btn_capacity_ttl",
-          "Treatment capacity count information",
-          "Treatment capacity",
-          "number",
-          "btn_capacity_mnth",
-          "Treatment capacity count information",
-          "Treatment capacity",
-          "number",
-          "btn_reneges_ttl",
-          "Renege count information",
-          "Reneges",
-          "number",
-          "btn_reneges_mnth",
-          "Renege count information",
-          "Reneges",
-          "number",
-          "btn_waiting_list_ttl",
-          "Waiting list information",
-          "Waiting list size",
-          "number",
-          "btn_waiting_list_mnth",
-          "Waiting list information",
-          "Waiting list size",
-          "number",
-          "btn_performance",
-          "Performance information",
-          "Performance",
-          "percent",
-          "btn_shortfall",
-          "Shortfall information",
-          "Number of long waiters",
+          ~button                                ,
+          ~title                                 ,
+          ~y_title                               ,
+          ~y_val_type                            ,
+          "btn_referrals"                        ,
+          "Referral count information"           ,
+          "Referrals"                            ,
+          "number"                               ,
+          "btn_capacity_ttl"                     ,
+          "Treatment capacity count information" ,
+          "Treatment capacity"                   ,
+          "number"                               ,
+          "btn_capacity_mnth"                    ,
+          "Treatment capacity count information" ,
+          "Treatment capacity"                   ,
+          "number"                               ,
+          "btn_reneges_ttl"                      ,
+          "Renege count information"             ,
+          "Reneges"                              ,
+          "number"                               ,
+          "btn_reneges_mnth"                     ,
+          "Renege count information"             ,
+          "Reneges"                              ,
+          "number"                               ,
+          "btn_waiting_list_ttl"                 ,
+          "Waiting list information"             ,
+          "Waiting list size"                    ,
+          "number"                               ,
+          "btn_waiting_list_mnth"                ,
+          "Waiting list information"             ,
+          "Waiting list size"                    ,
+          "number"                               ,
+          "btn_performance"                      ,
+          "Performance information"              ,
+          "Performance"                          ,
+          "percent"                              ,
+          "btn_shortfall"                        ,
+          "Shortfall information"                ,
+          "Number of long waiters"               ,
           "number"
         ) |>
           dplyr::filter(

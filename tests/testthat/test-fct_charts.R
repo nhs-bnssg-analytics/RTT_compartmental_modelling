@@ -725,7 +725,7 @@ test_that("plot_error works", {
     )
   cal_data_modelled <- split_and_model_calibration_data(
     data = modified_sample_data,
-    referrals_uplift = TRUE
+    allow_negative_reneges = FALSE
   )
 
   vdiffr::expect_doppelganger(

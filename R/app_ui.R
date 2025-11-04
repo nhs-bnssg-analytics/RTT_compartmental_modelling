@@ -32,7 +32,7 @@ app_ui <- function(request) {
   email <- tags$a(
     shiny::icon("envelope"),
     "Contact us",
-    href = "mailto:sebastian.fox3@nhs.net?subject=RTT planning tool",
+    href = "mailto:bnssg.analytics@nhs.net?subject=RTT planning tool",
     target = "_blank"
   )
 
@@ -101,6 +101,29 @@ app_ui <- function(request) {
         nav_item(email),
         align = "right"
       ),
+      # Add custom CSS to create divider lines after Tab 1 and Tab 3 so the
+      # scenario planner is grouped with the results
+      header = tags$head(
+        tags$style(HTML(
+          "
+        .navbar-nav .nav-item:nth-child(1) .nav-link::after,
+        .navbar-nav .nav-item:nth-child(3) .nav-link::after {
+          content: '';
+          position: absolute;
+          right: -10px;
+          top: 50%;
+          transform: translateY(-50%);
+          height: 20px;
+          width: 1px;
+          background-color: #81BEE7;
+        }
+
+        .navbar-nav .nav-item {
+          position: relative;
+        }
+      "
+        ))
+      ),
       footer = card_footer(
         layout_columns(
           col_widths = c(12),
@@ -108,9 +131,9 @@ app_ui <- function(request) {
             HTML(
               paste0(
                 "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a> or send feedback to
-             <a href='mailto:sebastian.fox3@nhs.net?subject=RTT planning tool (version ",
+             <a href='mailto:bnssg.analytics@nhs.net?subject=RTT planning tool (version ",
                 packageVersion("RTTshiny"),
-                ")'>sebastian.fox3@nhs.net</a>"
+                ")'>bnssg.analytics@nhs.net</a>"
               )
             ),
             class = "text-center text-muted"
