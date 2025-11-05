@@ -1,10 +1,11 @@
-# RTTshiny 1.0.2.9000
+# RTTshiny 2.0.0
 
 ## Throughout tool
 
 * Fixes bug for data import causing low counts for completes pathways.
 * Definitions of words are displayed on hover.
 * The list of collaborators has increased on the acknowledgements tab.
+* New tutorial videos are included to explain new features.
 
 ## Scenario planner
 
