@@ -8,7 +8,7 @@ Authors@R: c(
     person("Euan", "Ives", , "euan.ives@nhs.net", role = "ctb"),
     person("Richard", "Wood", , "richard.wood16@nhs.net", role = "aut"),
     person("Neil", "Walton", , "neil.walton@durham.ac.uk", role = "ctb"),
-    person("Lucy", "Morgan", , "lucy.morgan48@nhs.net", role = "ctb"),
+    person("Lucy", "Morgan", , "lucy.morgan48@nhs.net", role = "ctb")
   )
 Description: Ingests public NHS Referral to Treatment data and models
     historic relationships, allowing users to forecast future scenarios.
