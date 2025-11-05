@@ -19,3 +19,5 @@ CODE_OF_CONDUCT.md
 \.vscode
 html$
 ^ad_hoc$
+^doc$
+^Meta$
