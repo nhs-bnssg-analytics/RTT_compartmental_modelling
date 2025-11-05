@@ -624,7 +624,7 @@ mod_02_planner_server <- function(id, r) {
           # negative renege parameters are rare when the data are aggregated.
           # It is more common for  the independent sector, where  patients are
           # added to RTT waiting lists without an accompanying clock-start.
-          # A negative renege parameter then occurs in locations beyong the first
+          # A negative renege parameter then occurs in locations beyond the first
           # compartment. Here we allow it to occur to enable better short term
           # modelling for the independent sector. It still causes issues
           # because the renege parameter is related to list size (eg, the larger
@@ -769,7 +769,10 @@ mod_02_planner_server <- function(id, r) {
     # provide renege params warning text --------------------------------------------
     output$renege_warning <- renderUI({
       # browser()
-      if (is.null(reactive_values$params)) {
+      if (
+        is.null(reactive_values$params) |
+          isFALSE(reactive_values$data_downloaded)
+      ) {
         renege_params <- 1
       } else {
         renege_params <- reactive_values$params$params[[1]]$renege_param |>

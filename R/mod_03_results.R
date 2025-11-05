@@ -59,7 +59,8 @@ mod_03_results_server <- function(id, r) {
       show_table = FALSE,
       temp_data = NULL,
       facet_scales = "fixed",
-      facet_grouping = "months_waited_id"
+      facet_grouping = "months_waited_id",
+      calc_res = 96
     )
 
     # dynamic sidebar ---------------------------------------------------------
@@ -543,10 +544,10 @@ mod_03_results_server <- function(id, r) {
         input$btn_report_ui
       ),
       {
-        if (is.null(input$chart_res)) {
-          calc_res <- 96
-        } else {
-          calc_res <- input$chart_res
+        if (!is.null(input$chart_res)) {
+          reactive_data$calc_res <- input$chart_res
+        } else if (is.null(reactive_data$calc_res)) {
+          reactive_data$calc_res <- 96
         }
         output$results_plot <- renderPlot(
           {
@@ -734,7 +735,7 @@ mod_03_results_server <- function(id, r) {
               }
             }
           },
-          res = calc_res
+          res = reactive_data$calc_res
         )
       }
     )
@@ -773,7 +774,7 @@ mod_03_results_server <- function(id, r) {
               label = "Select chart resolution (pixels per inch)",
               min = 72,
               max = 144,
-              value = 96,
+              value = reactive_data$calc_res,
               step = 8
             )
           )
