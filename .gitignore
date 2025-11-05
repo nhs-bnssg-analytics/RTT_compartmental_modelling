@@ -920,3 +920,6 @@ FodyWeavers.xsd
 .xls*
 .Rproj.user
 docs
+inst/doc
+/doc/
+/Meta/
