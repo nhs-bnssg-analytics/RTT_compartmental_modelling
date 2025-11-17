@@ -16,6 +16,10 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/RTT_Planner_exercise.html">Exercise</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -35,8 +39,7 @@
 
 
 
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
@@ -47,67 +50,78 @@
 
         </dt>
         <dd>NHSRtt: A golem shiny app for modelling waiting times using a stock and flow method</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="calc_percentile_at_week.html">calc_percentile_at_week()</a></code>
 
         </dt>
         <dd>Calculate the percentile waiting at a given week</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="calc_performance.html">calc_performance()</a></code>
 
         </dt>
         <dd>Calculates performance by period from a given data set and target stock</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="calc_shortfall.html">calc_shortfall()</a></code>
 
         </dt>
         <dd>Calculates performance by period from a given data set and target stock</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="check_imported_data.html">check_imported_data()</a></code>
 
         </dt>
         <dd>check the data imported into the app</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="clean_raw_data.html">clean_raw_data()</a></code>
 
         </dt>
         <dd>Raw data often only contains values where they exist. This function expands the raw data so there are 0 values for periods that no counts existed. It also makes sure period and period_id are consistent between each specialty/trust combination</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="click_info.html">click_info()</a></code>
 
         </dt>
         <dd>function to return the data behind where the user has clicked</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="create_modelling_data.html">create_modelling_data()</a></code>
 
         </dt>
         <dd>Create the calibration dataset from the main data table</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="extend_period_type_data.html">extend_period_type_data()</a></code>
 
         </dt>
         <dd>geom_step in the charts do not display the final observed or projected months well because the stepped line terminates at the start of the month. This function adds an artificial month onto the observed and projected period_types so they are displayed better on the visualisations</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="plot_output.html">plot_output()</a></code>
 
         </dt>
         <dd>Visualisation functions for module 3</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="plot_waiting_lists_chart.html">plot_waiting_lists_chart()</a></code>
 
         </dt>
         <dd>Plot Waiting List Distributions with Target Indicators</dd>
-      </dl><dl><dt>
+
+        <dt>
 
           <code><a href="run_app.html">run_app()</a></code>
 
@@ -122,7 +136,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>

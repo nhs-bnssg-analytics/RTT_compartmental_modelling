@@ -1,0 +1,37 @@
+# Calculates performance by period from a given data set and target stock
+
+Calculates performance by period from a given data set and target stock
+
+## Usage
+
+``` r
+calc_shortfall(incompletes_data, target_bin = 4, target_performance = 0.92)
+```
+
+## Arguments
+
+- incompletes_data:
+
+  tibble; requires column headers of "period", "months_waited_id" and
+  "value", where value is the count of incomplete pathways by period and
+  the number of months the patients have waited
+
+- target_bin:
+
+  integer; the number of months waited where patients that have waited
+  for greater or equal to that number of months have breached
+  performance
+
+- target_performance:
+
+  numeric of length 1; must be between 0 and 1. The value is the number
+  of patients on the waiting list that have waited for less than the
+  \`target_bin\` time, as a proportion of the total waiting list
+
+## Value
+
+A two column tibble containing "period" and "shortfall" columns, where
+shortfall is the number of additional patients that are on the waiting
+list and have been waiting longer than the \`target_bin\` length that,
+if removed, will results in a performance equal to the
+\`target_performance\`
