@@ -4,6 +4,7 @@ template:
 
 
 articles:
-  - title: "Learn the RTT Planner tool"
+  - title: Learn the RTT Planner tool
+    navbar: ~
     contents:
       - RTT_Planner_exercise

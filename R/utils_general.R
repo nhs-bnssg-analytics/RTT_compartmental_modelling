@@ -974,7 +974,8 @@ definitions <- function() {
     "Target proportion" = "The proportion of people on a waiting list that have been waiting less than the 'target week'.",
     "Target week" = "The week that the 'target proportion' applies to.",
     "Target date" = "The date to achieve the target criteria by.",
-    "Renege proportion" = "The proportion of total departures (treatments plus reneges) that are reneges."
+    "Renege proportion" = "The proportion of total departures (treatments plus reneges) that are reneges.",
+    "Adjusted referrals" = "An inflated value for referrals that accounts for the difference between the published referrals figures and the sum of the number of people on the waiting list and those that were treated, who were waiting up to 1 month."
   )
 }
 

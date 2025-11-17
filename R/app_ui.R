@@ -29,6 +29,13 @@ app_ui <- function(request) {
     target = "_blank"
   )
 
+  workshop_exercise <- tags$a(
+    shiny::icon("pencil"),
+    "Workshop exercise",
+    href = "https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/articles/RTT_Planner_exercise.html",
+    target = "_blank"
+  )
+
   email <- tags$a(
     shiny::icon("envelope"),
     "Contact us",
@@ -98,6 +105,7 @@ app_ui <- function(request) {
         nav_item(github_shiny),
         nav_item(github_RTT_package),
         nav_item(github_analysis),
+        nav_item(workshop_exercise),
         nav_item(email),
         align = "right"
       ),
