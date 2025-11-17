@@ -194,7 +194,8 @@ example_chart_data <- read.csv(
 # pins board location
 board <- pins::board_url(c(
   rtt_12months = "https://connect.strategyunitwm.nhs.uk/rtt-data/12-months/",
-  rtt_24months = "https://connect.strategyunitwm.nhs.uk/rtt-data/24-months/"
+  rtt_24months = "https://connect.strategyunitwm.nhs.uk/rtt-data/24-months/",
+  cache = tempdir()
 ))
 
 
