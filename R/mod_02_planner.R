@@ -180,8 +180,8 @@ mod_02_planner_ui <- function(id) {
       ),
       layout_columns(
         col_widths = c(3, 2),
-        span(HTML(paste(
-          "Annual percentage change in",
+        span(HTML(paste0(
+          "Annual percentage change in ",
           tooltip_label("referrals", "referral"),
           ":"
         ))),
@@ -290,11 +290,8 @@ mod_02_planner_server <- function(id, r) {
 
     ns <- session$ns
 
-    final_data_period <- readRDS(system.file(
-      "extdata",
-      "rtt_12months.rds",
-      package = "RTTshiny"
-    )) |>
+    final_data_period <- board |>
+      pins::pin_read("rtt_12months") |>
       dplyr::pull(.data$period) |>
       max()
 
@@ -546,13 +543,8 @@ mod_02_planner_server <- function(id, r) {
             is.null(selections_labels$commissioners$selected_code)
           )
         ) {
-          r$all_data <- readRDS(
-            system.file(
-              "extdata",
-              "rtt_24months.rds",
-              package = "RTTshiny"
-            )
-          ) |>
+          r$all_data <- board |>
+            pins::pin_read("rtt_24months") |>
             dplyr::filter(
               .data$period >= min_download_date,
               .data$trust %in% selections_labels$trusts$selected_name,
@@ -982,13 +974,8 @@ mod_02_planner_server <- function(id, r) {
             is.null(selections_labels$commissioners$selected_code)
           )
         ) {
-          template_data <- readRDS(
-            system.file(
-              "extdata",
-              "rtt_24months.rds",
-              package = "RTTshiny"
-            )
-          ) |>
+          template_data <- board |>
+            pins::pin_read("rtt_24months") |>
             dplyr::filter(
               .data$period >= min_download_date,
               .data$trust %in% selections_labels$trusts$selected_name,
@@ -1908,8 +1895,8 @@ mod_02_planner_server <- function(id, r) {
           layout_columns(
             col_widths = c(3, 4),
             span(
-              HTML(paste(
-                "Annual percentage change for",
+              HTML(paste0(
+                "Annual percentage change for ",
                 tooltip_label("treatment capacity"),
                 ":"
               ))
