@@ -290,6 +290,11 @@ mod_02_planner_server <- function(id, r) {
 
     ns <- session$ns
 
+    board <- pins::board_url(c(
+      rtt_12months = board_12,
+      rtt_24months = board_24
+    ))
+
     final_data_period <- board |>
       pins::pin_read("rtt_12months") |>
       dplyr::pull(.data$period) |>

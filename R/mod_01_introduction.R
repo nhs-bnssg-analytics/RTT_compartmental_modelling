@@ -12,6 +12,11 @@ mod_01_introduction_ui <- function(id) {
   ns <- NS(id)
 
   # create statement for data update information
+  board <- pins::board_url(c(
+    rtt_12months = board_12,
+    rtt_24months = board_24
+  ))
+
   last_updated <- board |>
     pins::pin_meta("rtt_12months") |>
     purrr::pluck("created")

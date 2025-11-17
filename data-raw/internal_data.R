@@ -192,12 +192,8 @@ example_chart_data <- read.csv(
   )
 
 # pins board location
-board <- pins::board_url(c(
-  rtt_12months = "https://connect.strategyunitwm.nhs.uk/rtt-data/12-months/",
-  rtt_24months = "https://connect.strategyunitwm.nhs.uk/rtt-data/24-months/",
-  cache = tempdir()
-))
-
+board_12 <- "https://connect.strategyunitwm.nhs.uk/rtt-data/12-months/"
+board_24 <- "https://connect.strategyunitwm.nhs.uk/rtt-data/24-months/"
 
 usethis::use_data(
   org_lkp,
@@ -207,7 +203,8 @@ usethis::use_data(
   specialty_lkp,
   sample_data,
   example_chart_data,
-  board,
+  board_12,
+  board_24,
   internal = TRUE,
   overwrite = TRUE
 )
