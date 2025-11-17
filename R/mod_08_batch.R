@@ -467,11 +467,8 @@ mod_08_batch_server <- function(id) {
             )
 
             # RDS VERSION
-            raw_data <- readRDS(system.file(
-              "extdata",
-              "rtt_12months.rds",
-              package = "RTTshiny"
-            )) |>
+            raw_data <- board |>
+              pins::pin_read("rtt_12months") |>
               clean_raw_data() |>
               filter(trust %in% input$selectedtrusts) |>
               filter(specialty %in% c(input$specialty_codes))

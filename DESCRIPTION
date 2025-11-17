@@ -25,6 +25,7 @@ Imports:
     golem (>= 0.4.1),
     lubridate,
     NHSRtt (>= 0.4.1),
+    pins,
     pkgload,
     purrr,
     reactable,
