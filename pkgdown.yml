@@ -3,7 +3,7 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   RTT_Planner_exercise: RTT_Planner_exercise.html
-last_built: 2025-11-17T15:41Z
+last_built: 2025-11-17T16:51Z
 urls:
   reference: https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/reference
   article: https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/articles
