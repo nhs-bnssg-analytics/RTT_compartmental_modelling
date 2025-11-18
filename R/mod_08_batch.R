@@ -466,7 +466,12 @@ mod_08_batch_server <- function(id) {
               spec = input$specialty_codes
             )
 
-            # RDS VERSION
+            board <- pins::board_url(c(
+              rtt_12months = board_12,
+              rtt_24months = board_24
+            ))
+
+            # pins version
             raw_data <- board |>
               pins::pin_read("rtt_12months") |>
               clean_raw_data() |>
