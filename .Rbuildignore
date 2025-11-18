@@ -17,5 +17,6 @@ CODE_OF_CONDUCT.md
 ^app\.R$
 ^rsconnect$
 \.vscode
-html$
 ^ad_hoc$
+^doc$
+^Meta$

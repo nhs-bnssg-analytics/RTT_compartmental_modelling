@@ -1026,7 +1026,8 @@ mod_03_results_server <- function(id, r) {
       r$waiting_list <- calculate_customised_projections(
         original_wl_data = r$chart_specification$original_data$waiting_list,
         new_referrals_capacity = original_referrals_capacity,
-        original_params = r$chart_specification$params
+        original_params = r$chart_specification$params,
+        surplus_capacity_option = r$surplus_capacity_option
       )
 
       # pass information in the charts
