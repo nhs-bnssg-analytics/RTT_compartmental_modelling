@@ -1148,7 +1148,7 @@ mod_08_batch_server <- function(id) {
             monthly_removals = colDef(
               header = name_with_tooltip(
                 "Additional monthly removals required",
-                definition = "The number of additional monthly removals (above current treatments and reneges) to achieve the target waiting list size in the number of months specified by the user"
+                definition = "The number of additional monthly removals (above the steady state treatments and reneges) to achieve the target waiting list size in the number of months specified by the user"
               ),
               format = colFormat(digits = 1),
               style = function(value) {

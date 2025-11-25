@@ -765,7 +765,6 @@ mod_02_planner_server <- function(id, r) {
 
     # provide renege params warning text --------------------------------------------
     output$renege_warning <- renderUI({
-      # browser()
       if (
         is.null(reactive_values$params) |
           isFALSE(reactive_values$data_downloaded)
@@ -2328,7 +2327,10 @@ mod_02_planner_server <- function(id, r) {
           if (input$target_type == "Single target") {
             # replace the target_data reactiveVal with the single target inputs
             reactive_values$target_data <- dplyr::tibble(
-              "Target_date" = input$target_achievement_date,
+              "Target_date" = lubridate::floor_date(
+                input$target_achievement_date,
+                unit = "months"
+              ),
               "Target_percentage" = input$target_value
             )
           }
