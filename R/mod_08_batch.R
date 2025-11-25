@@ -1147,8 +1147,10 @@ mod_08_batch_server <- function(id) {
             ),
             monthly_removals = colDef(
               header = name_with_tooltip(
-                "Additional monthly removals required",
-                definition = "The number of additional monthly removals (above the steady state treatments and reneges) to achieve the target waiting list size in the number of months specified by the user"
+                "Required monthly change in waiting list size",
+                definition = paste(
+                  "This is the current waiting list size minus the steady state waiting list size divided by the number of months between now and the target date."
+                )
               ),
               format = colFormat(digits = 1),
               style = function(value) {
@@ -1227,7 +1229,7 @@ mod_08_batch_server <- function(id) {
                 "Steady state reneges" = "reneges_ss",
                 "Steady state waiting list size" = "incompletes_ss",
                 "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
-                "Additional monthly removals required" = "monthly_removals"
+                "Required monthly change in waiting list size" = "monthly_removals"
               )
             )
           ) |>
