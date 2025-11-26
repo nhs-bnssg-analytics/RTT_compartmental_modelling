@@ -57,6 +57,7 @@ mod_03_results_server <- function(id, r) {
       plot_data = NULL,
       show_plot = FALSE,
       show_table = FALSE,
+      show_activity = FALSE,
       temp_data = NULL,
       facet_scales = "fixed",
       facet_grouping = "months_waited_id",
@@ -169,8 +170,15 @@ mod_03_results_server <- function(id, r) {
             `data-bs-trigger` = "hover",
             title = "Reneges distributed by number of months waited"
           ),
+          actionButton(
+            inputId = ns("btn_activity"),
+            label = "Activity (experimental)",
+            icon = shiny::icon("star"),
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "Projected activity based on the clock stops"
+          ),
           hr(),
-
           actionButton(
             inputId = ns("btn_data"),
             label = "Data table",
@@ -274,8 +282,15 @@ mod_03_results_server <- function(id, r) {
             `data-bs-trigger` = "hover",
             title = "Size of the waiting list by the number of months waited"
           ),
+          actionButton(
+            inputId = ns("btn_activity"),
+            label = "Activity (experimental)",
+            icon = shiny::icon("star"),
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "Projected activity based on the clock stops"
+          ),
           hr(),
-
           actionButton(
             inputId = ns("btn_data"),
             label = "Data table",
@@ -373,6 +388,7 @@ mod_03_results_server <- function(id, r) {
         "waiting_list_mnth",
         "performance",
         "shortfall",
+        "activity",
         "data",
         "report_ui"
       ),
@@ -392,7 +408,6 @@ mod_03_results_server <- function(id, r) {
               session = session,
               inputId = reactive_data$btn_val,
               icon = shiny::icon("star", class = "fa-solid fa-star")
-              # icon = shiny::icon("calendar")
             )
           }
           reactive_data$plot_clicked <- FALSE
@@ -400,9 +415,15 @@ mod_03_results_server <- function(id, r) {
           if (reactive_data$btn_val == "btn_data") {
             reactive_data$show_plot <- FALSE
             reactive_data$show_table <- TRUE
+            reactive_data$show_activity <- FALSE
+          } else if (reactive_data$btn_val == "btn_activity") {
+            reactive_data$show_plot <- FALSE
+            reactive_data$show_table <- FALSE
+            reactive_data$show_activity <- TRUE
           } else if (reactive_data$btn_val != "btn_report_ui") {
             reactive_data$show_plot <- TRUE
             reactive_data$show_table <- FALSE
+            reactive_data$show_activity <- FALSE
           }
         })
       }
@@ -540,6 +561,7 @@ mod_03_results_server <- function(id, r) {
         input$btn_waiting_list_mnth,
         input$btn_performance,
         input$btn_shortfall,
+        input$btn_activity,
         input$btn_data,
         input$btn_report_ui
       ),
@@ -712,7 +734,8 @@ mod_03_results_server <- function(id, r) {
               }
 
               if (
-                !(reactive_data$btn_val %in% c("btn_data", "btn_report_ui"))
+                !(reactive_data$btn_val %in%
+                  c("btn_data", "btn_report_ui", "btn_activity"))
               ) {
                 plot_output(
                   data = reactive_data$plot_data,
@@ -745,6 +768,10 @@ mod_03_results_server <- function(id, r) {
       if (reactive_data$show_table == TRUE) {
         final_ui <- DTOutput(
           ns("results_table")
+        )
+      } else if (reactive_data$show_activity == TRUE) {
+        final_ui <- card(
+          p("This page is experimental.")
         )
       } else {
         # if no button has been selected then display results_plot
