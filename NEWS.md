@@ -1,3 +1,9 @@
+# RTTshiny 2.0.0.9000
+
+## Steady state
+
+* Changes table header from "Additional monthly removals required" to "Required monthly change in waiting list size"
+
 # RTTshiny 2.0.0
 
 ## Throughout tool
