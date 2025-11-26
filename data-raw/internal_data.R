@@ -195,6 +195,45 @@ example_chart_data <- read.csv(
 board_12 <- "https://connect.strategyunitwm.nhs.uk/rtt-data/12-months/"
 board_24 <- "https://connect.strategyunitwm.nhs.uk/rtt-data/24-months/"
 
+# inpatient/outpatient/activity split
+# provided by Suchi Collingwood (via Lucy Morgan) at NHSE
+raw_activity_proportions <- tibble::tribble(
+  ~treatment_function         , ~op_only_split , ~mixed_split , ~avg_op_first_activity_per_pathway_op_only , ~avg_op_flup_activity_per_pathway_op_only , ~avg_op_first_activity_per_pathway_mixed , ~avg_op_flup_activity_per_pathway_mixed , ~avg_ip_activity_per_pathway_mixed , ~daycase_rate ,
+  "Respiratory Medicine"      , 0.847          , 0.153        , 1.41                                       , 2.15                                      , 0.73                                     , 2.57                                    , 1.65                               , 0.8250833     ,
+  "Oral Surgery"              , 0.724          , 0.276        , 0.78                                       , 0.71                                      , 0.6                                      , 0.97                                    , 0.98                               , 0.94          ,
+  "Gastroenterology"          , 0.36           , 0.64         , 1.49                                       , 1.27                                      , 0.41                                     , 0.87                                    , 2                                  , 0.98075       ,
+  "Trauma and Orthopaedic"    , 0.785          , 0.215        , 1.35                                       , 1.56                                      , 0.9                                      , 3.38                                    , 1.58                               , 0.59025       ,
+  "General Internal Medicine" , 0.703          , 0.297        , 1.74                                       , 2.48                                      , 0.44                                     , 0.8                                     , 3.37                               , 0.91775       ,
+  "Cardiothoracic Surgery"    , 0.604          , 0.396        , 0.41                                       , 0.61                                      , 0.42                                     , 1.02                                    , 0.44                               , 0.046         ,
+  "Plastic Surgery"           , 0.602          , 0.398        , 1.32                                       , 1.67                                      , 1.02                                     , 2.79                                    , 1.6                                , 0.8735833     ,
+  "General Surgery"           , 0.519          , 0.481        , 0.6                                        , 0.56                                      , 0.44                                     , 0.66                                    , 0.84                               , 0.83425       ,
+  "Dermatology"               , 0.879          , 0.121        , 1.1                                        , 1.69                                      , 0.78                                     , 1.9                                     , 1.06                               , 0.9881667     ,
+  "Cardiology"                , 0.865          , 0.135        , 1.8                                        , 1.56                                      , 0.91                                     , 2.8                                     , 2.04                               , 0.8150833     ,
+  "Urology"                   , 0.664          , 0.336        , 1.13                                       , 1.49                                      , 0.61                                     , 2.17                                    , 1.52                               , 0.7416667     ,
+  "Rheumatology"              , 0.749          , 0.251        , 1.62                                       , 3.65                                      , 0.2                                      , 1.65                                    , 1.43                               , 0.9836667     ,
+  "Neurosurgical"             , 0.744          , 0.256        , 1.22                                       , 1.17                                      , 0.73                                     , 2.49                                    , 1.45                               , 0.3155        ,
+  "Ear Nose and Throat"       , 0.861          , 0.139        , 1.11                                       , 0.87                                      , 0.77                                     , 2.21                                    , 1.13                               , 0.735         ,
+  "Other - Total"             , 0.814          , 0.186        , 1.67                                       , 3.95                                      , 0.7                                      , 4.99                                    , 3.24                               , 0.8640833     ,
+  "Ophthalmology"             , 0.733          , 0.267        , 1.34                                       , 2.35                                      , 0.74                                     , 3.02                                    , 1.42                               , 0.98          ,
+  "Neurology"                 , 0.852          , 0.148        , 1.48                                       , 1.53                                      , 0.26                                     , 1.15                                    , 1.55                               , 0.9111667     ,
+  "Gynaecology"               , 0.842          , 0.158        , 1.22                                       , 1.03                                      , 0.88                                     , 1.82                                    , 1.53                               , 0.7155        ,
+  "Elderly Medicine"          , 0.926          , 0.074        , 1.37                                       , 1.72                                      , 0.45                                     , 1.41                                    , 1.87                               , 0.6304167     ,
+  "Total"                     , 0.766          , 0.234        , 1.47                                       , 1.89                                      , 0.76                                     , 2.76                                    , 1.60                               , 0.28
+)
+
+# Column definitions:
+## PATHWAY DISTRIBUTION
+# op_only_split -> OP only pathways
+# mixed_split -> OP and IP mixed pathways
+## ACTIVITY PER PATHWAYS ASSUMPTIONS - OP ONLY ACTIVITY PER PATHWAY
+# avg_op_first_activity_per_pathway_op_only -> Average OP First Attendances
+# avg_op_flup_activity_per_pathway_op_only -> Average OP Follow-up Attendances
+## ACTIVITY PER PATHWAY ASSUMPTIONS - MIXED ACTIVITY PER PATHWAY
+# avg_op_first_activity_per_pathway_mixed -> Average OP First Attendances
+# avg_op_flup_activity_per_pathway_mixed -> Average OP Follow-up attendances
+# avg_ip_activity_per_pathway_mixed -> Average IP activity (ordinary elective spells)
+# daycase_rate -> daycase rate (% of IP apts which are daycase)
+
 usethis::use_data(
   org_lkp,
   org_lkp_ss_inputs,
@@ -205,6 +244,7 @@ usethis::use_data(
   example_chart_data,
   board_12,
   board_24,
+  raw_activity_proportions,
   internal = TRUE,
   overwrite = TRUE
 )
