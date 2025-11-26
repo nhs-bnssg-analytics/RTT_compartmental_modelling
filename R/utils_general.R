@@ -272,7 +272,7 @@ convert_weeks_to_months <- function(wks) {
 #' @importFrom tidyr pivot_longer pivot_wider
 #' @param clock_stops named list; items must be named with the specialty name,
 #'  and values equal to clock-stop counts (both treatment and renege clock-stops)
-#' @example
+#' @examples
 #' list(
 #'   "Respiratory Medicine" = 504,
 #'   "Oral Surgery" = 772

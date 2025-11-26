@@ -770,8 +770,129 @@ mod_03_results_server <- function(id, r) {
           ns("results_table")
         )
       } else if (reactive_data$show_activity == TRUE) {
-        final_ui <- card(
-          p("This page is experimental.")
+        clock_stops <- r$waiting_list |>
+          dplyr::filter(.data$period_type == "Projected") |>
+          dplyr::summarise(
+            dplyr::across(
+              c("calculated_treatments", "reneges"),
+              sum
+            )
+          )
+
+        output$activity_table <- reactable::renderReactable({
+          activity_table <- setNames(
+            clock_stops$calculated_treatments + clock_stops$reneges,
+            nm = r$chart_specification$specialty
+          ) |>
+            convert_clock_stops_to_activity() |>
+            purrr::pluck(1)
+
+          if (!is.null(activity_table)) {
+            activity_lkp <- dplyr::tibble(
+              type = c(
+                rep("Outpatient", 4),
+                rep("Inpatient", 2)
+              ),
+              metric_abb = c(
+                "avg_op_first_activity_per_pathway_op_only",
+                "avg_op_flup_activity_per_pathway_op_only",
+                "avg_op_first_activity_per_pathway_mixed",
+                "avg_op_flup_activity_per_pathway_mixed",
+                "ip_daycase_count",
+                "ip_non_daycase_count"
+              ),
+              metric = c(
+                "Activity to first appointment",
+                "Follow up activity",
+                "Activity to first appointment",
+                "Follow up activity",
+                "Inpatient day cases",
+                "Inpatient non-day cases"
+              )
+            )
+
+            activity_table <- activity_table |>
+              tidyr::pivot_longer(
+                cols = !c("treatment_function"),
+                names_to = "metric_abb",
+                values_to = "count"
+              ) |>
+              left_join(activity_lkp, by = "metric_abb") |>
+              select(c("treatment_function", "type", "metric", "count")) |>
+              dplyr::summarise(
+                count = sum(.data$count),
+                .by = c("treatment_function", "type", "metric")
+              ) |>
+              mutate(count = round(.data$count, 0))
+
+            activity_table_ui <- reactable::reactable(
+              activity_table,
+              filterable = FALSE,
+              showPageSizeOptions = FALSE,
+              fullWidth = FALSE,
+              width = 700,
+              defaultPageSize = 10,
+              defaultColDef = colDef(
+                vAlign = "center",
+                headerVAlign = "bottom",
+                headerClass = "header"
+              ),
+              columns = list(
+                treatment_function = colDef(
+                  header = name_with_tooltip(
+                    "Specialty",
+                    definition = "Treatment specialty."
+                  )
+                ),
+                type = colDef(
+                  header = name_with_tooltip(
+                    "Pathway type",
+                    definition = "The type of pathway that the activity refers to."
+                  )
+                ),
+                metric = colDef(
+                  header = name_with_tooltip(
+                    "Activity metric",
+                    definition = "Activity metric."
+                  )
+                ),
+                count = colDef(
+                  header = name_with_tooltip(
+                    "Count",
+                    definition = "Count of activity in the projected period."
+                  ),
+                  format = colFormat(separators = TRUE)
+                )
+              )
+            )
+          } else {
+            NULL
+          }
+        })
+        final_ui <- card_body(
+          p(
+            "NHS England analysis from 2022 calculated average associated activity with all clock stops, by specialty, at a national level."
+          ),
+          p(
+            "This analysis is applied to the projected period from this scenario to provide an overall indication of quantity and type of activity for the projected period."
+          ),
+          p(
+            "This provides no indication of when the activity should take place, as some of it may occur in the months before or after the projected period."
+          ),
+          p(
+            paste(
+              "This table shows the estimated activity associated with the combined",
+              format(
+                clock_stops$calculated_treatments,
+                big.mark = ",",
+                nsmall = 0
+              ),
+              "treatments and",
+              format(clock_stops$reneges, big.mark = ",", nsmall = 0),
+              "reneges for the projected period."
+            )
+          ),
+          reactable::reactableOutput(ns("activity_table"))
         )
       } else {
         # if no button has been selected then display results_plot
