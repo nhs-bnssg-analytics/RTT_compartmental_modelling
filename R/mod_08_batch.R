@@ -579,7 +579,7 @@ mod_08_batch_server <- function(id) {
               value = 0,
               {
                 n <- nrow(current)
-                # browser()
+
                 optimised_projections <- current |>
                   # add historic s
                   left_join(
@@ -630,6 +630,35 @@ mod_08_batch_server <- function(id) {
                   ) |>
                   unnest("ss_calcs") |>
                   mutate(
+                    activity = purrr::map2(
+                      .x = .data$specialty,
+                      .y = .data$capacity_ss + .data$reneges_ss,
+                      \(x, y) {
+                        activity_summary <- setNames(
+                          y,
+                          nm = x
+                        ) |>
+                          convert_clock_stops_to_activity() |>
+                          purrr::pluck(1)
+
+                        op_to_first_calc <- activity_summary$avg_op_first_activity_per_pathway_op_only +
+                          activity_summary$avg_op_first_activity_per_pathway_mixed
+
+                        op_follow_up_calc <- activity_summary$avg_op_flup_activity_per_pathway_op_only +
+                          activity_summary$avg_op_flup_activity_per_pathway_mixed
+
+                        activity_out <- dplyr::tibble(
+                          op_to_first = op_to_first_calc,
+                          op_follow_up = op_follow_up_calc,
+                          ip_day = activity_summary$ip_daycase_count,
+                          ip_non_day = activity_summary$ip_non_daycase_count
+                        )
+                        return(activity_out)
+                      }
+                    )
+                  ) |>
+                  tidyr::unnest(activity) |>
+                  dplyr::mutate(
                     current_vs_ss_wl_ratio = round(
                       .data$incompletes_t0 / .data$incompletes_ss,
                       2
@@ -884,7 +913,11 @@ mod_08_batch_server <- function(id) {
           "referrals_ss",
           "capacity_ss",
           "reneges_ss",
-          "incompletes_ss"
+          "incompletes_ss",
+          "op_to_first",
+          "op_follow_up",
+          "ip_day",
+          "ip_non_day"
         )
 
         counterf_cols <- c(
@@ -1111,6 +1144,34 @@ mod_08_batch_server <- function(id) {
                 "Waiting list size",
                 definition = "The number of people on the waiting list in the steady-state solution based on the selected method."
               ),
+              format = colFormat(digits = 0, separators = TRUE)
+            ),
+            op_to_first = colDef(
+              header = name_with_tooltip(
+                "Crude activity to first attendance (outpatient)",
+                definition = "The count of outpatient activity until first attendance associated with steady state clock-stops. This uses national averages from 2022 per specialty."
+              ),
+              format = colFormat(digits = 0, separators = TRUE)
+            ),
+            op_follow_up = colDef(
+              header = name_with_tooltip(
+                "Crude follow up attendances (outpatient)",
+                definition = "The count of outpatient follow up activity associated with steady state clock-stops. This uses national averages from 2022 per specialty."
+              ),
+              format = colFormat(digits = 0, separators = TRUE)
+            ),
+            ip_day = colDef(
+              header = name_with_tooltip(
+                "Crude inpatient activity (day cases)",
+                definition = "The count of inpatient day cases associated with steady state clock-stops. This uses national averages from 2022 per specialty."
+              ),
+              format = colFormat(digits = 0, separators = TRUE)
+            ),
+            ip_non_day = colDef(
+              header = name_with_tooltip(
+                "Crude inpatient activity (non-day cases)",
+                definition = "The count of inpatient non-day cases associated with steady state clock-stops. This uses national averages from 2022 per specialty."
+              ),
               format = colFormat(digits = 0, separators = TRUE),
               class = "divider-right"
             ),
@@ -1228,6 +1289,10 @@ mod_08_batch_server <- function(id) {
                 "Steady state treatment capacity" = "capacity_ss",
                 "Steady state reneges" = "reneges_ss",
                 "Steady state waiting list size" = "incompletes_ss",
+                "Crude activity to first attendance (outpatient)" = "op_to_first",
+                "Crude follow up attendances (outpatient)" = "op_follow_up",
+                "Crude inpatient activity (day cases)" = "ip_day",
+                "Crude inpatient activity (non-day cases)" = "ip_non_day",
                 "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
                 "Required monthly change in waiting list size" = "monthly_removals"
               )

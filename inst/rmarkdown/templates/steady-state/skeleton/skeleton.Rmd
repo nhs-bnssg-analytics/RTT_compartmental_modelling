@@ -163,6 +163,10 @@ for (i in seq_len(nrow(params$optimised_wl))) {
           "Steady state treatment capacity" = "capacity_ss",
           "Steady state reneges" = "reneges_ss",
           "Steady state waiting list size" = "incompletes_ss",
+          # "Steady state activity to first attendance (outpatient)*" = "op_to_first",
+          # "Steady state follow up attendances (outpatient)*" = "op_follow_up",
+          # "Steady state inpatient activity (day cases)*" = "ip_day",
+          # "Steady state inpatient activity (non-day cases)*" = "ip_non_day",
           "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
           "Additional monthly removals required" = "monthly_removals"
         )
@@ -264,6 +268,10 @@ full_table <- params$optimised_projections |>
         "Steady state_Treatment capacity" = "capacity_ss",
         "Steady state_Reneges" = "reneges_ss",
         "Steady state_Waiting list size" = "incompletes_ss",
+        "Steady state_Crude activity to first attendance (outpatient)" = "op_to_first",
+        "Steady state_Crude follow up attendances (outpatient)" = "op_follow_up",
+        "Steady state_Crude inpatient activity (day cases)" = "ip_day",
+        "Steady state_Crude inpatient activity (non-day cases)" = "ip_non_day",
         "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
         "Additional monthly removals required" = "monthly_removals"
       )
@@ -274,7 +282,7 @@ full_table <- params$optimised_projections |>
   mutate(`Do nothing_Performance` = paste0(formatC(`Do nothing_Performance` * 100, format = "f", digits = 1), "%"))
 
 # chunk up the results to prevent them spilling over the bottom of the slide
-  chunk_size <- 7
+  chunk_size <- 4
   split_tbl <- split(full_table, ceiling(seq_len(nrow(full_table)) / chunk_size))
 
 for (i in seq_len(length((split_tbl)))) {
@@ -289,7 +297,7 @@ for (i in seq_len(length((split_tbl)))) {
     flextable::fontsize(size = 8, part = "all") |> 
     flextable::vline(j = c(3, 9, 14, 18)) |> 
     flextable::border_outer() |> 
-    flextable::width(width = 30 / 20, unit = "cm") |>
+    flextable::width(width = 1.25, unit = "cm") |>
     flextable::theme_vanilla() |>
     flextable::bg(part = "header", bg = "#002060") |> 
     flextable::color(part = "header", color = "white") |>

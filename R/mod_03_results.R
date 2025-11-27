@@ -787,7 +787,7 @@ mod_03_results_server <- function(id, r) {
             convert_clock_stops_to_activity() |>
             purrr::pluck(1)
 
-          if (!is.null(activity_table)) {
+          if (!"Unable to compute" %in% names(activity_table)) {
             activity_lkp <- dplyr::tibble(
               type = c(
                 rep("Outpatient", 4),
@@ -823,14 +823,18 @@ mod_03_results_server <- function(id, r) {
                 count = sum(.data$count),
                 .by = c("treatment_function", "type", "metric")
               ) |>
-              mutate(count = round(.data$count, 0))
+              mutate(
+                count = round(.data$count, 0),
+                proportion = .data$count / sum(.data$count),
+                .by = "type"
+              )
 
             activity_table_ui <- reactable::reactable(
               activity_table,
               filterable = FALSE,
               showPageSizeOptions = FALSE,
               fullWidth = FALSE,
-              width = 700,
+              width = 850,
               defaultPageSize = 10,
               defaultColDef = colDef(
                 vAlign = "center",
@@ -862,6 +866,13 @@ mod_03_results_server <- function(id, r) {
                     definition = "Count of activity in the projected period."
                   ),
                   format = colFormat(separators = TRUE)
+                ),
+                proportion = colDef(
+                  header = name_with_tooltip(
+                    "Proportion of pathway type",
+                    definition = "Proportion of pathway type that activity comprises in the projected period."
+                  ),
+                  format = colFormat(percent = TRUE, digits = 1)
                 )
               )
             )

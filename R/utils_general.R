@@ -280,7 +280,10 @@ convert_weeks_to_months <- function(wks) {
 #' convert_clock_stops_to_activity()
 #' @noRd
 convert_clock_stops_to_activity <- function(clock_stops) {
-  if (names(clock_stops) %in% specialty_lkp$Treatment.Function.Name) {
+  if (
+    any(names(clock_stops) %in% specialty_lkp$Treatment.Function.Name) &
+      any(names(clock_stops) %in% raw_activity_proportions$treatment_function)
+  ) {
     reformatted_activity_proportions <- raw_activity_proportions |>
       filter(
         .data$treatment_function %in%
@@ -378,9 +381,40 @@ convert_clock_stops_to_activity <- function(clock_stops) {
       ) |>
       (\(x) split(x, x$treatment_function))()
   } else {
-    overall_activity <- list()
+    overall_activity <- NULL
   }
 
+  missing_treatments <- c(
+    setdiff(
+      names(clock_stops),
+      specialty_lkp$Treatment.Function.Name
+    ),
+    setdiff(
+      names(clock_stops),
+      raw_activity_proportions$treatment_function
+    )
+  ) |>
+    unique()
+
+  missing_treatment_activity <- dplyr::tibble(
+    treatment_function = missing_treatments
+  ) |>
+    dplyr::cross_join(
+      dplyr::tibble(
+        "avg_op_first_activity_per_pathway_op_only" = NA,
+        "avg_op_flup_activity_per_pathway_op_only" = NA,
+        "avg_op_first_activity_per_pathway_mixed" = NA,
+        "avg_op_flup_activity_per_pathway_mixed" = NA,
+        "ip_daycase_count" = NA,
+        "ip_non_daycase_count" = NA
+      )
+    ) |>
+    (\(x) split(x, x$treatment_function))()
+
+  overall_activity <- c(
+    overall_activity,
+    missing_treatment_activity
+  )
   return(overall_activity)
 }
 
