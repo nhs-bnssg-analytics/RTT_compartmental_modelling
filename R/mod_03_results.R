@@ -893,13 +893,19 @@ mod_03_results_server <- function(id, r) {
           p(
             paste(
               "This table shows the estimated activity associated with the combined",
-              format(
+              formatC(
                 clock_stops$calculated_treatments,
                 big.mark = ",",
-                nsmall = 0
+                digits = 0,
+                format = "f"
               ),
               "treatments and",
-              format(clock_stops$reneges, big.mark = ",", nsmall = 0),
+              formatC(
+                clock_stops$reneges,
+                big.mark = ",",
+                digits = 0,
+                format = "f"
+              ),
               "reneges for the projected period."
             )
           ),

@@ -670,6 +670,27 @@ mod_08_batch_server <- function(id) {
                       "_referrals",
                       "",
                       .data$referrals_scenario
+                    ),
+                    referrals_scenario = case_when(
+                      grepl("Medium", .data$referrals_scenario) ~ paste0(
+                        .data$referrals_scenario,
+                        " (",
+                        input$referral_bin_medium,
+                        "%)"
+                      ),
+                      grepl("Low", .data$referrals_scenario) ~ paste0(
+                        .data$referrals_scenario,
+                        " (",
+                        input$referral_bin_low,
+                        "%)"
+                      ),
+                      grepl("High", .data$referrals_scenario) ~ paste0(
+                        .data$referrals_scenario,
+                        " (",
+                        input$referral_bin_high,
+                        "%)"
+                      ),
+                      .default = .data$referrals_scenario
                     )
                   )
               }
