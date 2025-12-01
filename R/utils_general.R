@@ -268,6 +268,7 @@ convert_weeks_to_months <- function(wks) {
   return(mnths)
 }
 
+#' Convert clock-stop counts to activity counts
 #' @importFrom dplyr filter inner_join left_join mutate select bind_rows tibble
 #' @importFrom tidyr pivot_longer pivot_wider
 #' @param clock_stops named list; items must be named with the specialty name,
@@ -278,7 +279,7 @@ convert_weeks_to_months <- function(wks) {
 #'   "Oral Surgery" = 772
 #' ) |>
 #' convert_clock_stops_to_activity()
-#' @noRd
+#' @export
 convert_clock_stops_to_activity <- function(clock_stops) {
   if (
     any(names(clock_stops) %in% specialty_lkp$Treatment.Function.Name) &
