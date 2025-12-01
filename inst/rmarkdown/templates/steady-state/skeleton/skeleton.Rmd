@@ -163,10 +163,6 @@ for (i in seq_len(nrow(params$optimised_wl))) {
           "Steady state treatment capacity" = "capacity_ss",
           "Steady state reneges" = "reneges_ss",
           "Steady state waiting list size" = "incompletes_ss",
-          # "Steady state activity to first attendance (outpatient)*" = "op_to_first",
-          # "Steady state follow up attendances (outpatient)*" = "op_follow_up",
-          # "Steady state inpatient activity (day cases)*" = "ip_day",
-          # "Steady state inpatient activity (non-day cases)*" = "ip_non_day",
           "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
           "Additional monthly removals required" = "monthly_removals"
         )
@@ -265,13 +261,13 @@ full_table <- params$optimised_projections |>
         "Do nothing_Waiting list size" = "incompletes_counterf",
         "Do nothing_Performance" = "perf_counterf",
         "Steady state_Demand" = "referrals_ss",
-        "Steady state_Treatment capacity" = "capacity_ss",
+        "Steady state_Treatment capacity (required)" = "capacity_ss",
         "Steady state_Reneges" = "reneges_ss",
-        "Steady state_Waiting list size" = "incompletes_ss",
-        "Steady state_Crude activity to first attendance (outpatient)" = "op_to_first",
-        "Steady state_Crude follow up attendances (outpatient)" = "op_follow_up",
-        "Steady state_Crude inpatient activity (day cases)" = "ip_day",
-        "Steady state_Crude inpatient activity (non-day cases)" = "ip_non_day",
+        "Steady state_Waiting list size (required)" = "incompletes_ss",
+        "Steady state_Required number of first outpatient attendances" = "op_to_first",
+        "Steady state_Required number of follow up outpatient attendances" = "op_follow_up",
+        "Steady state_Required number of day case admissions" = "ip_day",
+        "Steady state_Required number of non-day case admissions" = "ip_non_day",
         "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
         "Additional monthly removals required" = "monthly_removals"
       )

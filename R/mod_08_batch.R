@@ -1148,7 +1148,7 @@ mod_08_batch_server <- function(id) {
             ),
             capacity_ss = colDef(
               header = name_with_tooltip(
-                "Treatments",
+                "Treatments (required)",
                 definition = "The calculated number of monthly treatments to achieve the steady-state solution based on the selected method."
               ),
               format = colFormat(digits = 1, separators = TRUE)
@@ -1162,35 +1162,35 @@ mod_08_batch_server <- function(id) {
             ),
             incompletes_ss = colDef(
               header = name_with_tooltip(
-                "Waiting list size",
+                "Waiting list size (required)",
                 definition = "The number of people on the waiting list in the steady-state solution based on the selected method."
               ),
               format = colFormat(digits = 0, separators = TRUE)
             ),
             op_to_first = colDef(
               header = name_with_tooltip(
-                "Crude activity to first attendance (outpatient)",
+                "Required number of first outpatient attendances \u24D8",
                 definition = "The count of outpatient activity until first attendance associated with steady state clock-stops. This uses national averages from 2022 per specialty."
               ),
               format = colFormat(digits = 0, separators = TRUE)
             ),
             op_follow_up = colDef(
               header = name_with_tooltip(
-                "Crude follow up attendances (outpatient)",
+                "Required number of follow up outpatient attendances \u24D8",
                 definition = "The count of outpatient follow up activity associated with steady state clock-stops. This uses national averages from 2022 per specialty."
               ),
               format = colFormat(digits = 0, separators = TRUE)
             ),
             ip_day = colDef(
               header = name_with_tooltip(
-                "Crude inpatient activity (day cases)",
+                "Required number of day case admissions \u24D8",
                 definition = "The count of inpatient day cases associated with steady state clock-stops. This uses national averages from 2022 per specialty."
               ),
               format = colFormat(digits = 0, separators = TRUE)
             ),
             ip_non_day = colDef(
               header = name_with_tooltip(
-                "Crude inpatient activity (non-day cases)",
+                "Required number of non-day case admissions \u24D8",
                 definition = "The count of inpatient non-day cases associated with steady state clock-stops. This uses national averages from 2022 per specialty."
               ),
               format = colFormat(digits = 0, separators = TRUE),
@@ -1307,13 +1307,13 @@ mod_08_batch_server <- function(id) {
                 "Do nothing waiting list size" = "incompletes_counterf",
                 "Do nothing performance" = "perf_counterf",
                 "Steady state demand" = "referrals_ss",
-                "Steady state treatment capacity" = "capacity_ss",
+                "Steady state treatment capacity (required)" = "capacity_ss",
                 "Steady state reneges" = "reneges_ss",
-                "Steady state waiting list size" = "incompletes_ss",
-                "Crude activity to first attendance (outpatient)" = "op_to_first",
-                "Crude follow up attendances (outpatient)" = "op_follow_up",
-                "Crude inpatient activity (day cases)" = "ip_day",
-                "Crude inpatient activity (non-day cases)" = "ip_non_day",
+                "Steady state waiting list size (required)" = "incompletes_ss",
+                "Required number of first outpatient attendances" = "op_to_first",
+                "Required number of follow up outpatient attendances" = "op_follow_up",
+                "Required number of day case admissions" = "ip_day",
+                "Required number of non-day case admissions" = "ip_non_day",
                 "Current / steady state waiting list size" = "current_vs_ss_wl_ratio",
                 "Required monthly change in waiting list size" = "monthly_removals"
               )
