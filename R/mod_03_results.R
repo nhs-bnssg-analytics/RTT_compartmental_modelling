@@ -61,7 +61,8 @@ mod_03_results_server <- function(id, r) {
       temp_data = NULL,
       facet_scales = "fixed",
       facet_grouping = "months_waited_id",
-      calc_res = 96
+      calc_res = 96,
+      activity_table = NULL
     )
 
     # dynamic sidebar ---------------------------------------------------------
@@ -802,12 +803,12 @@ mod_03_results_server <- function(id, r) {
                 "ip_non_daycase_count"
               ),
               metric = c(
-                "Activity to first appointment",
-                "Follow up activity",
-                "Activity to first appointment",
-                "Follow up activity",
-                "Inpatient day cases",
-                "Inpatient non-day cases"
+                "First attendances",
+                "Follow up attendances",
+                "First attendances",
+                "Follow up attendances",
+                "Day case admissions",
+                "Non-day case admissions"
               )
             )
 
@@ -829,8 +830,10 @@ mod_03_results_server <- function(id, r) {
                 .by = "type"
               )
 
+            reactive_data$activity_table <- activity_table
+
             activity_table_ui <- reactable::reactable(
-              activity_table,
+              reactive_data$activity_table,
               filterable = FALSE,
               showPageSizeOptions = FALSE,
               fullWidth = FALSE,
@@ -880,6 +883,21 @@ mod_03_results_server <- function(id, r) {
             NULL
           }
         })
+
+        output$copy_to_clipboard <- renderUI({
+          if (sum(reactive_data$activity_table$count, na.rm = TRUE) != 0) {
+            actionButton(
+              inputId = ns("copy_btn"),
+              label = "Copy results to clipboard",
+              icon = shiny::icon("clipboard"),
+              class = "copy-button",
+              width = "300px"
+            )
+          } else {
+            NULL
+          }
+        })
+
         final_ui <- card_body(
           p(
             "NHS England analysis from 2022 calculated average associated activity with all clock stops, by specialty, at a national level."
@@ -909,6 +927,7 @@ mod_03_results_server <- function(id, r) {
               "reneges for the projected period."
             )
           ),
+          uiOutput(ns("copy_to_clipboard")),
           reactable::reactableOutput(ns("activity_table"))
         )
       } else {
@@ -1061,6 +1080,21 @@ mod_03_results_server <- function(id, r) {
       }
       final_ui
     })
+
+    # copy results
+    observeEvent(
+      input$copy_btn,
+      {
+        if (input$copy_btn > 0) {
+          write.table(
+            reactive_data$activity_table,
+            file = "clipboard",
+            sep = "\t",
+            row.names = FALSE
+          )
+        }
+      }
+    )
 
     # Show modal when edit button is clicked
     observeEvent(input$edit_data, {
