@@ -657,7 +657,7 @@ mod_08_batch_server <- function(id) {
                       }
                     )
                   ) |>
-                  tidyr::unnest(activity) |>
+                  tidyr::unnest("activity") |>
                   dplyr::mutate(
                     current_vs_ss_wl_ratio = round(
                       .data$incompletes_t0 / .data$incompletes_ss,

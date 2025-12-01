@@ -1086,7 +1086,7 @@ mod_03_results_server <- function(id, r) {
       input$copy_btn,
       {
         if (input$copy_btn > 0) {
-          write.table(
+          utils::write.table(
             reactive_data$activity_table,
             file = "clipboard",
             sep = "\t",
