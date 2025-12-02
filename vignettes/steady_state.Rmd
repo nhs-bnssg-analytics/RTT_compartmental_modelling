@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 ## Purpose
 
-The purpose of this article is to support users of the RTT Planner app that are not currently able to achieve what they want to from the Steady State section, because the data within the app are only configured to revolve around Trusts (eg, it isn't possible to aggregate within the tool). Examples of what you might want to do, but can't currently achieve within the app, are:
+The purpose of this article is to support users of the [RTT Planner](https://connect.strategyunitwm.nhs.uk/rtt_compartmental_modelling/) app that are not currently able to achieve what they want to from the Steady State section, because the data within the app are only configured to revolve around Trusts (eg, it isn't possible to aggregate within the tool). Examples of what you might want to do, but can't currently achieve within the app, are:
 
 1. You work for an Integrated Care Board and are interested in modelling for your registered population
 2. You work at a trust but want to model at sub-specialty level
@@ -32,7 +32,7 @@ Having said this, there is no reason that the functions described and used here 
 
 ## Objective
 
-The aim of this article is to show how to produce the table in the steady state table of the RTT Planner tool, for 2 different specialties (ear, nose and throat, and oral surgery) in one geography (an ICB commissioning area) and one demand scenario, using code. Readers should then be able to either change the inputs shown here, or upload their own data into R and apply the same principles, to obtain results for configurations that they are interested in.
+The aim of this article is to show how to produce the table in the steady state tab in the RTT Planner tool, for 2 different specialties (ear, nose and throat, and oral surgery) in one geography (an ICB commissioning area) and one demand scenario, using code. Readers should then be able to either change the inputs shown here, or upload their own data into R and apply the same principles, to obtain results for configurations that they are interested in.
 
 ## Libraries
 
@@ -55,7 +55,7 @@ library(purrr)
 
 ## Obtaining the data
 
-This section shows how to import public. At the end of this section, the data will be in a shape to pass into the modelling. If the user is considering applying this article to local data, take note of what the data look like at the end of this section.
+This section shows how to import public data. At the end of this section, the data will be in a shape to pass into the modelling. If the user is considering applying this article to local data, take note of what the data look like at the end of this section.
 
 ### Setting up the scenario
 
@@ -81,6 +81,10 @@ spec_codes <- c(
   "C_140" # oral surgery
 )
 
+spec_lkp <- dplyr::tibble(
+  specialty = spec_codes,
+  specialty_name = c("Ear Nose and Throat", "Oral Surgery")
+)
 # need a lookup table from month to id
 period_lkp <- tibble(
   period = seq(
@@ -102,6 +106,8 @@ forecast_months <- lubridate::interval(
 ) %/%
   months(1) +
   1 # the plus 1 makes is inclusive of the final month
+
+
 ```
 
 ### Downloading the data
@@ -126,6 +132,9 @@ processed_rtt <- monthly_rtt |>
     )
   ) |>
   left_join(period_lkp, by = "period") |>
+  left_join(spec_lkp, by = "specialty") |> 
+  select(!c("specialty")) |> 
+  rename(specialty = "specialty_name") |> 
   summarise(
     value = sum(value),
     .by = c("specialty", "period_id", "months_waited_id", "type")
@@ -142,7 +151,7 @@ Here is what the processed data look like before 'nesting' it
 #| label: display-processed-data
 #| echo: false
 
-head(processed_rtt)
+print(processed_rtt)
 ```
 
 ### Target renege rates
@@ -452,7 +461,7 @@ optimised_projections <- optimised_projections |>
 
 ## Results
 
-This is what the resulting table looks like. The column headers are still in raw form.
+This is what the resulting table looks like. The column headers are still in raw form and there has been no rounding to any of the data.
 
 
 ```{r}

@@ -8,3 +8,4 @@ articles:
     navbar: ~
     contents:
       - RTT_Planner_exercise
+      - steady_state
