@@ -1,6 +1,6 @@
 # Changelog
 
-## RTTshiny 2.0.0.9001
+## RTTshiny 2.0.1
 
 ### Results
 

@@ -1,0 +1,494 @@
+# The quick coding way to model a steady state solution
+
+## Purpose
+
+The purpose of this article is to support users of the [RTT
+Planner](https://connect.strategyunitwm.nhs.uk/rtt_compartmental_modelling/)
+app that are not currently able to achieve what they want to from the
+Steady State section, because the data within the app are only
+configured to revolve around Trusts (eg, it isn’t possible to aggregate
+within the tool). Examples of what you might want to do, but can’t
+currently achieve within the app, are:
+
+1.  You work for an Integrated Care Board and are interested in
+    modelling for your registered population
+2.  You work at a trust but want to model at sub-specialty level
+3.  You work at NHS England and want to get an overall regional picture
+
+Finally, this article shows how to apply the functionality to multiple
+geographies and specialties together (eg, a batch application). This
+uses the [purrr](https://purrr.tidyverse.org/) package.
+
+## Caveats
+
+This article shows how to use the code underpinning the RTT Planner
+tool. The functions used here were not developed to be used within code,
+as this article is demonstrating. The reason for putting this article
+together is to address a lot of questions we have received since
+publishing the tool, but will not be able to address within the tool
+within a reasonable timescale.
+
+Having said this, there is no reason that the functions described and
+used here will break in the near future, so, for the foreseeable future,
+it should be ok to replicate the code below.
+
+## Objective
+
+The aim of this article is to show how to produce the table in the
+steady state tab in the RTT Planner tool, for 2 different specialties
+(ear, nose and throat, and oral surgery) in one geography (an ICB
+commissioning area) and one demand scenario, using code. Readers should
+then be able to either change the inputs shown here, or upload their own
+data into R and apply the same principles, to obtain results for
+configurations that they are interested in.
+
+## Libraries
+
+Here are the libraries you will need to import to replicate the code in
+this article. Two of the libraries are from GitHub (not CRAN) and so you
+may need to uncomment the commented lines out to install them before
+being able to write
+[`library(NHSRtt)`](https://nhs-bnssg-analytics.github.io/NHSRtt/) (for
+example).
+
+``` r
+# install.packages("devtools")
+# devtools::install_github("nhs-bnssg-analytics/NHSRtt")
+# devtools::install_github("nhs-bnssg-analytics/RTT_compartmental_modelling")
+library(dplyr)
+library(NHSRtt)
+library(RTTshiny)
+library(lubridate)
+library(tidyr)
+library(purrr)
+```
+
+## Obtaining the data
+
+This section shows how to import public data. At the end of this
+section, the data will be in a shape to pass into the modelling. If the
+user is considering applying this article to local data, take note of
+what the data look like at the end of this section.
+
+### Setting up the scenario
+
+``` r
+calibration_start <- as.Date("2024-08-01") # amend as necessary
+calibration_end <- as.Date("2025-09-30") # amend as necessary
+prediction_start <- calibration_end + 1
+prediction_end <- as.Date("2029-03-31") # amend as necessary
+commissioner_code <- "15E" # this is used for downloading public data
+max_months_waited <- 12 # I am only interested in waiting time compartments up to 12 months (everything above this gets aggregated into one compartment)
+target_percentile <- 0.92 # eg, 92%
+target_week <- 18 # eg, 18 week performance target
+referral_scenario <- tibble(
+  referrals_scenario = "Medium_referrals",
+  referral_change = 1 # these are the annual percentage increase in demand
+)
+
+spec_codes <- c(
+  "C_120", # ear, nose, throat
+  "C_140" # oral surgery
+)
+
+spec_lkp <- dplyr::tibble(
+  specialty = spec_codes,
+  specialty_name = c("Ear Nose and Throat", "Oral Surgery")
+)
+# need a lookup table from month to id
+period_lkp <- tibble(
+  period = seq(
+    from = calibration_start,
+    to = floor_date(prediction_end, unit = "months"),
+    by = "months"
+  )
+) |>
+  mutate(period_id = dplyr::row_number())
+
+# calculate the number of months for projection period
+forecast_months <- lubridate::interval(
+  lubridate::floor_date(
+    calibration_end,
+    unit = "months"
+  ) %m+%
+    months(1),
+  prediction_end
+) %/%
+  months(1) +
+  1 # the plus 1 makes is inclusive of the final month
+```
+
+### Downloading the data
+
+Here the public data are downloaded and processed into the shape
+required later.
+
+``` r
+monthly_rtt <- NHSRtt::get_rtt_data(
+  date_start = calibration_start,
+  date_end = calibration_end,
+  commissioner_org_codes = commissioner_code,
+  specialty_codes = spec_codes,
+  show_progress = FALSE # can change this to TRUE to see progress
+)
+
+processed_rtt <- monthly_rtt |>
+  mutate(
+    months_waited_id = NHSRtt::convert_months_waited_to_id(
+      months_waited,
+      max_months_waited = max_months_waited
+    )
+  ) |>
+  left_join(period_lkp, by = "period") |>
+  left_join(spec_lkp, by = "specialty") |> 
+  select(!c("specialty")) |> 
+  rename(specialty = "specialty_name") |> 
+  summarise(
+    value = sum(value),
+    .by = c("specialty", "period_id", "months_waited_id", "type")
+  ) |> 
+  mutate(
+    # the functions below need "trust" and "specialty" fields to work (when running this for a batch, these can be replaced with real values)
+    trust = commissioner_code
+  )
+```
+
+Here is what the processed data look like before ‘nesting’ it
+
+    #> # A tibble: 756 × 6
+    #>    specialty    period_id months_waited_id type       value trust
+    #>    <chr>            <int>            <dbl> <chr>      <dbl> <chr>
+    #>  1 Oral Surgery        14                0 Incomplete 1707. 15E  
+    #>  2 Oral Surgery        14                1 Incomplete 1699. 15E  
+    #>  3 Oral Surgery        14                2 Incomplete 1805. 15E  
+    #>  4 Oral Surgery        14                3 Incomplete 1636. 15E  
+    #>  5 Oral Surgery        14                4 Incomplete 1527. 15E  
+    #>  6 Oral Surgery        14                5 Incomplete 1253  15E  
+    #>  7 Oral Surgery        14                6 Incomplete  878. 15E  
+    #>  8 Oral Surgery        14                7 Incomplete  560. 15E  
+    #>  9 Oral Surgery        14                8 Incomplete  347. 15E  
+    #> 10 Oral Surgery        14                9 Incomplete  267. 15E  
+    #> # ℹ 746 more rows
+
+### Target renege rates
+
+As well as a target performance, The steady-state calculation needs a
+target renege rate - the proportion of departures that are reneges.
+Here, it is calculated as the median value from the calibration period
+(by specialty). This can be a user input, so see the table below for
+what the resulting input table needs to look like.
+
+``` r
+# calculate historical renege rates
+renege_target <- processed_rtt |>
+  # calibrate_parameters is an internal function that does a load of data processing before calibrating the parameters;
+  # in this case it is used to create a big table of monthly data so we can obtain the monthly reneges;
+  # here it creates a table with 2 records (one for each specialty) with columns containing "nested tables" for treatments, referrals and incompletes for the calibration period, and then it calculates the model parameters based on those columns
+  RTTshiny:::calibrate_parameters(
+    max_months_waited = 12,
+    redistribute_m0_reneges = FALSE,
+    referrals_uplift = NULL,
+    full_breakdown = TRUE,
+    allow_negative_params = TRUE
+  ) |>
+  dplyr::select("trust", "specialty", "params") |>
+  tidyr::unnest("params") |>
+  dplyr::mutate(
+    reneges = case_when(
+      # when modelling occurs, referrals are uplifted where reneges are negative in the first month of waiting to accommodate underreporting of referrals - so reneges are floored to 0 when they are negative
+      reneges < 0 & months_waited_id == 0 ~ 0,
+      .default = reneges
+    )
+  ) |>
+  # calculate the monthly proportion of departures that are reneges
+  summarise(
+    renege_proportion = sum(reneges) /
+      (sum(reneges) + sum(treatments)),
+    .by = c("trust", "specialty", "period_id")
+  ) |>
+  dplyr::mutate(
+    renege_proportion = case_when(
+      renege_proportion < 0 ~ NA_real_,
+      .default = renege_proportion
+    )
+  ) |>
+  # calculate the median value
+  summarise(
+    renege_proportion = stats::median(
+      renege_proportion,
+      na.rm = TRUE
+    ),
+    .by = c("trust", "specialty")
+  )
+```
+
+    #> # A tibble: 2 × 3
+    #>   trust specialty           renege_proportion
+    #>   <chr> <chr>                           <dbl>
+    #> 1 15E   Ear Nose and Throat             0.233
+    #> 2 15E   Oral Surgery                    0.108
+
+## Modelling steady state
+
+We are ready to model the steady-state table. This has 3 main parts:
+
+1.  The current situation
+2.  The steady-state scenario
+3.  The do-nothing scenario
+
+### Current situation
+
+The `append_current_status()` function creates the current situation
+part of the table.
+
+``` r
+# this normally gives a warning about negative reneges
+current <- processed_rtt |>
+  left_join(period_lkp, by = "period_id") |>
+  RTTshiny:::append_current_status(
+    max_months_waited = max_months_waited,
+    percentile = target_percentile,
+    percentile_month = RTTshiny:::convert_weeks_to_months(target_week)
+  ) |>
+  # add the referrals scenarios
+  dplyr::cross_join(referral_scenario) |>
+  mutate(id = dplyr::row_number())
+#> Warning: There were 2 warnings in `mutate()`.
+#> The first warning was:
+#> ℹ In argument: `params = purrr::pmap(...)`.
+#> Caused by warning in `NHSRtt::calibrate_capacity_renege_params()`:
+#> ! negative renege parameters present, investigate raw data
+#> ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning.
+```
+
+    #> # A tibble: 2 × 12
+    #>   trust specialty       referrals_t1 capacity_t1 reneges_t0  load incompletes_t0
+    #>   <chr> <chr>                  <dbl>       <dbl>      <dbl> <dbl>          <dbl>
+    #> 1 15E   Ear Nose and T…        2055.       1756.       703.  0.84          14117
+    #> 2 15E   Oral Surgery           1907.       1820.       952.  0.69          12045
+    #> # ℹ 5 more variables: params <list>, pressure <dbl>, referrals_scenario <chr>,
+    #> #   referral_change <dbl>, id <int>
+
+### Steady-state
+
+Steady state is modelled before the “do-nothing” scenario, because the
+future demand is an output of the `append_steady_state()` function. This
+is an input to the `append_counterfactual()` function used to model
+“do-nothing”.
+
+``` r
+# A constraint to the steady state modelling is how the treatment is distributed across the waiting list.
+# The model wants to minimise the difference between the resulting solution and some provided distribution of treatment.
+# Here, we calculate the median distribution seen in the calibration period
+s_given <- processed_rtt |>
+  left_join(period_lkp, by = "period_id") |>
+  RTTshiny:::calculate_s_given(
+    max_months_waited = max_months_waited,
+    method = "median" # can also be "mean" or "latest"
+  )
+
+optimised_projections <- current |>
+  # add historic treatment distributions
+  left_join(
+    s_given,
+    by = c("trust", "specialty")
+  ) |>
+  # add historic renege rates by specialty
+  left_join(
+    renege_target |>
+      dplyr::select("trust", "specialty", "renege_proportion"),
+    by = c("trust", "specialty")
+  ) |>
+  mutate(
+    # calculate steady state demand
+    referrals_ss = referrals_t1 +
+      ((referrals_t1 * referral_change / 100) *
+        forecast_months /
+        12),
+    target = renege_proportion,
+    # here we apply the append_steady_state function one row at a time
+    ss_calcs = purrr::pmap(
+      list(
+        ref_ss = referrals_ss,
+        targ = target,
+        par = params,
+        s = s_given,
+        id = id
+      ),
+      \(ref_ss, targ, par, s, id) {
+        # here is where the steady state calculation occurs
+        out <- RTTshiny:::append_steady_state(
+          referrals = ref_ss,
+          target = targ,
+          renege_params = par$renege_param,
+          percentile = target_percentile,
+          target_time = target_week,
+          s_given = s,
+          method = "lp",
+          tolerance = 0.005
+        )
+
+        return(out)
+      }
+    )
+  ) |>
+  unnest("ss_calcs") |>
+  mutate(
+    # This is where activity is calculated from treatment and renege clock stops.
+    # It uses England-level analysis, by specialty, from 2022 - and applies high-level
+    # proportions to the clock stop counts to calculate activity (inpatient and outpatient)
+    activity = purrr::map2(
+      .x = .data$specialty,
+      .y = .data$capacity_ss + .data$reneges_ss,
+      \(x, y) {
+        activity_summary <- setNames(
+          y,
+          nm = x
+        ) |>
+          RTTshiny::convert_clock_stops_to_activity() |>
+          purrr::pluck(1)
+
+        op_to_first_calc <- activity_summary$avg_op_first_activity_per_pathway_op_only +
+          activity_summary$avg_op_first_activity_per_pathway_mixed
+
+        op_follow_up_calc <- activity_summary$avg_op_flup_activity_per_pathway_op_only +
+          activity_summary$avg_op_flup_activity_per_pathway_mixed
+
+        activity_out <- dplyr::tibble(
+          op_to_first = op_to_first_calc,
+          op_follow_up = op_follow_up_calc,
+          ip_day = activity_summary$ip_daycase_count,
+          ip_non_day = activity_summary$ip_non_daycase_count
+        )
+        return(activity_out)
+      }
+    )
+  ) |>
+  tidyr::unnest("activity") |>
+  mutate(
+    # calculate the ratio of the current waiting list size
+    # to the steady state waiting list size
+    current_vs_ss_wl_ratio = round(
+      incompletes_t0 / incompletes_ss,
+      2
+    ),
+    # calculate the monthly reduction in waiting list size to 
+    # achieve the required waiting list size
+    monthly_reduction = (incompletes_t0 -
+      incompletes_ss) /
+      forecast_months,
+    referrals_scenario = gsub(
+      "_referrals",
+      "",
+      referrals_scenario
+    )
+  )
+```
+
+### Do-nothing
+
+This is where the counterfactual is calculated.
+
+``` r
+# First, the waiting list size and distribution at the end of the calibration period
+# needs to be calculated
+wl_t0 <- processed_rtt |>
+  left_join(period_lkp, by = "period_id") |>
+  filter(
+    type == "Incomplete",
+    period == max(period)
+  ) |>
+  select(!c("period", "period_id", "type")) |>
+  rename(incompletes = "value") |>
+  tidyr::nest(wl_t0 = c("months_waited_id", "incompletes"))
+```
+
+``` r
+print(wl_t0)
+#> # A tibble: 2 × 3
+#>   specialty           trust wl_t0            
+#>   <chr>               <chr> <list>           
+#> 1 Oral Surgery        15E   <tibble [13 × 2]>
+#> 2 Ear Nose and Throat 15E   <tibble [13 × 2]>
+```
+
+``` r
+optimised_projections <- optimised_projections |>
+  left_join(wl_t0, by = c("trust", "specialty")) |>
+  mutate(
+    id = dplyr::row_number(),
+    counterfactual = purrr::pmap(
+      list(
+        cap = capacity_t1, # capacity is constant (current value) for projection period
+        ref_start = referrals_t1, # demand begins with current demand
+        ref_end = referrals_ss, # demand is the steady state demand
+        inc = wl_t0,
+        par = params,
+        t = trust,
+        sp = specialty,
+        id = id
+      ),
+      \(cap, ref_start, ref_end, inc, par, t, sp, id) {
+        counterf <- RTTshiny:::append_counterfactual(
+          capacity = cap,
+          referrals_start = ref_start,
+          referrals_end = ref_end,
+          incompletes_t0 = inc,
+          renege_capacity_params = par,
+          forecast_months = forecast_months,
+          target_week = target_week
+        )
+        return(counterf)
+      }
+    )
+  ) |>
+  tidyr::unnest("counterfactual") |>
+  dplyr::select(
+    !c(
+      "params",
+      "referral_change",
+      "id",
+      "renege_proportion",
+      "target",
+      "wl_ss",
+      "wl_t0",
+      "s_given",
+      "id"
+    )
+  ) |>
+  mutate(
+    referrals_counterf = referrals_ss, # eg, demand is the steady state demand
+    capacity_counterf = capacity_t1 # eg, capacity stays the same as current
+  ) |>
+  distinct() |>
+  dplyr::relocate(
+    dplyr::all_of(
+      c(
+        "referrals_counterf",
+        "capacity_counterf",
+        "reneges_counterf",
+        "incompletes_counterf",
+        "perf_counterf"
+      )
+    ),
+    .before = "referrals_ss"
+  ) |>
+  dplyr::relocate(
+    "referrals_scenario",
+    .after = "specialty"
+  )
+```
+
+## Results
+
+This is what the resulting table looks like. The column headers are
+still in raw form and there has been no rounding to any of the data.
+
+``` r
+print(optimised_projections)
+```
+
+| trust | specialty           | referrals_scenario | referrals_t1 | capacity_t1 | reneges_t0 | load | incompletes_t0 | pressure | referrals_counterf | capacity_counterf | reneges_counterf | incompletes_counterf | perf_counterf | referrals_ss | capacity_ss | reneges_ss | incompletes_ss | op_to_first | op_follow_up |   ip_day | ip_non_day | current_vs_ss_wl_ratio | monthly_reduction |
+|:------|:--------------------|:-------------------|-------------:|------------:|-----------:|-----:|---------------:|---------:|-------------------:|------------------:|-----------------:|---------------------:|--------------:|-------------:|------------:|-----------:|---------------:|------------:|-------------:|---------:|-----------:|-----------------------:|------------------:|
+| 15E   | Ear Nose and Throat | Medium             |     2055.444 |    1755.923 |    702.766 | 0.84 |          14117 | 2.953936 |           2127.385 |          1755.923 |         368.8032 |            10636.897 |     0.4630164 |     2127.385 |    1951.838 |   175.5470 |       5578.415 |    2260.857 |     2247.071 | 245.5990 |   88.54930 |                   2.53 |          203.2996 |
+| 15E   | Oral Surgery        | Medium             |     1906.705 |    1819.923 |    952.246 | 0.69 |          12045 | 1.943767 |           1973.440 |          1819.923 |         166.4405 |             6098.088 |     0.7035103 |     1973.440 |    1898.873 |    74.5673 |       6205.471 |    1441.243 |     1542.756 | 501.7495 |   32.02656 |                   1.94 |          139.0364 |
