@@ -336,6 +336,19 @@ check_imported_data <- function(imported_data) {
     )
   }
 
+  # check dates are the 1st of the month
+  if (!all(lubridate::day(imported_data$period) == 1)) {
+    msg <- "Data not loaded. Dates in file must be the 1st of the month, representing the month ahead."
+    data_checked <- NULL
+
+    return(
+      list(
+        msg = msg,
+        imported_data_checked = data_checked
+      )
+    )
+  }
+
   # Check if 'type' column has valid values
   valid_types <- c("Referrals", "Incomplete", "Complete")
   invalid_types <- setdiff(unique(imported_data$type), valid_types)
@@ -379,7 +392,7 @@ check_imported_data <- function(imported_data) {
     )
   }
 
-  # check incompletes have same number of periods than completes
+  # check incompletes have same number of periods as completes
   incompletes_periods <- imported_data |>
     filter(.data$type == "Incomplete") |>
     dplyr::distinct(.data$period, .data$months_waited_id) |>

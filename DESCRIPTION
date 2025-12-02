@@ -1,6 +1,6 @@
 Package: RTTshiny
 Title: A Shiny App to support teams to plan to reduce waiting list times
-Version: 2.0.0
+Version: 2.0.1
 Authors@R: c(
     person("Seb", "Fox", , "sebastian.fox3@nhs.net", role = c("aut", "cre")),
     person("Simon", "Wellesley-Miller", , "simon.wellesley-miller@nhs.net", role = "aut"),
@@ -25,6 +25,7 @@ Imports:
     golem (>= 0.4.1),
     lubridate,
     NHSRtt (>= 0.4.1),
+    pins,
     pkgload,
     purrr,
     reactable,
@@ -38,6 +39,7 @@ Imports:
     utils
 Suggests: 
     flextable,
+    knitr,
     spelling,
     testthat (>= 3.0.0),
     vdiffr
@@ -49,3 +51,4 @@ Language: en-US
 LazyData: true
 RoxygenNote: 7.3.3
 URL: https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/
+VignetteBuilder: knitr

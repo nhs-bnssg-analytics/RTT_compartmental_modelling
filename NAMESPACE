@@ -2,6 +2,7 @@
 
 export(calc_performance)
 export(calc_shortfall)
+export(convert_clock_stops_to_activity)
 export(plot_output)
 export(plot_waiting_lists_chart)
 export(run_app)

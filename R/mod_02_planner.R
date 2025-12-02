@@ -180,8 +180,8 @@ mod_02_planner_ui <- function(id) {
       ),
       layout_columns(
         col_widths = c(3, 2),
-        span(HTML(paste(
-          "Annual percentage change in",
+        span(HTML(paste0(
+          "Annual percentage change in ",
           tooltip_label("referrals", "referral"),
           ":"
         ))),
@@ -290,11 +290,13 @@ mod_02_planner_server <- function(id, r) {
 
     ns <- session$ns
 
-    final_data_period <- readRDS(system.file(
-      "extdata",
-      "rtt_12months.rds",
-      package = "RTTshiny"
-    )) |>
+    board <- pins::board_url(c(
+      rtt_12months = board_12,
+      rtt_24months = board_24
+    ))
+
+    final_data_period <- board |>
+      pins::pin_read("rtt_12months") |>
       dplyr::pull(.data$period) |>
       max()
 
@@ -308,20 +310,11 @@ mod_02_planner_server <- function(id, r) {
       referrals_uplift = NULL,
       optimise_status_card_visible = NULL,
       performance_calculated = FALSE,
-      data_source = NULL, # should be either "upload" or "download"
       latest_date = final_data_period,
       forecast_start_date = final_data_period %m+%
         months(1),
       forecast_end_date = get_next_march(),
-      forecast_end_date_label = paste0(
-        "Forecast end date (start date - ",
-        format(
-          final_data_period %m+%
-            months(1),
-          "%b %Y"
-        ),
-        ")"
-      ),
+      forecast_end_date_label = "Forecast end date",
       import_success = NULL,
       error_calc = NULL,
       error_plot = NULL,
@@ -347,7 +340,8 @@ mod_02_planner_server <- function(id, r) {
       target_date = NULL,
       target_performance = NULL,
       optimise_status = NULL,
-      params = NULL
+      params = NULL,
+      data_source = NULL # should be either "upload" or "download"
     )
 
     # tooltip plots -----------------------------------------------------------
@@ -546,13 +540,8 @@ mod_02_planner_server <- function(id, r) {
             is.null(selections_labels$commissioners$selected_code)
           )
         ) {
-          r$all_data <- readRDS(
-            system.file(
-              "extdata",
-              "rtt_24months.rds",
-              package = "RTTshiny"
-            )
-          ) |>
+          r$all_data <- board |>
+            pins::pin_read("rtt_24months") |>
             dplyr::filter(
               .data$period >= min_download_date,
               .data$trust %in% selections_labels$trusts$selected_name,
@@ -761,14 +750,13 @@ mod_02_planner_server <- function(id, r) {
             )
         )
 
-        reactive_values$data_source <- "download"
+        r$chart_specification$data_source <- "download"
       },
       ignoreInit = TRUE
     )
 
     # provide renege params warning text --------------------------------------------
     output$renege_warning <- renderUI({
-      # browser()
       if (
         is.null(reactive_values$params) |
           isFALSE(reactive_values$data_downloaded)
@@ -982,13 +970,8 @@ mod_02_planner_server <- function(id, r) {
             is.null(selections_labels$commissioners$selected_code)
           )
         ) {
-          template_data <- readRDS(
-            system.file(
-              "extdata",
-              "rtt_24months.rds",
-              package = "RTTshiny"
-            )
-          ) |>
+          template_data <- board |>
+            pins::pin_read("rtt_24months") |>
             dplyr::filter(
               .data$period >= min_download_date,
               .data$trust %in% selections_labels$trusts$selected_name,
@@ -1254,6 +1237,19 @@ mod_02_planner_server <- function(id, r) {
           reactive_values$optimise_status_card_visible <- FALSE
           reactive_values$performance_calculated <- FALSE
           removeModal()
+
+          # create accuracy information
+          modelled_calibration_data <- split_and_model_calibration_data(
+            data = r$all_data,
+            referrals_uplift = FALSE
+          )
+
+          reactive_values$error_calc <- error_calc(
+            data = modelled_calibration_data,
+            target_bin = 4
+          )
+
+          r$chart_specification$data_source <- "upload"
         } else {
           notification_type <- "error"
           reactive_values$import_success <- FALSE
@@ -1264,19 +1260,6 @@ mod_02_planner_server <- function(id, r) {
           duration = 10,
           type = notification_type
         )
-
-        # create accuracy information
-        modelled_calibration_data <- split_and_model_calibration_data(
-          data = r$all_data,
-          referrals_uplift = FALSE
-        )
-
-        reactive_values$error_calc <- error_calc(
-          data = modelled_calibration_data,
-          target_bin = 4
-        )
-
-        reactive_values$data_source <- "upload"
       } else {
         showNotification(
           "Please enter some text before confirming.",
@@ -1908,8 +1891,8 @@ mod_02_planner_server <- function(id, r) {
           layout_columns(
             col_widths = c(3, 4),
             span(
-              HTML(paste(
-                "Annual percentage change for",
+              HTML(paste0(
+                "Annual percentage change for ",
                 tooltip_label("treatment capacity"),
                 ":"
               ))
@@ -2052,10 +2035,10 @@ mod_02_planner_server <- function(id, r) {
           )
 
           # pass some values to the charting module
-          if (reactive_values$data_source == "download") {
+          if (r$chart_specification$data_source == "download") {
             r$chart_specification$trust <- selections_labels$trusts$display
             r$chart_specification$specialty <- selections_labels$specialties$display
-          } else if (reactive_values$data_source == "upload") {
+          } else if (r$chart_specification$data_source == "upload") {
             r$chart_specification$trust <- input$file_description
             r$chart_specification$specialty <- ""
           }
@@ -2302,10 +2285,10 @@ mod_02_planner_server <- function(id, r) {
           )
 
           # pass some values to the charting module
-          if (reactive_values$data_source == "download") {
+          if (r$chart_specification$data_source == "download") {
             r$chart_specification$trust <- selections_labels$trusts$display
             r$chart_specification$specialty <- selections_labels$specialties$display
-          } else if (reactive_values$data_source == "upload") {
+          } else if (r$chart_specification$data_source == "upload") {
             r$chart_specification$trust <- input$file_description
             r$chart_specification$specialty <- ""
           }
@@ -2336,7 +2319,10 @@ mod_02_planner_server <- function(id, r) {
           if (input$target_type == "Single target") {
             # replace the target_data reactiveVal with the single target inputs
             reactive_values$target_data <- dplyr::tibble(
-              "Target_date" = input$target_achievement_date,
+              "Target_date" = lubridate::floor_date(
+                input$target_achievement_date,
+                unit = "months"
+              ),
               "Target_percentage" = input$target_value
             )
           }

@@ -138,7 +138,8 @@ plot_output(
   p_target_data = params$chart_specification$target_data,
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
-  p_perc = F
+  p_perc = F,
+  data_source = params$chart_specification$data_source
 )
 
 ```
@@ -173,9 +174,13 @@ This plot show the historic and projected treatment capacity for the model run.
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
   p_perc = F,
-  p_facet = F
+  p_facet = F,
+  data_source = params$chart_specification$data_source
 )
 ```
+
+
+
 
 \newpage
 
@@ -210,7 +215,8 @@ plot_output(
   p_perc = F,
   p_facet = T,
   p_facet_scales = params$facet_scales,
-  p_facet_grouping = params$facet_grouping
+  p_facet_grouping = params$facet_grouping,
+  data_source = params$chart_specification$data_source
 )
 
 ```
@@ -244,7 +250,8 @@ plot_output(
   p_target_data = params$chart_specification$target_data,
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
-  p_perc = F
+  p_perc = F,
+  data_source = params$chart_specification$data_source
 )
 
 ```
@@ -282,10 +289,118 @@ plot_output(
   p_perc = F,
   p_facet = T,
   p_facet_scales = params$facet_scales,
-  p_facet_grouping = params$facet_grouping
+  p_facet_grouping = params$facet_grouping,
+  data_source = params$chart_specification$data_source
 )
 
 ```
+
+
+```{r}
+#| label: clock-stop-calcs
+#| results: 'asis'
+#| ft.align: 'left'
+
+clock_stops <- params$waiting_list |>
+  dplyr::filter(.data$period_type == "Projected") |>
+  dplyr::summarise(
+    dplyr::across(
+      c("calculated_treatments", "reneges"),
+      sum
+    )
+  )
+
+activity_table <- setNames(
+    clock_stops$calculated_treatments + clock_stops$reneges,
+    nm = params$chart_specification$specialty
+  ) |>
+  convert_clock_stops_to_activity() |>
+  purrr::pluck(1)
+
+if (!"Unable to compute" %in% names(activity_table)) {
+  cat("\\newpage\n\n")
+  cat("### Total activity\n\n")
+  cat(
+    paste0(
+      "NHS England analysis from 2022 calculated average associated activity with all clock stops, by specialty, at a national level. ",
+      "This analysis is applied to the projected period from this scenario to provide an overall indication of quantity and type of activity for the projected period. ",
+      "This provides no indication of when the activity should take place, as some of it may occur in the months before or after the projected period. ",
+      "This table shows the estimated activity associated with the combined ",
+      formatC(
+        clock_stops$calculated_treatments,
+        big.mark = ",",
+        digits = 0,
+        format = "f"
+      ),
+      " treatments and ",
+      formatC(
+        clock_stops$reneges,
+        big.mark = ",",
+        digits = 0,
+        format = "f"
+      ),
+      " reneges for the projected period."
+    )
+  )
+
+  activity_lkp <- dplyr::tibble(
+    type = c(
+      rep("Outpatient", 4),
+      rep("Inpatient", 2)
+    ),
+    metric_abb = c(
+      "avg_op_first_activity_per_pathway_op_only",
+      "avg_op_flup_activity_per_pathway_op_only",
+      "avg_op_first_activity_per_pathway_mixed",
+      "avg_op_flup_activity_per_pathway_mixed",
+      "ip_daycase_count",
+      "ip_non_daycase_count"
+    ),
+    metric = c(
+      "First attendances",
+      "Follow up attendances",
+      "First attendances",
+      "Follow up attendances",
+      "Day case admissions",
+      "Non-day case admissions"
+    )
+  )
+  activity_table <- activity_table |>
+    tidyr::pivot_longer(
+      cols = !c("treatment_function"),
+      names_to = "metric_abb",
+      values_to = "count"
+    ) |>
+    left_join(activity_lkp, by = "metric_abb") |>
+    select(c("treatment_function", "type", "metric", "count")) |>
+    dplyr::summarise(
+      count = sum(.data$count),
+      .by = c("treatment_function", "type", "metric")
+    ) |>
+    mutate(
+      count = round(.data$count, 0),
+      proportion = .data$count / sum(.data$count),
+      .by = "type"
+    )
+
+  activity_table |> 
+    flextable::flextable() |>  
+    flextable::set_table_properties(layout = "autofit") |> 
+    flextable::set_formatter(
+      proportion = function(x) sprintf("%.1f%%", x * 100)
+    ) |> 
+    flextable::set_header_labels(
+      treatment_function = "Treatment function",
+      type = "Pathway type",
+      metric = "Activity metric",
+      count = "Count",
+      proportion = "Proportion of pathway type"
+      ) |> 
+    flextable::flextable_to_rmd()
+}
+```
+
+\newpage
 
 ## Waiting list size
 
@@ -315,7 +430,8 @@ plot_output(
   p_target_data = params$chart_specification$target_data,
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
-  p_perc = F
+  p_perc = F,
+  data_source = params$chart_specification$data_source
 )
 
 
@@ -353,7 +469,8 @@ plot_output(
   p_perc = F,
   p_facet = T,
   p_facet_scales = params$facet_scales,
-  p_facet_grouping = params$facet_grouping
+  p_facet_grouping = params$facet_grouping,
+  data_source = params$chart_specification$data_source
 )
       
 ```
@@ -398,7 +515,8 @@ plot_output(
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
   p_perc = T,
-  p_target_line = T
+  p_target_line = T,
+  data_source = params$chart_specification$data_source
 )
 
 ```
@@ -458,7 +576,8 @@ plot_output(
   p_referrals_change_type = params$chart_specification$referrals_change_type,
   p_perc = F,
   p_facet = FALSE,
-  p_target_line = F
+  p_target_line = F,
+  data_source = params$chart_specification$data_source
 )
       
 ```

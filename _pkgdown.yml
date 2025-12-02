@@ -2,3 +2,10 @@ url: https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/
 template:
   bootstrap: 5
 
+
+articles:
+  - title: Learn the RTT Planner tool
+    navbar: ~
+    contents:
+      - RTT_Planner_exercise
+      - steady_state

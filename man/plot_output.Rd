@@ -21,7 +21,8 @@ plot_output(
   p_target_line = F,
   date_input = Sys.Date(),
   p_facet_scales = "fixed",
-  p_facet_grouping = "months_waited_id"
+  p_facet_grouping = "months_waited_id",
+  data_source
 )
 }
 \arguments{
@@ -74,6 +75,8 @@ line and change colour of "target" in subheading}
 \item{p_facet_scales}{either "fixed" or "free_y"}
 
 \item{p_facet_grouping}{either "period" or "months_waited_id"}
+
+\item{data_source}{either "upload" or "download"}
 }
 \value{
 A ggplot2 plot object of selected values

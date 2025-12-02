@@ -268,6 +268,157 @@ convert_weeks_to_months <- function(wks) {
   return(mnths)
 }
 
+#' Convert clock-stop counts to activity counts
+#' @importFrom dplyr filter inner_join left_join mutate select bind_rows tibble
+#' @importFrom tidyr pivot_longer pivot_wider
+#' @param clock_stops named list; items must be named with the specialty name,
+#'  and values equal to clock-stop counts (both treatment and renege clock-stops)
+#' @examples
+#' list(
+#'   "Respiratory Medicine" = 504,
+#'   "Oral Surgery" = 772
+#' ) |>
+#' convert_clock_stops_to_activity()
+#' @export
+convert_clock_stops_to_activity <- function(clock_stops) {
+  if (
+    any(names(clock_stops) %in% specialty_lkp$Treatment.Function.Name) &
+      any(names(clock_stops) %in% raw_activity_proportions$treatment_function)
+  ) {
+    reformatted_activity_proportions <- raw_activity_proportions |>
+      filter(
+        .data$treatment_function %in%
+          c(names(clock_stops), specialty_lkp$Treatment.Function.Name)
+      ) |>
+      tidyr::pivot_longer(
+        cols = !c("treatment_function"),
+        names_to = "metric",
+        values_to = "val"
+      )
+
+    split_proportions <- reformatted_activity_proportions |>
+      dplyr::filter(
+        grepl("split$", .data$metric)
+      )
+
+    count_split <- clock_stops |>
+      unlist() |>
+      local_enframe(
+        name = "treatment_function",
+        value_name = "clock_stops"
+      ) |>
+      left_join(
+        split_proportions,
+        by = "treatment_function"
+      ) |>
+      dplyr::mutate(
+        pathway_count = .data$val * .data$clock_stops,
+        pathway_type = case_when(
+          grepl("mixed", .data$metric) ~ "Mixed",
+          .default = "OP"
+        ),
+        .keep = "unused"
+      )
+
+    activity_units <- reformatted_activity_proportions |>
+      dplyr::filter(
+        !grepl("split$", .data$metric)
+      ) |>
+      dplyr::mutate(
+        pathway_type = case_when(
+          grepl("mixed", .data$metric) ~ "Mixed",
+          grepl("daycase", .data$metric) ~ "Daycase",
+          .default = "OP"
+        )
+      )
+
+    activity_split <- count_split |>
+      dplyr::left_join(
+        activity_units,
+        by = c("pathway_type", "treatment_function")
+      ) |>
+      dplyr::mutate(
+        activity = .data$val * .data$pathway_count,
+        .keep = "unused"
+      )
+
+    daycase_proportions <- reformatted_activity_proportions |>
+      dplyr::filter(
+        grepl("^daycase", .data$metric)
+      ) |>
+      dplyr::select(!c("metric"))
+
+    count_daycase <- activity_split |>
+      dplyr::filter(
+        grepl("avg_ip_activity_per_pathway_mixed", .data$metric)
+      ) |>
+      dplyr::select(!c("metric")) |>
+      dplyr::left_join(
+        daycase_proportions,
+        by = "treatment_function"
+      ) |>
+      dplyr::mutate(
+        ip_daycase_count = .data$activity * .data$val,
+        ip_non_daycase_count = .data$activity * (1 - .data$val),
+        .keep = "unused"
+      ) |>
+      tidyr::pivot_longer(
+        cols = dplyr::starts_with("ip"),
+        names_to = "metric",
+        values_to = "activity"
+      )
+
+    overall_activity <- activity_split |>
+      dplyr::filter(
+        .data$metric != "avg_ip_activity_per_pathway_mixed"
+      ) |>
+      dplyr::bind_rows(
+        count_daycase
+      ) |>
+      dplyr::select(!c("pathway_type")) |>
+      tidyr::pivot_wider(
+        names_from = "metric",
+        values_from = "activity"
+      ) |>
+      (\(x) split(x, x$treatment_function))()
+  } else {
+    overall_activity <- NULL
+  }
+
+  missing_treatments <- c(
+    setdiff(
+      names(clock_stops),
+      specialty_lkp$Treatment.Function.Name
+    ),
+    setdiff(
+      names(clock_stops),
+      raw_activity_proportions$treatment_function
+    )
+  ) |>
+    unique()
+
+  missing_treatment_activity <- dplyr::tibble(
+    treatment_function = missing_treatments
+  ) |>
+    dplyr::cross_join(
+      dplyr::tibble(
+        "avg_op_first_activity_per_pathway_op_only" = NA,
+        "avg_op_flup_activity_per_pathway_op_only" = NA,
+        "avg_op_first_activity_per_pathway_mixed" = NA,
+        "avg_op_flup_activity_per_pathway_mixed" = NA,
+        "ip_daycase_count" = NA,
+        "ip_non_daycase_count" = NA
+      )
+    ) |>
+    (\(x) split(x, x$treatment_function))()
+
+  overall_activity <- c(
+    overall_activity,
+    missing_treatment_activity
+  )
+  return(overall_activity)
+}
+
 #' Calculate the next March date to provide as default for the scenario planner
 #' @noRd
 get_next_march <- function(date = Sys.Date()) {
@@ -974,7 +1125,8 @@ definitions <- function() {
     "Target proportion" = "The proportion of people on a waiting list that have been waiting less than the 'target week'.",
     "Target week" = "The week that the 'target proportion' applies to.",
     "Target date" = "The date to achieve the target criteria by.",
-    "Renege proportion" = "The proportion of total departures (treatments plus reneges) that are reneges."
+    "Renege proportion" = "The proportion of total departures (treatments plus reneges) that are reneges.",
+    "Adjusted referrals" = "An inflated value for referrals that accounts for the difference between the published referrals figures and the sum of the number of people on the waiting list and those that were treated, who were waiting up to 1 month."
   )
 }
 
