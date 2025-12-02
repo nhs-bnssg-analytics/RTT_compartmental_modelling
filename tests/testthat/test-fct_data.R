@@ -336,6 +336,21 @@ test_that("Test check_imported_data", {
     result$imported_data_checked,
     info = "NA in period field of imported data return NULL data"
   )
+
+  # Test case 8: period dates aren't the 1st of the month
+  invalid_data <- sample_data |>
+    mutate(period = period - 1)
+  result <- check_imported_data(invalid_data)
+
+  expect_match(
+    result$msg,
+    "Data not loaded. Dates in file must be the 1st of the month, representing the month ahead.",
+    info = "period dates aren't the 1st of the month"
+  )
+  expect_null(
+    result$imported_data_checked,
+    info = "period dates aren't the 1st of the month return NULL data"
+  )
 })
 
 

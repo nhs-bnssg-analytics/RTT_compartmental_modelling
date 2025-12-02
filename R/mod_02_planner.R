@@ -1245,6 +1245,19 @@ mod_02_planner_server <- function(id, r) {
           reactive_values$optimise_status_card_visible <- FALSE
           reactive_values$performance_calculated <- FALSE
           removeModal()
+
+          # create accuracy information
+          modelled_calibration_data <- split_and_model_calibration_data(
+            data = r$all_data,
+            referrals_uplift = FALSE
+          )
+
+          reactive_values$error_calc <- error_calc(
+            data = modelled_calibration_data,
+            target_bin = 4
+          )
+
+          reactive_values$data_source <- "upload"
         } else {
           notification_type <- "error"
           reactive_values$import_success <- FALSE
@@ -1255,19 +1268,6 @@ mod_02_planner_server <- function(id, r) {
           duration = 10,
           type = notification_type
         )
-
-        # create accuracy information
-        modelled_calibration_data <- split_and_model_calibration_data(
-          data = r$all_data,
-          referrals_uplift = FALSE
-        )
-
-        reactive_values$error_calc <- error_calc(
-          data = modelled_calibration_data,
-          target_bin = 4
-        )
-
-        reactive_values$data_source <- "upload"
       } else {
         showNotification(
           "Please enter some text before confirming.",

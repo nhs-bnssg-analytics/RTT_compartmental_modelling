@@ -57,10 +57,12 @@ mod_03_results_server <- function(id, r) {
       plot_data = NULL,
       show_plot = FALSE,
       show_table = FALSE,
+      show_activity = FALSE,
       temp_data = NULL,
       facet_scales = "fixed",
       facet_grouping = "months_waited_id",
-      calc_res = 96
+      calc_res = 96,
+      activity_table = NULL
     )
 
     # dynamic sidebar ---------------------------------------------------------
@@ -169,8 +171,15 @@ mod_03_results_server <- function(id, r) {
             `data-bs-trigger` = "hover",
             title = "Reneges distributed by number of months waited"
           ),
+          actionButton(
+            inputId = ns("btn_activity"),
+            label = "Activity (experimental)",
+            icon = shiny::icon("star"),
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "Projected activity based on the clock stops"
+          ),
           hr(),
-
           actionButton(
             inputId = ns("btn_data"),
             label = "Data table",
@@ -274,8 +283,15 @@ mod_03_results_server <- function(id, r) {
             `data-bs-trigger` = "hover",
             title = "Size of the waiting list by the number of months waited"
           ),
+          actionButton(
+            inputId = ns("btn_activity"),
+            label = "Activity (experimental)",
+            icon = shiny::icon("star"),
+            class = "results_button",
+            `data-bs-trigger` = "hover",
+            title = "Projected activity based on the clock stops"
+          ),
           hr(),
-
           actionButton(
             inputId = ns("btn_data"),
             label = "Data table",
@@ -373,6 +389,7 @@ mod_03_results_server <- function(id, r) {
         "waiting_list_mnth",
         "performance",
         "shortfall",
+        "activity",
         "data",
         "report_ui"
       ),
@@ -392,7 +409,6 @@ mod_03_results_server <- function(id, r) {
               session = session,
               inputId = reactive_data$btn_val,
               icon = shiny::icon("star", class = "fa-solid fa-star")
-              # icon = shiny::icon("calendar")
             )
           }
           reactive_data$plot_clicked <- FALSE
@@ -400,9 +416,15 @@ mod_03_results_server <- function(id, r) {
           if (reactive_data$btn_val == "btn_data") {
             reactive_data$show_plot <- FALSE
             reactive_data$show_table <- TRUE
+            reactive_data$show_activity <- FALSE
+          } else if (reactive_data$btn_val == "btn_activity") {
+            reactive_data$show_plot <- FALSE
+            reactive_data$show_table <- FALSE
+            reactive_data$show_activity <- TRUE
           } else if (reactive_data$btn_val != "btn_report_ui") {
             reactive_data$show_plot <- TRUE
             reactive_data$show_table <- FALSE
+            reactive_data$show_activity <- FALSE
           }
         })
       }
@@ -540,6 +562,7 @@ mod_03_results_server <- function(id, r) {
         input$btn_waiting_list_mnth,
         input$btn_performance,
         input$btn_shortfall,
+        input$btn_activity,
         input$btn_data,
         input$btn_report_ui
       ),
@@ -712,7 +735,8 @@ mod_03_results_server <- function(id, r) {
               }
 
               if (
-                !(reactive_data$btn_val %in% c("btn_data", "btn_report_ui"))
+                !(reactive_data$btn_val %in%
+                  c("btn_data", "btn_report_ui", "btn_activity"))
               ) {
                 plot_output(
                   data = reactive_data$plot_data,
@@ -745,6 +769,166 @@ mod_03_results_server <- function(id, r) {
       if (reactive_data$show_table == TRUE) {
         final_ui <- DTOutput(
           ns("results_table")
+        )
+      } else if (reactive_data$show_activity == TRUE) {
+        clock_stops <- r$waiting_list |>
+          dplyr::filter(.data$period_type == "Projected") |>
+          dplyr::summarise(
+            dplyr::across(
+              c("calculated_treatments", "reneges"),
+              sum
+            )
+          )
+
+        output$activity_table <- reactable::renderReactable({
+          activity_table <- setNames(
+            clock_stops$calculated_treatments + clock_stops$reneges,
+            nm = r$chart_specification$specialty
+          ) |>
+            convert_clock_stops_to_activity() |>
+            purrr::pluck(1)
+
+          if (!"Unable to compute" %in% names(activity_table)) {
+            activity_lkp <- dplyr::tibble(
+              type = c(
+                rep("Outpatient", 4),
+                rep("Inpatient", 2)
+              ),
+              metric_abb = c(
+                "avg_op_first_activity_per_pathway_op_only",
+                "avg_op_flup_activity_per_pathway_op_only",
+                "avg_op_first_activity_per_pathway_mixed",
+                "avg_op_flup_activity_per_pathway_mixed",
+                "ip_daycase_count",
+                "ip_non_daycase_count"
+              ),
+              metric = c(
+                "First attendances",
+                "Follow up attendances",
+                "First attendances",
+                "Follow up attendances",
+                "Day case admissions",
+                "Non-day case admissions"
+              )
+            )
+
+            activity_table <- activity_table |>
+              tidyr::pivot_longer(
+                cols = !c("treatment_function"),
+                names_to = "metric_abb",
+                values_to = "count"
+              ) |>
+              left_join(activity_lkp, by = "metric_abb") |>
+              select(c("treatment_function", "type", "metric", "count")) |>
+              dplyr::summarise(
+                count = sum(.data$count),
+                .by = c("treatment_function", "type", "metric")
+              ) |>
+              mutate(
+                count = round(.data$count, 0),
+                proportion = .data$count / sum(.data$count),
+                .by = "type"
+              )
+
+            reactive_data$activity_table <- activity_table
+
+            activity_table_ui <- reactable::reactable(
+              reactive_data$activity_table,
+              filterable = FALSE,
+              showPageSizeOptions = FALSE,
+              fullWidth = FALSE,
+              width = 850,
+              defaultPageSize = 10,
+              defaultColDef = colDef(
+                vAlign = "center",
+                headerVAlign = "bottom",
+                headerClass = "header"
+              ),
+              columns = list(
+                treatment_function = colDef(
+                  header = name_with_tooltip(
+                    "Specialty",
+                    definition = "Treatment specialty."
+                  )
+                ),
+                type = colDef(
+                  header = name_with_tooltip(
+                    "Pathway type",
+                    definition = "The type of pathway that the activity refers to."
+                  )
+                ),
+                metric = colDef(
+                  header = name_with_tooltip(
+                    "Activity metric",
+                    definition = "Activity metric."
+                  )
+                ),
+                count = colDef(
+                  header = name_with_tooltip(
+                    "Count",
+                    definition = "Count of activity in the projected period."
+                  ),
+                  format = colFormat(separators = TRUE)
+                ),
+                proportion = colDef(
+                  header = name_with_tooltip(
+                    "Proportion of pathway type",
+                    definition = "Proportion of pathway type that activity comprises in the projected period."
+                  ),
+                  format = colFormat(percent = TRUE, digits = 1)
+                )
+              )
+            )
+          } else {
+            NULL
+          }
+        })
+
+        output$copy_to_clipboard <- renderUI({
+          if (sum(reactive_data$activity_table$count, na.rm = TRUE) != 0) {
+            actionButton(
+              inputId = ns("copy_btn"),
+              label = "Copy results to clipboard",
+              icon = shiny::icon("clipboard"),
+              class = "copy-button",
+              width = "300px"
+            )
+          } else {
+            NULL
+          }
+        })
+
+        final_ui <- card_body(
+          p(
+            "NHS England analysis from 2022 calculated average associated activity with all clock stops, by specialty, at a national level."
+          ),
+          p(
+            "This analysis is applied to the projected period from this scenario to provide an overall indication of quantity and type of activity for the projected period."
+          ),
+          p(
+            "This provides no indication of when the activity should take place, as some of it may occur in the months before or after the projected period."
+          ),
+          p(
+            paste(
+              "This table shows the estimated activity associated with the combined",
+              formatC(
+                clock_stops$calculated_treatments,
+                big.mark = ",",
+                digits = 0,
+                format = "f"
+              ),
+              "treatments and",
+              formatC(
+                clock_stops$reneges,
+                big.mark = ",",
+                digits = 0,
+                format = "f"
+              ),
+              "reneges for the projected period."
+            )
+          ),
+          uiOutput(ns("copy_to_clipboard")),
+          reactable::reactableOutput(ns("activity_table"))
         )
       } else {
         # if no button has been selected then display results_plot
@@ -896,6 +1080,21 @@ mod_03_results_server <- function(id, r) {
       }
       final_ui
     })
+
+    # copy results
+    observeEvent(
+      input$copy_btn,
+      {
+        if (input$copy_btn > 0) {
+          utils::write.table(
+            reactive_data$activity_table,
+            file = "clipboard",
+            sep = "\t",
+            row.names = FALSE
+          )
+        }
+      }
+    )
 
     # Show modal when edit button is clicked
     observeEvent(input$edit_data, {

@@ -843,3 +843,48 @@ test_that("Function works with default date", {
   expect_true(inherits(result, "Date"))
   expect_match(format(result, "%m-%d"), "03-01")
 })
+
+
+test_that("returns NULL when no matching treatment functions", {
+  clock_stops <- list("Derm" = 10)
+  result <- convert_clock_stops_to_activity(clock_stops)
+  # Should still return list with missing treatment filled
+  expect_type(result, "list")
+  expect_true("Derm" %in% names(result))
+  expect_true(all(is.na(unlist(result$Derm)[-1])))
+})
+
+test_that("produces activity for valid treatment functions", {
+  clock_stops <- list("Cardiology" = 10)
+  result <- convert_clock_stops_to_activity(clock_stops)
+  expect_type(result, "list")
+  expect_true("Cardiology" %in% names(result))
+  cardiology_activity <- result$Cardiology
+  expect_s3_class(cardiology_activity, "data.frame")
+  expect_true(all(
+    c(
+      "avg_op_first_activity_per_pathway_op_only",
+      "avg_op_flup_activity_per_pathway_op_only",
+      "avg_op_first_activity_per_pathway_mixed",
+      "avg_op_flup_activity_per_pathway_mixed",
+      "ip_daycase_count",
+      "ip_non_daycase_count"
+    ) %in%
+      names(cardiology_activity)
+  ))
+  expect_true(all(!is.na(unlist(result$Cardiology))))
+})
+
+test_that("handles multiple treatment functions", {
+  clock_stops <- list("Cardiology" = 10, "Oncology" = 20)
+  result <- convert_clock_stops_to_activity(clock_stops)
+  expect_equal(length(result), 2)
+  expect_true(all(c("Cardiology", "Oncology") %in% names(result)))
+})
+
+test_that("missing treatments are filled with NA activity", {
+  clock_stops <- list("Cardiology" = 10, "UnknownTF" = 5)
+  result <- convert_clock_stops_to_activity(clock_stops)
+  expect_true("UnknownTF" %in% names(result))
+  expect_true(all(is.na(unlist(result$UnknownTF)[-1])))
+})
