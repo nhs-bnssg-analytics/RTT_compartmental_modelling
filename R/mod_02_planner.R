@@ -314,15 +314,7 @@ mod_02_planner_server <- function(id, r) {
       forecast_start_date = final_data_period %m+%
         months(1),
       forecast_end_date = get_next_march(),
-      forecast_end_date_label = paste0(
-        "Forecast end date (start date - ",
-        format(
-          final_data_period %m+%
-            months(1),
-          "%b %Y"
-        ),
-        ")"
-      ),
+      forecast_end_date_label = "Forecast end date",
       import_success = NULL,
       error_calc = NULL,
       error_plot = NULL,
