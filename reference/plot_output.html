@@ -78,7 +78,8 @@ This function creates a ggplot2 time series plot showing observed and
 <span>  p_target_line <span class="op">=</span> <span class="cn">F</span>,</span>
 <span>  date_input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.Date</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  p_facet_scales <span class="op">=</span> <span class="st">"fixed"</span>,</span>
-<span>  p_facet_grouping <span class="op">=</span> <span class="st">"months_waited_id"</span></span>
+<span>  p_facet_grouping <span class="op">=</span> <span class="st">"months_waited_id"</span>,</span>
+<span>  <span class="va">data_source</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -168,6 +169,10 @@ line and change colour of "target" in subheading</p></dd>
 
 <dt id="arg-p-facet-grouping">p_facet_grouping<a class="anchor" aria-label="anchor" href="#arg-p-facet-grouping"></a></dt>
 <dd><p>either "period" or "months_waited_id"</p></dd>
+
+
+<dt id="arg-data-source">data_source<a class="anchor" aria-label="anchor" href="#arg-data-source"></a></dt>
+<dd><p>either "upload" or "download"</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -28,7 +28,8 @@ plot_output(
   p_target_line = F,
   date_input = Sys.Date(),
   p_facet_scales = "fixed",
-  p_facet_grouping = "months_waited_id"
+  p_facet_grouping = "months_waited_id",
+  data_source
 )
 ```
 
@@ -116,6 +117,10 @@ plot_output(
 - p_facet_grouping:
 
   either "period" or "months_waited_id"
+
+- data_source:
+
+  either "upload" or "download"
 
 ## Value
 
