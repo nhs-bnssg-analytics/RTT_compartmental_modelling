@@ -36,6 +36,13 @@ app_ui <- function(request) {
     target = "_blank"
   )
 
+  coding_steady_state <- tags$a(
+    shiny::icon("clipboard"),
+    "Coding steady state by hand",
+    href = "https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/articles/steady_state.html",
+    target = "_blank"
+  )
+
   email <- tags$a(
     shiny::icon("envelope"),
     "Contact us",
