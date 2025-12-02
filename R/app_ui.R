@@ -11,7 +11,7 @@ app_ui <- function(request) {
   github_shiny <- tags$a(
     shiny::icon("github"),
     "Shiny",
-    href = "https://github.com/nhsengland/RTT_compartmental_modelling",
+    href = "https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling",
     target = "_blank"
   )
 
