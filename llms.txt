@@ -65,6 +65,8 @@ website](https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/).
   between each specialty/trust combination
 - [`click_info()`](https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/reference/click_info.md)
   : function to return the data behind where the user has clicked
+- [`convert_clock_stops_to_activity()`](https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/reference/convert_clock_stops_to_activity.md)
+  : Convert clock-stop counts to activity counts
 - [`create_modelling_data()`](https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/reference/create_modelling_data.md)
   : Create the calibration dataset from the main data table
 - [`extend_period_type_data()`](https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/reference/extend_period_type_data.md)

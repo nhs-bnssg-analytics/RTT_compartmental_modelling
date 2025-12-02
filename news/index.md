@@ -1,11 +1,18 @@
 # Changelog
 
-## RTTshiny 2.0.0.9000
+## RTTshiny 2.0.0.9001
+
+### Results
+
+- New page showing the crude amount of activity related to the
+  departures in the projected period
 
 ### Steady state
 
 - Changes table header from “Additional monthly removals required” to
   “Required monthly change in waiting list size”
+- New columns to provide crude information on activity related to the
+  steady state departures
 
 ## RTTshiny 2.0.0
 
