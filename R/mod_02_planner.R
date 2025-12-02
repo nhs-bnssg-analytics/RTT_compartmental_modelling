@@ -2354,7 +2354,7 @@ mod_02_planner_server <- function(id, r) {
           }
 
           # referrals for planning horizon (based on uplifted numbers)
-          # browser()
+
           forecast_months <- lubridate::interval(
             as.Date(reactive_values$forecast_start_date),
             as.Date(input$forecast_date)
