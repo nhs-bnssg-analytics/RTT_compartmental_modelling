@@ -34,7 +34,8 @@ test_that("plot_output function - referrals chart", {
       p_perc = FALSE,
       p_facet = FALSE,
       p_target_line = FALSE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "download"
     )
   )
 })
@@ -63,7 +64,8 @@ test_that("plot_output function - treatment capacity chart", {
       p_perc = FALSE,
       p_facet = FALSE,
       p_target_line = FALSE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "download"
     )
   )
 })
@@ -90,7 +92,8 @@ test_that("plot_output function - treatment capacity facet chart", {
       p_perc = FALSE,
       p_facet = TRUE,
       p_target_line = FALSE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "upload"
     )
   )
 })
@@ -120,7 +123,8 @@ test_that("plot_output function - treatment capacity facet chart (free y axis an
       p_target_line = FALSE,
       date_input = as.Date("2025-05-08"),
       p_facet_scales = "free_y",
-      p_facet_grouping = "period"
+      p_facet_grouping = "period",
+      data_source = "download"
     )
   )
 })
@@ -149,7 +153,8 @@ test_that("plot_output function - reneges chart", {
       p_perc = FALSE,
       p_facet = FALSE,
       p_target_line = FALSE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "download"
     )
   )
 })
@@ -177,7 +182,8 @@ test_that("plot_output function - reneges facet chart", {
       p_perc = FALSE,
       p_facet = TRUE,
       p_target_line = FALSE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "download"
     )
   )
 })
@@ -206,7 +212,8 @@ test_that("plot_output function - waiting list chart", {
       p_perc = FALSE,
       p_facet = FALSE,
       p_target_line = FALSE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "download"
     )
   )
 })
@@ -231,7 +238,8 @@ test_that("plot_output function - waiting list facet chart", {
       p_perc = FALSE,
       p_facet = TRUE,
       p_target_line = FALSE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "download"
     )
   )
 })
@@ -266,7 +274,8 @@ test_that("plot_output function - performance chart", {
       p_perc = TRUE,
       p_facet = FALSE,
       p_target_line = TRUE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "download"
     )
   )
 })
@@ -302,7 +311,8 @@ test_that("plot_output function - shortfall chart", {
       p_perc = FALSE,
       p_facet = FALSE,
       p_target_line = FALSE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "download"
     )
   )
 })
@@ -332,7 +342,8 @@ test_that("plot_output function - customised referrals chart", {
       p_perc = FALSE,
       p_facet = FALSE,
       p_target_line = FALSE,
-      date_input = as.Date("2025-05-08")
+      date_input = as.Date("2025-05-08"),
+      data_source = "download"
     )
   )
 })

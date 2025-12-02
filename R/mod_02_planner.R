@@ -310,7 +310,6 @@ mod_02_planner_server <- function(id, r) {
       referrals_uplift = NULL,
       optimise_status_card_visible = NULL,
       performance_calculated = FALSE,
-      data_source = NULL, # should be either "upload" or "download"
       latest_date = final_data_period,
       forecast_start_date = final_data_period %m+%
         months(1),
@@ -349,7 +348,8 @@ mod_02_planner_server <- function(id, r) {
       target_date = NULL,
       target_performance = NULL,
       optimise_status = NULL,
-      params = NULL
+      params = NULL,
+      data_source = NULL # should be either "upload" or "download"
     )
 
     # tooltip plots -----------------------------------------------------------
@@ -758,7 +758,7 @@ mod_02_planner_server <- function(id, r) {
             )
         )
 
-        reactive_values$data_source <- "download"
+        r$chart_specification$data_source <- "download"
       },
       ignoreInit = TRUE
     )
@@ -1257,7 +1257,7 @@ mod_02_planner_server <- function(id, r) {
             target_bin = 4
           )
 
-          reactive_values$data_source <- "upload"
+          r$chart_specification$data_source <- "upload"
         } else {
           notification_type <- "error"
           reactive_values$import_success <- FALSE
@@ -2043,10 +2043,10 @@ mod_02_planner_server <- function(id, r) {
           )
 
           # pass some values to the charting module
-          if (reactive_values$data_source == "download") {
+          if (r$chart_specification$data_source == "download") {
             r$chart_specification$trust <- selections_labels$trusts$display
             r$chart_specification$specialty <- selections_labels$specialties$display
-          } else if (reactive_values$data_source == "upload") {
+          } else if (r$chart_specification$data_source == "upload") {
             r$chart_specification$trust <- input$file_description
             r$chart_specification$specialty <- ""
           }
@@ -2293,10 +2293,10 @@ mod_02_planner_server <- function(id, r) {
           )
 
           # pass some values to the charting module
-          if (reactive_values$data_source == "download") {
+          if (r$chart_specification$data_source == "download") {
             r$chart_specification$trust <- selections_labels$trusts$display
             r$chart_specification$specialty <- selections_labels$specialties$display
-          } else if (reactive_values$data_source == "upload") {
+          } else if (r$chart_specification$data_source == "upload") {
             r$chart_specification$trust <- input$file_description
             r$chart_specification$specialty <- ""
           }

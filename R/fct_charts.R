@@ -41,6 +41,7 @@
 #' @param date_input date for chart caption
 #' @param p_facet_scales either "fixed" or "free_y"
 #' @param p_facet_grouping either "period" or "months_waited_id"
+#' @param data_source either "upload" or "download"
 #'
 #' @importFrom dplyr filter distinct rename left_join join_by tibble cross_join
 #' @importFrom ggtext element_markdown
@@ -68,7 +69,8 @@ plot_output <- function(
   p_target_line = F,
   date_input = Sys.Date(),
   p_facet_scales = "fixed",
-  p_facet_grouping = "months_waited_id"
+  p_facet_grouping = "months_waited_id",
+  data_source
 ) {
   if (is.numeric(p_referrals_percent_change)) {
     p_referrals_percent_change <- paste0(
@@ -136,6 +138,19 @@ plot_output <- function(
     x_title <- NULL
   }
 
+  # create the caption
+  if (data_source == "download") {
+    caption_text <- paste0(
+      "Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
+      format(date_input, "%d/%m/%Y")
+    )
+  } else if (data_source == "upload") {
+    caption_text <- paste(
+      "Custom local data provided on",
+      format(date_input, "%d/%m/%Y")
+    )
+  }
+
   p <- ggplot2::ggplot()
 
   if (p_facet_grouping == "months_waited_id") {
@@ -198,10 +213,7 @@ plot_output <- function(
           p_referrals_percent_change,
           " </span>"
         ),
-        caption = paste0(
-          "Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
-          format(date_input, "%d/%m/%Y")
-        )
+        caption = caption_text
       ) +
       theme(
         plot.title = ggtext::element_markdown(),
@@ -234,10 +246,7 @@ plot_output <- function(
           p_referrals_percent_change,
           "</span>"
         ),
-        caption = paste0(
-          "Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
-          format(date_input, "%d/%m/%Y")
-        )
+        caption = caption_text
       ) +
       theme(
         plot.title = ggtext::element_markdown(),
@@ -266,10 +275,7 @@ plot_output <- function(
           p_referrals_percent_change,
           "</span>"
         ),
-        caption = paste0(
-          "Data taken from www.england.nhs.uk/statistics/statisical-work-areas/rtt-waiting-times - ",
-          format(date_input, "%d/%m/%Y")
-        )
+        caption = caption_text
       ) +
       theme(
         plot.title = ggtext::element_markdown(),

@@ -138,7 +138,8 @@ plot_output(
   p_target_data = params$chart_specification$target_data,
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
-  p_perc = F
+  p_perc = F,
+  data_source = params$chart_specification$data_source
 )
 
 ```
@@ -173,7 +174,8 @@ This plot show the historic and projected treatment capacity for the model run.
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
   p_perc = F,
-  p_facet = F
+  p_facet = F,
+  data_source = params$chart_specification$data_source
 )
 ```
 
@@ -213,7 +215,8 @@ plot_output(
   p_perc = F,
   p_facet = T,
   p_facet_scales = params$facet_scales,
-  p_facet_grouping = params$facet_grouping
+  p_facet_grouping = params$facet_grouping,
+  data_source = params$chart_specification$data_source
 )
 
 ```
@@ -247,7 +250,8 @@ plot_output(
   p_target_data = params$chart_specification$target_data,
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
-  p_perc = F
+  p_perc = F,
+  data_source = params$chart_specification$data_source
 )
 
 ```
@@ -285,7 +289,8 @@ plot_output(
   p_perc = F,
   p_facet = T,
   p_facet_scales = params$facet_scales,
-  p_facet_grouping = params$facet_grouping
+  p_facet_grouping = params$facet_grouping,
+  data_source = params$chart_specification$data_source
 )
 
 ```
@@ -425,7 +430,8 @@ plot_output(
   p_target_data = params$chart_specification$target_data,
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
-  p_perc = F
+  p_perc = F,
+  data_source = params$chart_specification$data_source
 )
 
 
@@ -463,7 +469,8 @@ plot_output(
   p_perc = F,
   p_facet = T,
   p_facet_scales = params$facet_scales,
-  p_facet_grouping = params$facet_grouping
+  p_facet_grouping = params$facet_grouping,
+  data_source = params$chart_specification$data_source
 )
       
 ```
@@ -508,7 +515,8 @@ plot_output(
   p_referrals_percent_change = params$chart_specification$referrals_percent_change,
   p_referrals_change_type = params$chart_specification$referrals_change_type,
   p_perc = T,
-  p_target_line = T
+  p_target_line = T,
+  data_source = params$chart_specification$data_source
 )
 
 ```
@@ -568,7 +576,8 @@ plot_output(
   p_referrals_change_type = params$chart_specification$referrals_change_type,
   p_perc = F,
   p_facet = FALSE,
-  p_target_line = F
+  p_target_line = F,
+  data_source = params$chart_specification$data_source
 )
       
 ```

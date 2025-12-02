@@ -754,7 +754,8 @@ mod_03_results_server <- function(id, r) {
                   p_facet = include_facets,
                   p_target_line = include_target_line,
                   p_facet_scales = reactive_data$facet_scales,
-                  p_facet_grouping = chart_facet_grouping
+                  p_facet_grouping = chart_facet_grouping,
+                  data_source = r$chart_specification$data_source
                 )
               }
             }
