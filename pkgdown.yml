@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   RTT_Planner_exercise: RTT_Planner_exercise.html
   steady_state: steady_state.html
-last_built: 2025-12-02T13:02Z
+last_built: 2025-12-02T13:04Z
 urls:
   reference: https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/reference
   article: https://nhs-bnssg-analytics.github.io/RTT_compartmental_modelling/articles
