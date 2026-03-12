@@ -98,6 +98,96 @@ mod_08_batch_ui <- function(id) {
       multiple = TRUE
     ),
     hr(),
+    card(
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          title = "Upload your own data...",
+          p("Your CSV file must contain these columns:"),
+          p(
+            em("Note: provide either"),
+            strong("description"),
+            em("or"),
+            strong("trust & specialty"),
+            em("— you don't need both.")
+          ),
+          tags$ul(
+            tags$li(
+              strong("description"),
+              "- Your description of the organisational unit the data is for"
+            ),
+            tags$li(
+              strong("trust"),
+              "and",
+              strong("specialty"),
+              "- two separate columns of the trust and specialty (as this is local data you can use your own naming conventions)"
+            ),
+            tags$li(
+              strong("period"),
+              "- date; the first day of each month the data represent"
+            ),
+            tags$li(
+              strong("type"),
+              "- accepted values: Referrals, Incomplete, Complete"
+            ),
+            tags$li(
+              strong("months_waited_id"),
+              "- integers (0 to 12); the compartments waited
+                    ('0' is the number of people waiting 0-1 months, and '12' is the number of people waiting 12+ months)"
+            ),
+            tags$li(strong("value"), "- the counts for each compartment")
+          ),
+          p(
+            "More info can be found",
+            tooltip(
+              span(
+                "here.",
+                style = "text-decoration: underline; cursor: help;"
+              ),
+              p(
+                strong("Referrals:"),
+                "one record per period, with months_waited_id equal to 0."
+              ),
+              p(
+                strong("Incomplete:"),
+                "a record for each compartment for each period."
+              ),
+              p(
+                strong("Complete:"),
+                "a record for each compartment for each period."
+              ),
+              p(
+                "Note, only incompletes are used for the first period to provide the starting waiting list."
+              )
+            )
+          ),
+          hr(),
+          layout_columns(
+            col_widths = 12,
+            downloadButton(
+              outputId = ns("download_template"),
+              label = "Download selections above as template"
+            ),
+            downloadLink(
+              outputId = ns("sample_file"),
+              label = "Download an example CSV file",
+              class = "small-hyperlink"
+            )
+          ),
+          hr(),
+          layout_columns(
+            col_widths = c(11, 1),
+            fileInput(
+              inputId = ns("fileInput"),
+              label = "Upload your CSV file",
+              accept = c("text/csv", ".csv"),
+              placeholder = "Only CSV files are accepted"
+            ),
+            uiOutput(ns("tick_mark_import"))
+          )
+        )
+      )
+    ),
     p(
       "Referral scenario (% annual change):",
       class = "referral-scenario-header"
@@ -336,11 +426,43 @@ mod_08_batch_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    reactive_values <- reactiveValues()
-    reactive_values$show_results <- FALSE # determines whether outputs are shown
-    reactive_values$optimised_projections <- NULL # these are the outputs
-    reactive_values$optimised_waiting_list <- NULL # these are the outputs
+    board <- pins::board_url(c(
+      rtt_12months = board_12,
+      rtt_24months = board_24
+    ))
 
+    final_data_period <- board |>
+      pins::pin_read("rtt_12months") |>
+      dplyr::pull(.data$period) |>
+      max()
+
+    reactive_values <- reactiveValues(
+      show_results = FALSE, # determines whether outputs are shown
+      optimised_projections = NULL, # these are the outputs
+      optimised_waiting_list = NULL, # these are the outputs
+
+      # data_downloaded = FALSE,
+      params = NULL,
+      calibration_data = NULL,
+      latest_performance = NULL,
+      default_target = NULL,
+      default_target_date = get_next_march(),
+      referrals_uplift = NULL,
+      optimise_status_card_visible = NULL,
+      performance_calculated = FALSE,
+      latest_date = final_data_period,
+      forecast_start_date = final_data_period %m+%
+        months(1),
+      forecast_end_date = get_next_march(),
+      forecast_end_date_label = "Forecast end date",
+      import_success = NULL,
+      error_calc = NULL,
+      error_plot = NULL,
+      target_data = dplyr::tibble(
+        "Target_date" = get_next_march(),
+        "Target_percentage" = NA_real_
+      )
+    )
     # trust selection filtering based on other NHS only checkbox ----------------------
     reactive_org_tbl <- reactiveVal(org_lkp_ss_inputs)
 
@@ -426,6 +548,149 @@ mod_08_batch_server <- function(id) {
         )
       },
       ignoreInit = FALSE
+    )
+
+    # bring your own data -----------------------------------------------------
+
+    # sample data -------------------------------------------------------------
+
+    # Provide sample CSV file for download
+    output$sample_file <- downloadHandler(
+      filename = function() {
+        "sample_data.csv"
+      },
+      content = function(file) {
+        # sample_data is an internal data object
+        final_month <- lubridate::floor_date(
+          reactive_values$latest_date,
+          unit = "months"
+        )
+
+        update_sample_data(final_month) |>
+          mutate(description = "my favourite organisation") |>
+          utils::write.csv(
+            file,
+            row.names = FALSE
+          )
+      }
+    )
+    # template data -----------------------------------------------------------
+
+    output$download_template <- downloadHandler(
+      filename = function() {
+        "template_data.csv"
+      },
+      content = function(file) {
+        # sample_data is an internal data object
+        max_download_date <- reactive_values$latest_date
+        min_download_date <- lubridate::floor_date(
+          max_download_date,
+          unit = "months"
+        ) %m-%
+          months(12) # equivalent to 'input$calibration_months)' in mod_02
+
+        # create progress bar
+        progress <- Progress$new(
+          session,
+          min = 1,
+          max = 12 + 1 # 12 is equivalent to 'input$calibration_months)' in mod_02
+        )
+
+        on.exit(progress$close())
+        progress$set(
+          message = 'Downloading public data from RTT statistics',
+          detail = 'This will be included in template csv file'
+        )
+
+        selections_labels <- filters_displays(
+          nhs_regions = input$selectedregions,
+          nhs_only = input$ss_nhs_only,
+          trust_parents = NULL,
+          trusts = input$selectedtrusts,
+          comm_parents = NULL,
+          comms = NULL,
+          comms = input$selectedICBs,
+          spec = input$specialty_codes
+        )
+
+        if (length(selections_labels$trusts$selected_code) == 0) {
+          showNotification(
+            "Please select a trust before downloading the template",
+            type = "error",
+            duration = NULL
+          )
+          req(FALSE)
+        }
+        if (length(selections_labels$spec$selected_code) == 0) {
+          showNotification(
+            "Please select a specialty before downloading the template",
+            type = "error",
+            duration = NULL
+          )
+          req(FALSE)
+        }
+        template_data <- get_rtt_data_with_progress(
+          date_start = min_download_date,
+          date_end = max_download_date,
+          # trust_parent_codes = selections_labels$trust_parents,
+          # commissioner_parent_codes = NULL,
+          # commissioner_org_codes = selections_labels$comms$selected_code,
+          trust_codes = selections_labels$trusts$selected_code,
+          specialty_codes = selections_labels$specialties$selected_code,
+          progress = progress
+        )
+
+        # aggregate data
+        template_data <- template_data |>
+          mutate(
+            months_waited_id = NHSRtt::convert_months_waited_to_id(
+              .data$months_waited,
+              12 # this pools the data at 12+ months (this can be a user input in the future)
+            )
+          ) |>
+          summarise(
+            value = sum(.data$value),
+            .by = c(
+              "period",
+              "months_waited_id",
+              "type",
+              "trust",
+              "specialty"
+            )
+          ) |>
+          # make the specialty & trust column nice (names not codes)
+          dplyr::left_join(
+            dplyr::tibble(
+              trust = selections_labels$trusts$selected_code,
+              trust_name = selections_labels$trusts$selected_name
+            ),
+            by = "trust"
+          ) |>
+          dplyr::left_join(
+            dplyr::tibble(
+              specialty = selections_labels$specialties$selected_code,
+              specialty_name = selections_labels$specialties$selected_name
+            ),
+            by = "specialty"
+          ) |>
+          arrange(
+            .data$type,
+            .data$period,
+            .data$months_waited_id
+          ) |>
+          select(-trust, -specialty) |>
+          rename(trust = trust_name, specialty = specialty_name) |>
+          select(
+            trust,
+            specialty,
+            period,
+            type,
+            months_waited_id,
+            value
+          )
+
+        utils::write.csv(template_data, file, row.names = FALSE)
+      }
     )
 
     # perform modelling when batch run selected -------------------------------
