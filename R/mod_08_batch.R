@@ -773,7 +773,19 @@ mod_08_batch_server <- function(id) {
               left_join(period_lkp, by = "period")
           }
 
-          # MORE TO COME HERE
+          # If there's just a description field, add in specialty and trust so code doesn't break later
+          # we make trust the description and the specialty ''
+          if ("description" %in% names(imported_data)) {
+            if (!("trust" %in% names(imported_data))) {
+              imported_data$trust <- imported_data$description
+            }
+            if (!("specialty" %in% names(imported_data))) {
+              imported_data$specialty <- ""
+            }
+          }
+
+          # save the imported data to reactive value to call later
+          reactive_values$imported_data <- imported_data
         } else {
           notification_type <- "error"
           reactive_values$import_success <- FALSE
