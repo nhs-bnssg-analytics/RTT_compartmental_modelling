@@ -698,37 +698,9 @@ mod_08_batch_server <- function(id) {
 
     # uploaded data checks ----------------------------------------------------
 
-    # Observer for file upload
+    # Validate and read the uploaded file
     observeEvent(input$fileInput, {
       if (!is.null(input$fileInput)) {
-        # Show modal dialog when file is uploaded
-
-        showModal(modalDialog(
-          textInput(
-            inputId = ns("file_description"),
-            label = "Please enter a file title:",
-            value = tools::file_path_sans_ext(
-              input$fileInput$name
-            )
-          ),
-          footer = tagList(
-            modalButton("Cancel"),
-            actionButton(
-              inputId = ns("confirm"),
-              label = "Confirm",
-              class = "btn-primary"
-            )
-          ),
-          easyClose = FALSE
-        ))
-      }
-    })
-
-    # Validate and read the uploaded file
-    observeEvent(input$confirm, {
-      req(input$file_description)
-      if (nchar(trimws(input$file_description)) > 0) {
-        removeModal()
         # Read the file
         imported_data <- utils::read.csv(
           input$fileInput$datapath
