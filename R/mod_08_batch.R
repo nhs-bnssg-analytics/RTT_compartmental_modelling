@@ -608,7 +608,6 @@ mod_08_batch_server <- function(id) {
           trust_parents = NULL,
           trusts = input$selectedtrusts,
           comm_parents = NULL,
-          comms = NULL,
           comms = input$selectedICBs,
           spec = input$specialty_codes
         )
@@ -692,6 +691,127 @@ mod_08_batch_server <- function(id) {
         utils::write.csv(template_data, file, row.names = FALSE)
       }
     )
+
+    # uploaded data checks ----------------------------------------------------
+
+    # Observer for file upload
+    observeEvent(input$fileInput, {
+      if (!is.null(input$fileInput)) {
+        # Show modal dialog when file is uploaded
+
+        showModal(modalDialog(
+          textInput(
+            inputId = ns("file_description"),
+            label = "Please enter a file title:",
+            value = tools::file_path_sans_ext(
+              input$fileInput$name
+            )
+          ),
+          footer = tagList(
+            modalButton("Cancel"),
+            actionButton(
+              inputId = ns("confirm"),
+              label = "Confirm",
+              class = "btn-primary"
+            )
+          ),
+          easyClose = FALSE
+        ))
+      }
+    })
+
+    # Validate and read the uploaded file
+    observeEvent(input$confirm, {
+      req(input$file_description)
+      if (nchar(trimws(input$file_description)) > 0) {
+        removeModal()
+        # Read the file
+        imported_data <- utils::read.csv(
+          input$fileInput$datapath
+        ) |>
+          mutate(
+            period = convert_to_date(.data$period)
+          )
+
+        # expected fields are "period", "type", "value", "months_waited_id" but
+        # lots of other checks performed
+        check_data <- check_imported_data(imported_data, steady_state = T)
+
+        if (check_data$msg == "Data successfully loaded!") {
+          notification_type <- "message"
+          reactive_values$import_success <- TRUE
+
+          imported_data <- check_data$imported_data_checked
+
+          # update start date for projection period
+          reactive_values$forecast_start_date <- lubridate::floor_date(
+            max(imported_data[["period"]]) %m+% months(1)
+          ) |>
+            as.Date()
+
+          # update label for ui
+          reactive_values$forecast_end_date_label <- paste0(
+            "Forecast end date (start date - ",
+            format(
+              reactive_values$forecast_start_date,
+              "%b %Y"
+            ),
+            ")"
+          )
+
+          # update default forecast end date
+          reactive_values$forecast_end_date <- get_next_march(
+            reactive_values$forecast_start_date
+          )
+
+          selections_labels <- filters_displays(
+            nhs_regions = input$region,
+            nhs_only = input$nhs_only,
+            trust_parents = input$trust_parent_codes,
+            trusts = input$trust_codes,
+            comm_parents = input$commissioner_parent_codes,
+            comms = input$commissioner_org_codes,
+            spec = input$specialty_codes
+          )
+
+          reactive_values$data_downloaded <- TRUE
+
+          # MORE TO COME HERE
+        } else {
+          notification_type <- "error"
+          reactive_values$import_success <- FALSE
+        }
+
+        showNotification(
+          ui = check_data$msg,
+          duration = 10,
+          type = notification_type
+        )
+      } else {
+        showNotification(
+          "Please enter some text before confirming.",
+          type = "warning"
+        )
+      }
+    })
+
+    # tick mark for data import
+    # Output the tick mark when the process is complete
+    output$tick_mark_import <- renderUI({
+      if (isTRUE(reactive_values$import_success)) {
+        shiny::icon(
+          "check",
+          class = "green-tick-larger"
+        )
+      } else if (isFALSE(reactive_values$import_success)) {
+        shiny::icon(
+          "xmark",
+          class = "red-xmark-larger"
+        )
+      } else {
+        NULL
+      }
+    })
 
     # perform modelling when batch run selected -------------------------------
 

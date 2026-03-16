@@ -300,10 +300,25 @@ convert_to_date <- function(char_vector) {
 #' check the data imported into the app
 #' @param imported_data a tibble with columns of period, type, value and
 #'   months_waited_id
+#' @param steady_state_option boolean T F as to whether include check for if it
+#'   is an input for the Steady state calculation. Default FALSE.
 #' @return list with two items; a message describing the outputs of the check,
 #'   and the resulting data tibble (which will be NULL if the checks have
 #'   failed)
-check_imported_data <- function(imported_data) {
+check_imported_data <- function(imported_data, steady_state = F) {
+  # check the data has some rows
+  if (nrow(imported_data) == 0) {
+    msg <- "Error: no rows in the input data"
+    data_checked <- NULL
+
+    return(
+      list(
+        msg = msg,
+        imported_data_checked = data_checked
+      )
+    )
+  }
+
   # Check if required columns exist
   required_cols <- c("period", "type", "value", "months_waited_id")
   missing_cols <- setdiff(required_cols, names(imported_data))
@@ -413,6 +428,24 @@ check_imported_data <- function(imported_data) {
         imported_data_checked = data_checked
       )
     )
+  }
+
+  if (steady_state) {
+    # for steady state we have two extra checks - that the right columns are there
+    has_description <- "description" %in% names(imported_data)
+    has_trust_and_specialty <- all(
+      c("trust", "specialty") %in% names(imported_data)
+    )
+    if (!(has_description || has_trust_and_specialty)) {
+      msg <- "Data must contain either a 'description' column, or both 'trust' and 'specialty' columns."
+      data_checked <- NULL
+      return(
+        list(
+          msg = msg,
+          imported_data_checked = data_checked
+        )
+      )
+    }
   }
 
   # If we got here, the data is valid
