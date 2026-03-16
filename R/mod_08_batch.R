@@ -840,23 +840,17 @@ mod_08_batch_server <- function(id) {
       c(input$batch_run_rtt_data),
       {
         if (input$batch_run_rtt_data > 0) {
-          '
-        LOGICAL FLOW       
-        if reactive_values$import_success & uploaded_or_downloaded_radio==Uploaded data from CSV then make raw_data from CSV
-
-        else do the below until raw_data is made then we are fine
-        
-        '
-          browser()
-
           if (
-            is.null(input$selectedtrusts) ||
+            (is.null(input$selectedtrusts) ||
               is.null(input$specialty_codes) ||
               all(
                 is.null(input$referral_bin_low),
                 is.null(input$referral_bin_medium),
                 is.null(input$referral_bin_high)
-              )
+              )) &&
+              # Exclusion criteria for when running with imported data
+              !(reactive_values$import_success &&
+                input$uploaded_or_downloaded_radio == "Uploaded data from CSV")
           ) {
             # If input is empty, show a modal dialog (popup)
             showModal(
@@ -870,28 +864,36 @@ mod_08_batch_server <- function(id) {
               )
             )
           } else {
-            # translate input values into codes for subsequent functions
-            selections_labels <- filters_displays(
-              nhs_regions = NA,
-              nhs_only = input$ss_nhs_only,
-              trust_parents = NA,
-              trusts = input$selectedtrusts,
-              comm_parents = NA,
-              comms = NA,
-              spec = input$specialty_codes
-            )
+            if (
+              reactive_values$import_success &&
+                input$uploaded_or_downloaded_radio == "Uploaded data from CSV"
+            ) {
+              # CREATE raw_data with inputed file
+              raw_data <- reactive_values$imported_data
+            } else {
+              # translate input values into codes for subsequent functions
+              selections_labels <- filters_displays(
+                nhs_regions = NA,
+                nhs_only = input$ss_nhs_only,
+                trust_parents = NA,
+                trusts = input$selectedtrusts,
+                comm_parents = NA,
+                comms = NA,
+                spec = input$specialty_codes
+              )
 
-            board <- pins::board_url(c(
-              rtt_12months = board_12,
-              rtt_24months = board_24
-            ))
+              board <- pins::board_url(c(
+                rtt_12months = board_12,
+                rtt_24months = board_24
+              ))
 
-            # pins version
-            raw_data <- board |>
-              pins::pin_read("rtt_12months") |>
-              clean_raw_data() |>
-              filter(trust %in% input$selectedtrusts) |>
-              filter(specialty %in% c(input$specialty_codes))
+              # pins version
+              raw_data <- board |>
+                pins::pin_read("rtt_12months") |>
+                clean_raw_data() |>
+                filter(trust %in% input$selectedtrusts) |>
+                filter(specialty %in% c(input$specialty_codes))
+            }
 
             # calculate targets
             if (input$renege_rate_option == "historic") {
