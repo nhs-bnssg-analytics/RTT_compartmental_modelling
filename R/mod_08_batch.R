@@ -464,7 +464,8 @@ mod_08_batch_server <- function(id) {
       target_data = dplyr::tibble(
         "Target_date" = get_next_march(),
         "Target_percentage" = NA_real_
-      )
+      ),
+      imported_data = NULL
     )
     # trust selection filtering based on other NHS only checkbox ----------------------
     reactive_org_tbl <- reactiveVal(org_lkp_ss_inputs)
@@ -779,6 +780,8 @@ mod_08_batch_server <- function(id) {
 
           reactive_values$data_downloaded <- TRUE
 
+          reactive_values$imported_data <- imported_data
+
           # MORE TO COME HERE
         } else {
           notification_type <- "error"
@@ -834,6 +837,15 @@ mod_08_batch_server <- function(id) {
       c(input$batch_run_rtt_data),
       {
         if (input$batch_run_rtt_data > 0) {
+          '
+        LOGICAL FLOW       
+        if reactive_values$import_success & uploaded_or_downloaded_radio==Uploaded data from CSV then make raw_data from CSV
+
+        else do the below until raw_data is made then we are fine
+        
+        '
+          browser()
+
           if (
             is.null(input$selectedtrusts) ||
               is.null(input$specialty_codes) ||
