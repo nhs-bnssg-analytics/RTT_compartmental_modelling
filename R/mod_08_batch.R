@@ -267,6 +267,9 @@ mod_08_batch_ui <- function(id) {
       )
     ),
     hr(),
+    tagList(
+      uiOutput(ns("conditional_radio"))
+    ),
     bslib::input_task_button(
       id = ns("batch_run_rtt_data"),
       label = "Calculate steady state",
@@ -357,7 +360,7 @@ mod_08_batch_ui <- function(id) {
               ),
               "The steps to identify the resulting solutions are as follows:",
               paste(
-                "<ol><li>The final 12 months of available public data are used to understand:",
+                "<ol><li>The final 12 months of available public (or user inputed) data are used to understand:",
                 paste0(
                   "<ul><li>on average, the proportion of people that ",
                   tooltip_label("renege"),
@@ -814,6 +817,18 @@ mod_08_batch_server <- function(id) {
     })
 
     # perform modelling when batch run selected -------------------------------
+
+    # Conditionally render the radio button
+    output$conditional_radio <- renderUI({
+      if (isTRUE(reactive_values$import_success)) {
+        radioButtons(
+          inputId = ns("uploaded_or_downloaded_radio"),
+          label = "Which input data to use in calculation:",
+          choices = c("Public data", "Uploaded data from CSV"),
+          selected = "Uploaded data from CSV"
+        )
+      }
+    })
 
     observeEvent(
       c(input$batch_run_rtt_data),
