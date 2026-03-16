@@ -752,7 +752,26 @@ mod_08_batch_server <- function(id) {
 
           reactive_values$data_downloaded <- TRUE
 
-          reactive_values$imported_data <- imported_data
+          # Add in the period_id column
+          if (!("period_lookup_id" %in% names(imported_data))) {
+            period_lkp <- imported_data |>
+              distinct(.data$period) |>
+              arrange(.data$period) |>
+              bind_rows(
+                dplyr::tibble(
+                  period = seq(
+                    from = reactive_values$forecast_start_date,
+                    to = reactive_values$forecast_end_date,
+                    by = "months"
+                  )
+                )
+              ) |>
+              mutate(
+                period_id = dplyr::row_number() - 1 # minus 1 because the first month in the imported data is the t0 incompletes
+              )
+            imported_data <- imported_data |>
+              left_join(period_lkp, by = "period")
+          }
 
           # MORE TO COME HERE
         } else {
