@@ -562,6 +562,15 @@ mod_02_planner_server <- function(id, r) {
             progress = progress
           )
         }
+        if (nrow(r$all_data) == 0) {
+          showModal(modalDialog(
+            title = "No Data Found",
+            "No data was downloaded for the selected filters. Please adjust your selection and try again.",
+            easyClose = TRUE,
+            footer = modalButton("OK")
+          ))
+          return()
+        }
         r$all_data <- r$all_data |>
           aggregate_and_format_raw_data(
             trust_aggregate = selections_labels$trusts$display,
