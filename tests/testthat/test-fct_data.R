@@ -314,8 +314,8 @@ test_that("Test check_imported_data", {
   result <- check_imported_data(empty_data)
   expect_match(
     result$msg,
-    "Error: Missing required columns: period, type, value, months_waited_id",
-    info = "Empty dataframe returns error for missing columns"
+    "Error: no rows in the input data",
+    info = "Empty dataframe returns error about no rows"
   )
   expect_null(
     result$imported_data_checked,

@@ -185,7 +185,7 @@ mod_01_introduction_server <- function(id) {
               sep = "<br>"
             ),
             paste(
-              "Select trusts and specialties of interest.",
+              "Select trust(s) and specialty of interest, then download/upload data. ",
               paste(
                 "Enter",
                 tooltip_label("referrals", "referral"),
