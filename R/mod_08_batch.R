@@ -15,7 +15,6 @@
 #' @importFrom shinyWidgets pickerInput numericInputIcon
 mod_08_batch_ui <- function(id) {
   ns <- NS(id)
-
   filters_sidebar <- sidebar(
     open = TRUE,
     width = '25%',
@@ -847,10 +846,12 @@ mod_08_batch_server <- function(id) {
                 is.null(input$referral_bin_low),
                 is.null(input$referral_bin_medium),
                 is.null(input$referral_bin_high)
-              )) &&
+              )) &
               # Exclusion criteria for when running with imported data
-              !(reactive_values$import_success &&
-                input$uploaded_or_downloaded_radio == "Uploaded data from CSV")
+              !(isTRUE(reactive_values$import_success) &
+                isTRUE(
+                  input$uploaded_or_downloaded_radio == "Uploaded data from CSV"
+                ))
           ) {
             # If input is empty, show a modal dialog (popup)
             showModal(
@@ -865,8 +866,10 @@ mod_08_batch_server <- function(id) {
             )
           } else {
             if (
-              reactive_values$import_success &&
-                input$uploaded_or_downloaded_radio == "Uploaded data from CSV"
+              isTRUE(reactive_values$import_success) &
+                isTRUE(
+                  input$uploaded_or_downloaded_radio == "Uploaded data from CSV"
+                )
             ) {
               # CREATE raw_data with inputed file
               raw_data <- reactive_values$imported_data
