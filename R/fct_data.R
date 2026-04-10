@@ -38,9 +38,12 @@ get_rtt_data_with_progress <- function(
       )
     })()
 
-  # translate "Other - Total" to all the individual specialties so all of the "Other" data is downloaded
-  if (specialty_codes == "X01") {
-    specialty_codes_input <- paste0("X0", 1:6)
+  if ("X01" %in% specialty_codes) {
+    # translate "Other - Total" to all the individual specialties so all of the "Other" data is downloaded
+    specialty_codes_input <- c(
+      setdiff(specialty_codes, "X01"),
+      paste0("X0", 1:6)
+    )
   } else {
     specialty_codes_input <- specialty_codes
   }
@@ -62,7 +65,7 @@ get_rtt_data_with_progress <- function(
     ) |>
     purrr::list_rbind()
 
-  if (specialty_codes == "X01") {
+  if (identical(specialty_codes, "X01")) {
     # replace all of the Other category codes to the "Other - Total" code
     monthly_rtt <- monthly_rtt |>
       mutate(specialty = "X01")
