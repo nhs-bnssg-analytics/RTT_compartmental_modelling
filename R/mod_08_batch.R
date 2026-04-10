@@ -641,7 +641,6 @@ mod_08_batch_server <- function(id) {
           specialty_codes = selections_labels$specialties$selected_code,
           progress = progress
         )
-
         # aggregate data
         template_data <- template_data |>
           mutate(
@@ -1207,7 +1206,11 @@ mod_08_batch_server <- function(id) {
               {
                 n <- nrow(optimised_projections)
                 reactive_values$optimised_projections <- optimised_projections |>
-                  left_join(wl_t0, by = c("trust", "specialty")) |>
+                  left_join(
+                    # don't select description if it exists, as it ruins the column join
+                    wl_t0 |> dplyr::select(-dplyr::any_of("description")),
+                    by = c("trust", "specialty")
+                  ) |>
                   mutate(
                     id = dplyr::row_number(),
                     counterfactual = purrr::pmap(
