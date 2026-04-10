@@ -479,8 +479,65 @@ check_imported_data <- function(imported_data, steady_state = F) {
         )
       )
     }
-  }
+    # check there are no missing months - first for type Incomplete and Complete
+    type_vals_expected <- c("Incomplete", "Complete")
 
+    bad <- imported_data |>
+      filter(type != "Referrals") |>
+      group_by(period, months_waited_id) |>
+      summarise(
+        missing = list(setdiff(type_vals_expected, unique(type))),
+        .groups = "drop"
+      ) |>
+      filter(lengths(missing) > 0)
+
+    if (nrow(bad) > 0) {
+      msg <-
+        paste0(
+          "Missing type(s): ",
+          paste0(
+            bad$period,
+            "/",
+            bad$months_waited_id,
+            " -> ",
+            sapply(bad$missing, paste, collapse = "|"),
+            collapse = "; "
+          )
+        )
+      data_checked <- NULL
+      return(
+        list(
+          msg = msg,
+          imported_data_checked = data_checked
+        )
+      )
+    }
+
+    # check referrals have all values
+    bad <- imported_data |>
+      group_by(across(-c(type, months_waited_id, value))) |>
+      summarise(
+        n_referrals = sum(type == "Referrals" & months_waited_id == 0)
+      ) |>
+      filter(n_referrals != 1)
+    if (nrow(bad) > 0) {
+      msg <-
+        paste0(
+          "Missing (or duplicate) Referral data for ",
+          paste0(
+            bad$period,
+            collapse = "; "
+          )
+        )
+      data_checked <- NULL
+      return(
+        list(
+          msg = msg,
+          imported_data_checked = data_checked
+        )
+      )
+    }
+  }
   # If we got here, the data is valid
   data_checked <- imported_data
   check_outputs <- list(
