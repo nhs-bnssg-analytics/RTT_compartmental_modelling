@@ -32,7 +32,7 @@ mod_06_acknowledgements_ui <- function(id) {
             "<li>Lucy Morgan (the Midlands Strategy Unit)</li>",
             "<li>Rhian Davies (the Midlands Strategy Unit)</li>",
             "<li>Luke Shaw (BNSSG ICB)</li></ul>",
-            "And input from Cornwall, Devon, Dorset, Gloucestershire, Birmingham and Solihull and BNSSG ICSs, Nottingham University Hospitals NHS Trust and the Midlands Strategy Unit."
+            "And input from Cornwall, Devon, Dorset, Gloucestershire, Birmingham and Solihull and BNSSG ICSs, Nottingham University Hospitals NHS Trust, Barts Health NHS Trust, and the Midlands Strategy Unit."
           )
         )
       )
