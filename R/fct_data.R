@@ -449,6 +449,36 @@ check_imported_data <- function(imported_data, steady_state = F) {
         )
       )
     }
+    # check there are no blanks values
+    bad <- imported_data |>
+      summarise(across(
+        everything(),
+        ~ {
+          i <- which(is.na(.) | . == "")[1]
+          if (is.na(i)) NA_integer_ else i
+        }
+      )) |>
+      pivot_longer(everything(), names_to = "col", values_to = "row") |>
+      filter(!is.na(row))
+    if (nrow(bad) > 0) {
+      msg <- paste0(
+        "Data has blanks - blank/NA found in: ",
+        paste0(
+          bad$col,
+          " (first row with blank: ",
+          bad$row,
+          ")",
+          collapse = ", "
+        )
+      )
+      data_checked <- NULL
+      return(
+        list(
+          msg = msg,
+          imported_data_checked = data_checked
+        )
+      )
+    }
   }
 
   # If we got here, the data is valid
