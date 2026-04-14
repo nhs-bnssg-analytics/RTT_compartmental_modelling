@@ -899,13 +899,35 @@ mod_08_batch_server <- function(id) {
 
             # calculate targets
             if (input$renege_rate_option == "historic") {
+              # calculate referrals uplift
+              referrals_uplift <- calibrate_parameters(
+                raw_data,
+                max_months_waited = 12,
+                redistribute_m0_reneges = FALSE,
+                referrals_uplift = NULL,
+                allow_negative_params = TRUE
+              ) |>
+                tidyr::unnest("params") |>
+                dplyr::filter(
+                  .data$months_waited_id == 0
+                ) |>
+                dplyr::mutate(
+                  referrals_uplift = case_when(
+                    .data$renege_param < 0 ~ abs(.data$renege_param),
+                    .default = 0
+                  )
+                ) |>
+                select("trust", "specialty", "referrals_uplift")
+
               targets <- raw_data |>
+                # the arguments for calibrate_parameters should be the same as
+                # how the params object is calculated in append_current_status
                 calibrate_parameters(
                   max_months_waited = 12,
                   redistribute_m0_reneges = FALSE,
-                  referrals_uplift = NULL,
+                  referrals_uplift = referrals_uplift,
                   full_breakdown = TRUE,
-                  allow_negative_params = TRUE
+                  allow_negative_params = FALSE
                 ) |>
                 dplyr::select("trust", "specialty", "params") |>
                 tidyr::unnest("params") |>
