@@ -11,6 +11,7 @@ If you have R installed on your machine, the following command may work
 to run the application without installing the package:
 
 ``` r
+
 # install.packages("shiny")
 shiny::runGitHub("RTT_compartmental_modelling", "nhs-bnssg-analytics")
 ```
@@ -21,6 +22,7 @@ You can install the development version of RTTshiny from
 [GitHub](https://github.com/) with:
 
 ``` r
+
 # install.packages("devtools")
 devtools::install_github(
   "nhs-bnssg-analytics/RTT_compartmental_modelling",
@@ -33,6 +35,7 @@ devtools::install_github(
 To launch the Shiny app following installation:
 
 ``` r
+
 RTTshiny::run_app()
 ```
 

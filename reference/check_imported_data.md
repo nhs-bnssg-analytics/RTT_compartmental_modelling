@@ -5,7 +5,7 @@ check the data imported into the app
 ## Usage
 
 ``` r
-check_imported_data(imported_data)
+check_imported_data(imported_data, steady_state = F)
 ```
 
 ## Arguments
@@ -13,6 +13,11 @@ check_imported_data(imported_data)
 - imported_data:
 
   a tibble with columns of period, type, value and months_waited_id
+
+- steady_state:
+
+  boolean T F as to whether include check for if it is an input for the
+  Steady state calculation. Default FALSE.
 
 ## Value
 

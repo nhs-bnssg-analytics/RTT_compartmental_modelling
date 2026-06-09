@@ -52,6 +52,7 @@ being able to write
 example).
 
 ``` r
+
 # install.packages("devtools")
 # devtools::install_github("nhs-bnssg-analytics/NHSRtt")
 # devtools::install_github("nhs-bnssg-analytics/RTT_compartmental_modelling")
@@ -73,6 +74,7 @@ what the data look like at the end of this section.
 ### Setting up the scenario
 
 ``` r
+
 calibration_start <- as.Date("2024-08-01") # amend as necessary
 calibration_end <- as.Date("2025-09-30") # amend as necessary
 prediction_start <- calibration_end + 1
@@ -124,6 +126,7 @@ Here the public data are downloaded and processed into the shape
 required later.
 
 ``` r
+
 monthly_rtt <- NHSRtt::get_rtt_data(
   date_start = calibration_start,
   date_end = calibration_end,
@@ -179,6 +182,7 @@ Here, it is calculated as the median value from the calibration period
 what the resulting input table needs to look like.
 
 ``` r
+
 # calculate historical renege rates
 renege_target <- processed_rtt |>
   # calibrate_parameters is an internal function that does a load of data processing before calibrating the parameters;
@@ -242,6 +246,7 @@ The `append_current_status()` function creates the current situation
 part of the table.
 
 ``` r
+
 # this normally gives a warning about negative reneges
 current <- processed_rtt |>
   left_join(period_lkp, by = "period_id") |>
@@ -277,6 +282,7 @@ is an input to the `append_counterfactual()` function used to model
 “do-nothing”.
 
 ``` r
+
 # A constraint to the steady state modelling is how the treatment is distributed across the waiting list.
 # The model wants to minimise the difference between the resulting solution and some provided distribution of treatment.
 # Here, we calculate the median distribution seen in the calibration period
@@ -390,6 +396,7 @@ optimised_projections <- current |>
 This is where the counterfactual is calculated.
 
 ``` r
+
 # First, the waiting list size and distribution at the end of the calibration period
 # needs to be calculated
 wl_t0 <- processed_rtt |>
@@ -404,6 +411,7 @@ wl_t0 <- processed_rtt |>
 ```
 
 ``` r
+
 print(wl_t0)
 #> # A tibble: 2 × 3
 #>   specialty           trust wl_t0            
@@ -413,6 +421,7 @@ print(wl_t0)
 ```
 
 ``` r
+
 optimised_projections <- optimised_projections |>
   left_join(wl_t0, by = c("trust", "specialty")) |>
   mutate(
@@ -485,10 +494,11 @@ This is what the resulting table looks like. The column headers are
 still in raw form and there has been no rounding to any of the data.
 
 ``` r
+
 print(optimised_projections)
 ```
 
-| trust | specialty           | referrals_scenario | referrals_t1 | capacity_t1 | reneges_t0 | load | incompletes_t0 | pressure | referrals_counterf | capacity_counterf | reneges_counterf | incompletes_counterf | perf_counterf | referrals_ss | capacity_ss | reneges_ss | incompletes_ss | op_to_first | op_follow_up |   ip_day | ip_non_day | current_vs_ss_wl_ratio | monthly_reduction |
-|:------|:--------------------|:-------------------|-------------:|------------:|-----------:|-----:|---------------:|---------:|-------------------:|------------------:|-----------------:|---------------------:|--------------:|-------------:|------------:|-----------:|---------------:|------------:|-------------:|---------:|-----------:|-----------------------:|------------------:|
-| 15E   | Ear Nose and Throat | Medium             |     2055.444 |    1755.923 |    702.766 | 0.84 |          14117 | 2.953936 |           2127.385 |          1755.923 |         368.8032 |            10636.897 |     0.4630164 |     2127.385 |    1951.838 |   175.5470 |       5578.415 |    2260.857 |     2247.071 | 245.5990 |   88.54930 |                   2.53 |          203.2996 |
-| 15E   | Oral Surgery        | Medium             |     1906.705 |    1819.923 |    952.246 | 0.69 |          12045 | 1.943767 |           1973.440 |          1819.923 |         166.4405 |             6098.088 |     0.7035103 |     1973.440 |    1898.873 |    74.5673 |       6205.471 |    1441.243 |     1542.756 | 501.7495 |   32.02656 |                   1.94 |          139.0364 |
+| trust | specialty | referrals_scenario | referrals_t1 | capacity_t1 | reneges_t0 | load | incompletes_t0 | pressure | referrals_counterf | capacity_counterf | reneges_counterf | incompletes_counterf | perf_counterf | referrals_ss | capacity_ss | reneges_ss | incompletes_ss | op_to_first | op_follow_up | ip_day | ip_non_day | current_vs_ss_wl_ratio | monthly_reduction |
+|:---|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 15E | Ear Nose and Throat | Medium | 2055.444 | 1755.923 | 702.766 | 0.84 | 14117 | 2.953936 | 2127.385 | 1755.923 | 368.8032 | 10636.897 | 0.4630164 | 2127.385 | 1951.838 | 175.5470 | 5578.415 | 2260.857 | 2247.071 | 245.5990 | 88.54930 | 2.53 | 203.2996 |
+| 15E | Oral Surgery | Medium | 1906.705 | 1819.923 | 952.246 | 0.69 | 12045 | 1.943767 | 1973.440 | 1819.923 | 166.4405 | 6098.088 | 0.7035103 | 1973.440 | 1898.873 | 74.5673 | 6205.471 | 1441.243 | 1542.756 | 501.7495 | 32.02656 | 1.94 | 139.0364 |

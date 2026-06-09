@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>The quick coding way to model a steady state solution • RTTshiny</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="The quick coding way to model a steady state solution">
 </head>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">RTTshiny</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -255,7 +255,7 @@ what the resulting input table needs to look like.</p>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="st">"trust"</span>, <span class="st">"specialty"</span>, <span class="st">"params"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/unnest.html" class="external-link">unnest</a></span><span class="op">(</span><span class="st">"params"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    reneges <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case_when.html" class="external-link">case_when</a></span><span class="op">(</span></span>
+<span>    reneges <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case-and-replace-when.html" class="external-link">case_when</a></span><span class="op">(</span></span>
 <span>      <span class="co"># when modelling occurs, referrals are uplifted where reneges are negative in the first month of waiting to accommodate underreporting of referrals - so reneges are floored to 0 when they are negative</span></span>
 <span>      <span class="va">reneges</span> <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">months_waited_id</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">~</span> <span class="fl">0</span>,</span>
 <span>      .default <span class="op">=</span> <span class="va">reneges</span></span>
@@ -268,7 +268,7 @@ what the resulting input table needs to look like.</p>
 <span>    .by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"trust"</span>, <span class="st">"specialty"</span>, <span class="st">"period_id"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    renege_proportion <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case_when.html" class="external-link">case_when</a></span><span class="op">(</span></span>
+<span>    renege_proportion <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case-and-replace-when.html" class="external-link">case_when</a></span><span class="op">(</span></span>
 <span>      <span class="va">renege_proportion</span> <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">~</span> <span class="cn">NA_real_</span>,</span>
 <span>      .default <span class="op">=</span> <span class="va">renege_proportion</span></span>
 <span>    <span class="op">)</span></span>
@@ -657,7 +657,7 @@ still in raw form and there has been no rounding to any of the data.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Seb Fox, Simon Wellesley-Miller, Nick Cooper, Richard Wood.</p>
+  <p>Developed by Seb Fox, Simon Wellesley-Miller, Nick Cooper, Richard Wood, Luke Shaw.</p>
 </div>
 
 <div class="pkgdown-footer-right">
