@@ -108,7 +108,7 @@ mod_08_batch_ui <- function(id) {
             strong("description"),
             em("or"),
             strong("trust & specialty"),
-            em("— you don't need both.")
+            em("-- you do not need both.")
           ),
           tags$ul(
             tags$li(
@@ -680,14 +680,14 @@ mod_08_batch_server <- function(id) {
             .data$months_waited_id
           ) |>
           select(-trust, -specialty) |>
-          rename(trust = trust_name, specialty = specialty_name) |>
+          rename(trust = .data$trust_name, specialty = .data$specialty_name) |>
           select(
-            trust,
-            specialty,
-            period,
-            type,
-            months_waited_id,
-            value
+            "trust",
+            "specialty",
+            "period",
+            "type",
+            "months_waited_id",
+            "value"
           )
 
         utils::write.csv(template_data, file, row.names = FALSE)
@@ -918,6 +918,7 @@ mod_08_batch_server <- function(id) {
                   )
                 ) |>
                 select("trust", "specialty", "referrals_uplift")
+              browser()
 
               targets <- raw_data |>
                 # the arguments for calibrate_parameters should be the same as
@@ -1014,7 +1015,6 @@ mod_08_batch_server <- function(id) {
               max_months_waited = 12,
               method = input$s_given_method
             )
-
             shiny::withProgress(
               message = "Processing trusts/specialties/scenarios",
               value = 0,

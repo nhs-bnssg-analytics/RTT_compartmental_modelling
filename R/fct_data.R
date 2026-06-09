@@ -301,9 +301,10 @@ convert_to_date <- function(char_vector) {
 }
 
 #' check the data imported into the app
+#' @importFrom dplyr everything
 #' @param imported_data a tibble with columns of period, type, value and
 #'   months_waited_id
-#' @param steady_state_option boolean T F as to whether include check for if it
+#' @param steady_state boolean T F as to whether include check for if it
 #'   is an input for the Steady state calculation. Default FALSE.
 #' @return list with two items; a message describing the outputs of the check,
 #'   and the resulting data tibble (which will be NULL if the checks have
@@ -515,11 +516,11 @@ check_imported_data <- function(imported_data, steady_state = F) {
 
     # check referrals have all values
     bad <- imported_data |>
-      group_by(across(-c(type, months_waited_id, value))) |>
+      group_by(across(-c("type", "months_waited_id", "value"))) |>
       summarise(
         n_referrals = sum(type == "Referrals" & months_waited_id == 0)
       ) |>
-      filter(n_referrals != 1)
+      filter(.data$n_referrals != 1)
     if (nrow(bad) > 0) {
       msg <-
         paste0(
