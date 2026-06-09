@@ -144,10 +144,10 @@ app_ui <- function(request) {
           p(
             HTML(
               paste0(
-                "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues</a> or send feedback to
+                "Please raise any issues on <a href='https://github.com/nhs-bnssg-analytics/RTT_compartmental_modelling/issues'>here</a>. Email
              <a href='mailto:bnssg.analytics@nhs.net?subject=RTT planning tool (version ",
                 packageVersion("RTTshiny"),
-                ")'>bnssg.analytics@nhs.net</a>"
+                ")'>bnssg.analytics@nhs.net</a> with feedback or to join the tool's User Engagement Group (which meets online once a month)."
               )
             ),
             class = "text-center text-muted"

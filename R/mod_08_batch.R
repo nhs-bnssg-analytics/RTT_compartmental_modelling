@@ -15,7 +15,6 @@
 #' @importFrom shinyWidgets pickerInput numericInputIcon
 mod_08_batch_ui <- function(id) {
   ns <- NS(id)
-
   filters_sidebar <- sidebar(
     open = TRUE,
     width = '25%',
@@ -98,6 +97,96 @@ mod_08_batch_ui <- function(id) {
       multiple = TRUE
     ),
     hr(),
+    card(
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          title = "Upload your own data...",
+          p("Your CSV file must contain these columns:"),
+          p(
+            em("Note: provide either"),
+            strong("description"),
+            em("or"),
+            strong("trust & specialty"),
+            em("-- you do not need both.")
+          ),
+          tags$ul(
+            tags$li(
+              strong("description"),
+              "- Your description of the organisational unit the data is for"
+            ),
+            tags$li(
+              strong("trust"),
+              "and",
+              strong("specialty"),
+              "- two separate columns of the trust and specialty (as this is local data you can use your own naming conventions)"
+            ),
+            tags$li(
+              strong("period"),
+              "- date; the first day of each month the data represent"
+            ),
+            tags$li(
+              strong("type"),
+              "- accepted values: Referrals, Incomplete, Complete"
+            ),
+            tags$li(
+              strong("months_waited_id"),
+              "- integers (0 to 12); the compartments waited
+                    ('0' is the number of people waiting 0-1 months, and '12' is the number of people waiting 12+ months)"
+            ),
+            tags$li(strong("value"), "- the counts for each compartment")
+          ),
+          p(
+            "More info can be found",
+            tooltip(
+              span(
+                "here.",
+                style = "text-decoration: underline; cursor: help;"
+              ),
+              p(
+                strong("Referrals:"),
+                "one record per period, with months_waited_id equal to 0."
+              ),
+              p(
+                strong("Incomplete:"),
+                "a record for each compartment for each period."
+              ),
+              p(
+                strong("Complete:"),
+                "a record for each compartment for each period."
+              ),
+              p(
+                "Note, only incompletes are used for the first period to provide the starting waiting list."
+              )
+            )
+          ),
+          hr(),
+          layout_columns(
+            col_widths = 12,
+            downloadButton(
+              outputId = ns("download_template"),
+              label = "Download selections above as template"
+            ),
+            downloadLink(
+              outputId = ns("sample_file"),
+              label = "Download an example CSV file",
+              class = "small-hyperlink"
+            )
+          ),
+          hr(),
+          layout_columns(
+            col_widths = c(11, 1),
+            fileInput(
+              inputId = ns("fileInput"),
+              label = "Upload your CSV file",
+              accept = c("text/csv", ".csv"),
+              placeholder = "Only CSV files are accepted"
+            ),
+            uiOutput(ns("tick_mark_import"))
+          )
+        )
+      )
+    ),
     p(
       "Referral scenario (% annual change):",
       class = "referral-scenario-header"
@@ -177,6 +266,9 @@ mod_08_batch_ui <- function(id) {
       )
     ),
     hr(),
+    tagList(
+      uiOutput(ns("conditional_radio"))
+    ),
     bslib::input_task_button(
       id = ns("batch_run_rtt_data"),
       label = "Calculate steady state",
@@ -267,7 +359,7 @@ mod_08_batch_ui <- function(id) {
               ),
               "The steps to identify the resulting solutions are as follows:",
               paste(
-                "<ol><li>The final 12 months of available public data are used to understand:",
+                "<ol><li>The final 12 months of available public (or user inputed) data are used to understand:",
                 paste0(
                   "<ul><li>on average, the proportion of people that ",
                   tooltip_label("renege"),
@@ -336,11 +428,44 @@ mod_08_batch_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    reactive_values <- reactiveValues()
-    reactive_values$show_results <- FALSE # determines whether outputs are shown
-    reactive_values$optimised_projections <- NULL # these are the outputs
-    reactive_values$optimised_waiting_list <- NULL # these are the outputs
+    board <- pins::board_url(c(
+      rtt_12months = board_12,
+      rtt_24months = board_24
+    ))
 
+    final_data_period <- board |>
+      pins::pin_read("rtt_12months") |>
+      dplyr::pull(.data$period) |>
+      max()
+
+    reactive_values <- reactiveValues(
+      show_results = FALSE, # determines whether outputs are shown
+      optimised_projections = NULL, # these are the outputs
+      optimised_waiting_list = NULL, # these are the outputs
+
+      # data_downloaded = FALSE,
+      params = NULL,
+      calibration_data = NULL,
+      latest_performance = NULL,
+      default_target = NULL,
+      default_target_date = get_next_march(),
+      referrals_uplift = NULL,
+      optimise_status_card_visible = NULL,
+      performance_calculated = FALSE,
+      latest_date = final_data_period,
+      forecast_start_date = final_data_period %m+%
+        months(1),
+      forecast_end_date = get_next_march(),
+      forecast_end_date_label = "Forecast end date",
+      import_success = NULL,
+      error_calc = NULL,
+      error_plot = NULL,
+      target_data = dplyr::tibble(
+        "Target_date" = get_next_march(),
+        "Target_percentage" = NA_real_
+      ),
+      imported_data = NULL
+    )
     # trust selection filtering based on other NHS only checkbox ----------------------
     reactive_org_tbl <- reactiveVal(org_lkp_ss_inputs)
 
@@ -428,20 +553,304 @@ mod_08_batch_server <- function(id) {
       ignoreInit = FALSE
     )
 
+    # bring your own data -----------------------------------------------------
+
+    # sample data -------------------------------------------------------------
+
+    # Provide sample CSV file for download
+    output$sample_file <- downloadHandler(
+      filename = function() {
+        "sample_data.csv"
+      },
+      content = function(file) {
+        # sample_data is an internal data object
+        final_month <- lubridate::floor_date(
+          reactive_values$latest_date,
+          unit = "months"
+        )
+
+        update_sample_data(final_month) |>
+          mutate(description = "my favourite organisation") |>
+          utils::write.csv(
+            file,
+            row.names = FALSE
+          )
+      }
+    )
+    # template data -----------------------------------------------------------
+
+    output$download_template <- downloadHandler(
+      filename = function() {
+        "template_data.csv"
+      },
+      content = function(file) {
+        # sample_data is an internal data object
+        max_download_date <- reactive_values$latest_date
+        min_download_date <- lubridate::floor_date(
+          max_download_date,
+          unit = "months"
+        ) %m-%
+          months(12) # equivalent to 'input$calibration_months)' in mod_02
+
+        # create progress bar
+        progress <- Progress$new(
+          session,
+          min = 1,
+          max = 12 + 1 # 12 is equivalent to 'input$calibration_months)' in mod_02
+        )
+
+        on.exit(progress$close())
+        progress$set(
+          message = 'Downloading public data from RTT statistics',
+          detail = 'This will be included in template csv file'
+        )
+
+        selections_labels <- filters_displays(
+          nhs_regions = input$selectedregions,
+          nhs_only = input$ss_nhs_only,
+          trust_parents = NULL,
+          trusts = input$selectedtrusts,
+          comm_parents = NULL,
+          comms = input$selectedICBs,
+          spec = input$specialty_codes
+        )
+
+        if (length(selections_labels$trusts$selected_code) == 0) {
+          showNotification(
+            "Please select a trust before downloading the template",
+            type = "error",
+            duration = NULL
+          )
+          req(FALSE)
+        }
+        if (length(selections_labels$spec$selected_code) == 0) {
+          showNotification(
+            "Please select a specialty before downloading the template",
+            type = "error",
+            duration = NULL
+          )
+          req(FALSE)
+        }
+        template_data <- get_rtt_data_with_progress(
+          date_start = min_download_date,
+          date_end = max_download_date,
+          # trust_parent_codes = selections_labels$trust_parents,
+          # commissioner_parent_codes = NULL,
+          # commissioner_org_codes = selections_labels$comms$selected_code,
+          trust_codes = selections_labels$trusts$selected_code,
+          specialty_codes = selections_labels$specialties$selected_code,
+          progress = progress
+        )
+        # aggregate data
+        template_data <- template_data |>
+          mutate(
+            months_waited_id = NHSRtt::convert_months_waited_to_id(
+              .data$months_waited,
+              12 # this pools the data at 12+ months (this can be a user input in the future)
+            )
+          ) |>
+          summarise(
+            value = sum(.data$value),
+            .by = c(
+              "period",
+              "months_waited_id",
+              "type",
+              "trust",
+              "specialty"
+            )
+          ) |>
+          # make the specialty & trust column nice (names not codes)
+          dplyr::left_join(
+            dplyr::tibble(
+              trust = selections_labels$trusts$selected_code,
+              trust_name = selections_labels$trusts$selected_name
+            ),
+            by = "trust"
+          ) |>
+          dplyr::left_join(
+            dplyr::tibble(
+              specialty = selections_labels$specialties$selected_code,
+              specialty_name = selections_labels$specialties$selected_name
+            ),
+            by = "specialty"
+          ) |>
+          arrange(
+            .data$type,
+            .data$period,
+            .data$months_waited_id
+          ) |>
+          select(-trust, -specialty) |>
+          rename(trust = .data$trust_name, specialty = .data$specialty_name) |>
+          select(
+            "trust",
+            "specialty",
+            "period",
+            "type",
+            "months_waited_id",
+            "value"
+          )
+
+        utils::write.csv(template_data, file, row.names = FALSE)
+      }
+    )
+
+    # uploaded data checks ----------------------------------------------------
+
+    # Validate and read the uploaded file
+    observeEvent(input$fileInput, {
+      if (!is.null(input$fileInput)) {
+        # Read the file
+        imported_data <- utils::read.csv(
+          input$fileInput$datapath
+        ) |>
+          mutate(
+            period = convert_to_date(.data$period)
+          )
+
+        # expected fields are "period", "type", "value", "months_waited_id" but
+        # lots of other checks performed
+        check_data <- check_imported_data(imported_data, steady_state = T)
+
+        if (check_data$msg == "Data successfully loaded!") {
+          notification_type <- "message"
+          reactive_values$import_success <- TRUE
+
+          imported_data <- check_data$imported_data_checked
+
+          # update start date for projection period
+          reactive_values$forecast_start_date <- lubridate::floor_date(
+            max(imported_data[["period"]]) %m+% months(1)
+          ) |>
+            as.Date()
+
+          # update label for ui
+          reactive_values$forecast_end_date_label <- paste0(
+            "Forecast end date (start date - ",
+            format(
+              reactive_values$forecast_start_date,
+              "%b %Y"
+            ),
+            ")"
+          )
+
+          # update default forecast end date
+          reactive_values$forecast_end_date <- get_next_march(
+            reactive_values$forecast_start_date
+          )
+
+          selections_labels <- filters_displays(
+            nhs_regions = input$region,
+            nhs_only = input$nhs_only,
+            trust_parents = input$trust_parent_codes,
+            trusts = input$trust_codes,
+            comm_parents = input$commissioner_parent_codes,
+            comms = input$commissioner_org_codes,
+            spec = input$specialty_codes
+          )
+
+          reactive_values$data_downloaded <- TRUE
+
+          # Add in the period_id column
+          if (!("period_lookup_id" %in% names(imported_data))) {
+            period_lkp <- imported_data |>
+              distinct(.data$period) |>
+              arrange(.data$period) |>
+              bind_rows(
+                dplyr::tibble(
+                  period = seq(
+                    from = reactive_values$forecast_start_date,
+                    to = reactive_values$forecast_end_date,
+                    by = "months"
+                  )
+                )
+              ) |>
+              mutate(
+                period_id = dplyr::row_number() - 1 # minus 1 because the first month in the imported data is the t0 incompletes
+              )
+            imported_data <- imported_data |>
+              left_join(period_lkp, by = "period")
+          }
+
+          # If there's just a description field, add in specialty and trust so code doesn't break later
+          # we make trust the description and the specialty ''
+          if ("description" %in% names(imported_data)) {
+            if (!("trust" %in% names(imported_data))) {
+              imported_data$trust <- imported_data$description
+            }
+            if (!("specialty" %in% names(imported_data))) {
+              imported_data$specialty <- ""
+            }
+          }
+
+          # save the imported data to reactive value to call later
+          reactive_values$imported_data <- imported_data
+        } else {
+          notification_type <- "error"
+          reactive_values$import_success <- FALSE
+        }
+
+        showNotification(
+          ui = check_data$msg,
+          duration = 10,
+          type = notification_type
+        )
+      } else {
+        showNotification(
+          "Please enter some text before confirming.",
+          type = "warning"
+        )
+      }
+    })
+
+    # tick mark for data import
+    # Output the tick mark when the process is complete
+    output$tick_mark_import <- renderUI({
+      if (isTRUE(reactive_values$import_success)) {
+        shiny::icon(
+          "check",
+          class = "green-tick-larger"
+        )
+      } else if (isFALSE(reactive_values$import_success)) {
+        shiny::icon(
+          "xmark",
+          class = "red-xmark-larger"
+        )
+      } else {
+        NULL
+      }
+    })
+
     # perform modelling when batch run selected -------------------------------
+
+    # Conditionally render the radio button
+    output$conditional_radio <- renderUI({
+      if (isTRUE(reactive_values$import_success)) {
+        radioButtons(
+          inputId = ns("uploaded_or_downloaded_radio"),
+          label = "Which input data to use in calculation:",
+          choices = c("Public data", "Uploaded data from CSV"),
+          selected = "Uploaded data from CSV"
+        )
+      }
+    })
 
     observeEvent(
       c(input$batch_run_rtt_data),
       {
         if (input$batch_run_rtt_data > 0) {
           if (
-            is.null(input$selectedtrusts) ||
+            (is.null(input$selectedtrusts) ||
               is.null(input$specialty_codes) ||
               all(
                 is.null(input$referral_bin_low),
                 is.null(input$referral_bin_medium),
                 is.null(input$referral_bin_high)
-              )
+              )) &
+              # Exclusion criteria for when running with imported data
+              !(isTRUE(reactive_values$import_success) &
+                isTRUE(
+                  input$uploaded_or_downloaded_radio == "Uploaded data from CSV"
+                ))
           ) {
             # If input is empty, show a modal dialog (popup)
             showModal(
@@ -455,38 +864,71 @@ mod_08_batch_server <- function(id) {
               )
             )
           } else {
-            # translate input values into codes for subsequent functions
-            selections_labels <- filters_displays(
-              nhs_regions = NA,
-              nhs_only = input$ss_nhs_only,
-              trust_parents = NA,
-              trusts = input$selectedtrusts,
-              comm_parents = NA,
-              comms = NA,
-              spec = input$specialty_codes
-            )
+            if (
+              isTRUE(reactive_values$import_success) &
+                isTRUE(
+                  input$uploaded_or_downloaded_radio == "Uploaded data from CSV"
+                )
+            ) {
+              # CREATE raw_data with inputed file
+              raw_data <- reactive_values$imported_data
+            } else {
+              # translate input values into codes for subsequent functions
+              selections_labels <- filters_displays(
+                nhs_regions = NA,
+                nhs_only = input$ss_nhs_only,
+                trust_parents = NA,
+                trusts = input$selectedtrusts,
+                comm_parents = NA,
+                comms = NA,
+                spec = input$specialty_codes
+              )
 
-            board <- pins::board_url(c(
-              rtt_12months = board_12,
-              rtt_24months = board_24
-            ))
+              board <- pins::board_url(c(
+                rtt_12months = board_12,
+                rtt_24months = board_24
+              ))
 
-            # pins version
-            raw_data <- board |>
-              pins::pin_read("rtt_12months") |>
-              clean_raw_data() |>
-              filter(trust %in% input$selectedtrusts) |>
-              filter(specialty %in% c(input$specialty_codes))
+              # pins version
+              raw_data <- board |>
+                pins::pin_read("rtt_12months") |>
+                clean_raw_data() |>
+                filter(trust %in% input$selectedtrusts) |>
+                filter(specialty %in% c(input$specialty_codes))
+            }
 
             # calculate targets
             if (input$renege_rate_option == "historic") {
+              # calculate referrals uplift
+              referrals_uplift <- calibrate_parameters(
+                raw_data,
+                max_months_waited = 12,
+                redistribute_m0_reneges = FALSE,
+                referrals_uplift = NULL,
+                allow_negative_params = TRUE
+              ) |>
+                tidyr::unnest("params") |>
+                dplyr::filter(
+                  .data$months_waited_id == 0
+                ) |>
+                dplyr::mutate(
+                  referrals_uplift = case_when(
+                    .data$renege_param < 0 ~ abs(.data$renege_param),
+                    .default = 0
+                  )
+                ) |>
+                select("trust", "specialty", "referrals_uplift")
+              browser()
+
               targets <- raw_data |>
+                # the arguments for calibrate_parameters should be the same as
+                # how the params object is calculated in append_current_status
                 calibrate_parameters(
                   max_months_waited = 12,
                   redistribute_m0_reneges = FALSE,
-                  referrals_uplift = NULL,
+                  referrals_uplift = referrals_uplift,
                   full_breakdown = TRUE,
-                  allow_negative_params = TRUE
+                  allow_negative_params = FALSE
                 ) |>
                 dplyr::select("trust", "specialty", "params") |>
                 tidyr::unnest("params") |>
@@ -573,7 +1015,6 @@ mod_08_batch_server <- function(id) {
               max_months_waited = 12,
               method = input$s_given_method
             )
-
             shiny::withProgress(
               message = "Processing trusts/specialties/scenarios",
               value = 0,
@@ -787,7 +1228,11 @@ mod_08_batch_server <- function(id) {
               {
                 n <- nrow(optimised_projections)
                 reactive_values$optimised_projections <- optimised_projections |>
-                  left_join(wl_t0, by = c("trust", "specialty")) |>
+                  left_join(
+                    # don't select description if it exists, as it ruins the column join
+                    wl_t0 |> dplyr::select(-dplyr::any_of("description")),
+                    by = c("trust", "specialty")
+                  ) |>
                   mutate(
                     id = dplyr::row_number(),
                     counterfactual = purrr::pmap(

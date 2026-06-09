@@ -1,3 +1,13 @@
+# RTTshiny 2.0.2
+
+## Scenario planner
+
+* Fails gracefully when selection given with no data, for example provider "NORTH BRISTOL TRUST" and specialty "Other - Mental Health Services". 
+
+## Steady state
+
+* New functionality to give user option of uploading data, as an option instead of using downloaded data.
+
 # RTTshiny 2.0.1
 
 ## Results

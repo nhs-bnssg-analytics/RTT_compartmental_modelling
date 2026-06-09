@@ -5,6 +5,9 @@ on:
     branches: [main, master]
   pull_request:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 name: R-CMD-check.yaml
 
 permissions: read-all

@@ -29,8 +29,10 @@ mod_06_acknowledgements_ui <- function(id) {
             "<li>Nick Cooper (Gloucestershire Foundation Trust)</li>",
             "<li>Euan Ives (NHSE SW)</li>",
             "<li>Neil Walton (Durham University)</li>",
-            "<li>Lucy Morgan (the Midlands Strategy Unit)</li></ul>",
-            "And input from Cornwall, Devon, Dorset, Gloucestershire, Birmingham and Solihull and BNSSG ICSs, Nottingham University Hospitals NHS Trust and the Midlands Strategy Unit."
+            "<li>Lucy Morgan (the Midlands Strategy Unit)</li>",
+            "<li>Rhian Davies (the Midlands Strategy Unit)</li>",
+            "<li>Luke Shaw (BNSSG ICB)</li></ul>",
+            "And input from Cornwall, Devon, Dorset, Gloucestershire, Birmingham and Solihull and BNSSG ICSs, Nottingham University Hospitals NHS Trust, Barts Health NHS Trust, and the Midlands Strategy Unit."
           )
         )
       )

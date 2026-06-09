@@ -20,3 +20,5 @@ CODE_OF_CONDUCT.md
 ^ad_hoc$
 ^doc$
 ^Meta$
+^\.positai$
+^\.claude$

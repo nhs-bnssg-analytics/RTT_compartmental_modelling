@@ -38,9 +38,12 @@ get_rtt_data_with_progress <- function(
       )
     })()
 
-  # translate "Other - Total" to all the individual specialties so all of the "Other" data is downloaded
-  if (specialty_codes == "X01") {
-    specialty_codes_input <- paste0("X0", 1:6)
+  if ("X01" %in% specialty_codes) {
+    # translate "Other - Total" to all the individual specialties so all of the "Other" data is downloaded
+    specialty_codes_input <- c(
+      setdiff(specialty_codes, "X01"),
+      paste0("X0", 1:6)
+    )
   } else {
     specialty_codes_input <- specialty_codes
   }
@@ -62,7 +65,7 @@ get_rtt_data_with_progress <- function(
     ) |>
     purrr::list_rbind()
 
-  if (specialty_codes == "X01") {
+  if (identical(specialty_codes, "X01")) {
     # replace all of the Other category codes to the "Other - Total" code
     monthly_rtt <- monthly_rtt |>
       mutate(specialty = "X01")
@@ -298,12 +301,28 @@ convert_to_date <- function(char_vector) {
 }
 
 #' check the data imported into the app
+#' @importFrom dplyr everything
 #' @param imported_data a tibble with columns of period, type, value and
 #'   months_waited_id
+#' @param steady_state boolean T F as to whether include check for if it
+#'   is an input for the Steady state calculation. Default FALSE.
 #' @return list with two items; a message describing the outputs of the check,
 #'   and the resulting data tibble (which will be NULL if the checks have
 #'   failed)
-check_imported_data <- function(imported_data) {
+check_imported_data <- function(imported_data, steady_state = F) {
+  # check the data has some rows
+  if (nrow(imported_data) == 0) {
+    msg <- "Error: no rows in the input data"
+    data_checked <- NULL
+
+    return(
+      list(
+        msg = msg,
+        imported_data_checked = data_checked
+      )
+    )
+  }
+
   # Check if required columns exist
   required_cols <- c("period", "type", "value", "months_waited_id")
   missing_cols <- setdiff(required_cols, names(imported_data))
@@ -415,6 +434,111 @@ check_imported_data <- function(imported_data) {
     )
   }
 
+  if (steady_state) {
+    # for steady state we have two extra checks - that the right columns are there
+    has_description <- "description" %in% names(imported_data)
+    has_trust_and_specialty <- all(
+      c("trust", "specialty") %in% names(imported_data)
+    )
+    if (!(has_description || has_trust_and_specialty)) {
+      msg <- "Data must contain either a 'description' column, or both 'trust' and 'specialty' columns."
+      data_checked <- NULL
+      return(
+        list(
+          msg = msg,
+          imported_data_checked = data_checked
+        )
+      )
+    }
+    # check there are no blanks values
+    bad <- imported_data |>
+      summarise(across(
+        everything(),
+        ~ {
+          i <- which(is.na(.) | . == "")[1]
+          if (is.na(i)) NA_integer_ else i
+        }
+      )) |>
+      pivot_longer(everything(), names_to = "col", values_to = "row") |>
+      filter(!is.na(row))
+    if (nrow(bad) > 0) {
+      msg <- paste0(
+        "Data has blanks - blank/NA found in: ",
+        paste0(
+          bad$col,
+          " (first row with blank: ",
+          bad$row,
+          ")",
+          collapse = ", "
+        )
+      )
+      data_checked <- NULL
+      return(
+        list(
+          msg = msg,
+          imported_data_checked = data_checked
+        )
+      )
+    }
+    # check there are no missing months - first for type Incomplete and Complete
+    type_vals_expected <- c("Incomplete", "Complete")
+
+    bad <- imported_data |>
+      filter(type != "Referrals") |>
+      group_by(period, months_waited_id) |>
+      summarise(
+        missing = list(setdiff(type_vals_expected, unique(type))),
+        .groups = "drop"
+      ) |>
+      filter(lengths(missing) > 0)
+
+    if (nrow(bad) > 0) {
+      msg <-
+        paste0(
+          "Missing type(s): ",
+          paste0(
+            bad$period,
+            "/",
+            bad$months_waited_id,
+            " -> ",
+            sapply(bad$missing, paste, collapse = "|"),
+            collapse = "; "
+          )
+        )
+      data_checked <- NULL
+      return(
+        list(
+          msg = msg,
+          imported_data_checked = data_checked
+        )
+      )
+    }
+
+    # check referrals have all values
+    bad <- imported_data |>
+      group_by(across(-c("type", "months_waited_id", "value"))) |>
+      summarise(
+        n_referrals = sum(type == "Referrals" & months_waited_id == 0)
+      ) |>
+      filter(.data$n_referrals != 1)
+    if (nrow(bad) > 0) {
+      msg <-
+        paste0(
+          "Missing (or duplicate) Referral data for ",
+          paste0(
+            bad$period,
+            collapse = "; "
+          )
+        )
+      data_checked <- NULL
+      return(
+        list(
+          msg = msg,
+          imported_data_checked = data_checked
+        )
+      )
+    }
+  }
   # If we got here, the data is valid
   data_checked <- imported_data
   check_outputs <- list(
